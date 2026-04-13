@@ -1,0 +1,651 @@
+// !$*UTF8*$!
+{
+	archiveVersion = 1;
+	classes = {
+	};
+	objectVersion = 54;
+	objects = {
+
+/* Begin PBXBuildFile section */
+		17AA8CAE714DA3BD729D6700 /* GlacierApp.swift in Sources */ = {isa = PBXBuildFile; fileRef = 5944FC51D64A920B0E52E5F0 /* GlacierApp.swift */; };
+		26E37FC3639099962A77591E /* SyntaxHighlighter.swift in Sources */ = {isa = PBXBuildFile; fileRef = 1D18FBC0FF11123033274329 /* SyntaxHighlighter.swift */; };
+		2C954F4E126957730B15E04A /* Theme.swift in Sources */ = {isa = PBXBuildFile; fileRef = 01ED4B70F8C1994C7F03C137 /* Theme.swift */; };
+		3801D7A29E111553A0DE6F01 /* TextEditorView.swift in Sources */ = {isa = PBXBuildFile; fileRef = A47CBAE36C3E3C8F27FFF08C /* TextEditorView.swift */; };
+		446CB83237B38B6DD2451699 /* FileRowView.swift in Sources */ = {isa = PBXBuildFile; fileRef = F785EA939571F234815930C5 /* FileRowView.swift */; };
+		48B0354A4DBC5AF642B737C7 /* MarkdownPreviewView.swift in Sources */ = {isa = PBXBuildFile; fileRef = 867E85D4AAF4156C80D6179F /* MarkdownPreviewView.swift */; };
+		4976F1FE12DB6E8D19B21FF3 /* Assets.xcassets in Resources */ = {isa = PBXBuildFile; fileRef = A99E9311E7D20849B09A27D0 /* Assets.xcassets */; };
+		4A7E90682365AA3E9308567F /* SwiftTerm in Frameworks */ = {isa = PBXBuildFile; productRef = 7613E683B9B6635224D3B6A3 /* SwiftTerm */; };
+		5ABADD52AE8E7A50014B3FF5 /* TerminalView.swift in Sources */ = {isa = PBXBuildFile; fileRef = C82C2FB5AB2DFE9AFBAD8305 /* TerminalView.swift */; };
+		609281CF16DD8030B821F72B /* TerminalViewCache.swift in Sources */ = {isa = PBXBuildFile; fileRef = 27E564E480C4BD29A5AD46CC /* TerminalViewCache.swift */; };
+		66E686EFCC52B01B5152BFE0 /* FileService.swift in Sources */ = {isa = PBXBuildFile; fileRef = 4576EACAE58F9517F77555F0 /* FileService.swift */; };
+		779EBCEE08533E2847A2A7FC /* GlacierCommands.swift in Sources */ = {isa = PBXBuildFile; fileRef = E12F526BF85595F4F2377633 /* GlacierCommands.swift */; };
+		7F3295DBCA75CFB816671B56 /* DebugUITest.swift in Sources */ = {isa = PBXBuildFile; fileRef = F80AC125D3152A7106A12278 /* DebugUITest.swift */; };
+		939FFD364A1F541038A0B479 /* ContentView.swift in Sources */ = {isa = PBXBuildFile; fileRef = B52D6AAC9967E2036F524B91 /* ContentView.swift */; };
+		978D445809AD3EF3FED7B552 /* AppState.swift in Sources */ = {isa = PBXBuildFile; fileRef = CF5BDA0D91882E19997A60C4 /* AppState.swift */; };
+		9946E9550F93000A989EE753 /* VideoViewerView.swift in Sources */ = {isa = PBXBuildFile; fileRef = 1E97B9A4AC248E009726AB21 /* VideoViewerView.swift */; };
+		9A7BF0A8BBF368DB731D0B98 /* ImageViewerView.swift in Sources */ = {isa = PBXBuildFile; fileRef = 514C6B81CB9C5AA52346DB3E /* ImageViewerView.swift */; };
+		9CCCE74E801685099345E041 /* FileTypeRegistry.swift in Sources */ = {isa = PBXBuildFile; fileRef = 6F637D0BFFB5C3A06AC1555C /* FileTypeRegistry.swift */; };
+		9E8073F11196A309F96DA380 /* GlacierUITests.swift in Sources */ = {isa = PBXBuildFile; fileRef = 214D16911A5FB7FC000483E8 /* GlacierUITests.swift */; };
+		9EE4F8D1E4C6B1FCAE4EE521 /* FileItem.swift in Sources */ = {isa = PBXBuildFile; fileRef = B62D358B4D39E089035D5C94 /* FileItem.swift */; };
+		BBBF864E4057B1D41C4ADE5D /* ExplorerView.swift in Sources */ = {isa = PBXBuildFile; fileRef = 623249D019FA8412880434CB /* ExplorerView.swift */; };
+		C59B9232DF4E8D540E520215 /* TabBarView.swift in Sources */ = {isa = PBXBuildFile; fileRef = 9832885CCE672DFC64559C23 /* TabBarView.swift */; };
+		D4A2C2AD9B128971DEFAE880 /* FileViewerRouter.swift in Sources */ = {isa = PBXBuildFile; fileRef = E9FC3C49D5662DFF52FB6D2D /* FileViewerRouter.swift */; };
+		DD3B40C53ADCE702E0B8D654 /* MainContentArea.swift in Sources */ = {isa = PBXBuildFile; fileRef = B64386233001CAFCDF131C27 /* MainContentArea.swift */; };
+		E0DDD3F98649C0EFD926E828 /* GuardedTerminalView.swift in Sources */ = {isa = PBXBuildFile; fileRef = E9131023EDD37258AA6A8443 /* GuardedTerminalView.swift */; };
+		E9B15CC4646E60DBF9C5FEA2 /* PDFViewerView.swift in Sources */ = {isa = PBXBuildFile; fileRef = 57BF7FC57F6055A25AC0814C /* PDFViewerView.swift */; };
+		F4363502A8B5B4B334A4A3C0 /* TerminalSession.swift in Sources */ = {isa = PBXBuildFile; fileRef = DDD4F14EF005E20E271FAC11 /* TerminalSession.swift */; };
+/* End PBXBuildFile section */
+
+/* Begin PBXContainerItemProxy section */
+		0F85BEC567576C00F6773BD0 /* PBXContainerItemProxy */ = {
+			isa = PBXContainerItemProxy;
+			containerPortal = AF54EF5E4ABFD35DF2BFDB32 /* Project object */;
+			proxyType = 1;
+			remoteGlobalIDString = 7670F3100B27B0C7938766C0;
+			remoteInfo = Glacier;
+		};
+/* End PBXContainerItemProxy section */
+
+/* Begin PBXFileReference section */
+		01ED4B70F8C1994C7F03C137 /* Theme.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = Theme.swift; sourceTree = "<group>"; };
+		1D18FBC0FF11123033274329 /* SyntaxHighlighter.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = SyntaxHighlighter.swift; sourceTree = "<group>"; };
+		1E97B9A4AC248E009726AB21 /* VideoViewerView.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = VideoViewerView.swift; sourceTree = "<group>"; };
+		214D16911A5FB7FC000483E8 /* GlacierUITests.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = GlacierUITests.swift; sourceTree = "<group>"; };
+		27E564E480C4BD29A5AD46CC /* TerminalViewCache.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = TerminalViewCache.swift; sourceTree = "<group>"; };
+		29A928CAF4BF8420D26624D4 /* Info.plist */ = {isa = PBXFileReference; lastKnownFileType = text.plist; path = Info.plist; sourceTree = "<group>"; };
+		4576EACAE58F9517F77555F0 /* FileService.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = FileService.swift; sourceTree = "<group>"; };
+		514C6B81CB9C5AA52346DB3E /* ImageViewerView.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = ImageViewerView.swift; sourceTree = "<group>"; };
+		525B6E4CCA234E9F6D2D7EE2 /* Glacier.entitlements */ = {isa = PBXFileReference; lastKnownFileType = text.plist.entitlements; path = Glacier.entitlements; sourceTree = "<group>"; };
+		57BF7FC57F6055A25AC0814C /* PDFViewerView.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = PDFViewerView.swift; sourceTree = "<group>"; };
+		5944FC51D64A920B0E52E5F0 /* GlacierApp.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = GlacierApp.swift; sourceTree = "<group>"; };
+		623249D019FA8412880434CB /* ExplorerView.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = ExplorerView.swift; sourceTree = "<group>"; };
+		6F637D0BFFB5C3A06AC1555C /* FileTypeRegistry.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = FileTypeRegistry.swift; sourceTree = "<group>"; };
+		798B7369CB1C69CD948799C7 /* Info.plist */ = {isa = PBXFileReference; lastKnownFileType = text.plist; path = Info.plist; sourceTree = "<group>"; };
+		867E85D4AAF4156C80D6179F /* MarkdownPreviewView.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = MarkdownPreviewView.swift; sourceTree = "<group>"; };
+		8D84D6DA96169DD668395E25 /* Glacier.app */ = {isa = PBXFileReference; explicitFileType = wrapper.application; includeInIndex = 0; path = Glacier.app; sourceTree = BUILT_PRODUCTS_DIR; };
+		9832885CCE672DFC64559C23 /* TabBarView.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = TabBarView.swift; sourceTree = "<group>"; };
+		A47CBAE36C3E3C8F27FFF08C /* TextEditorView.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = TextEditorView.swift; sourceTree = "<group>"; };
+		A64424275D2FFF6780CBB0D8 /* GlacierUITests.xctest */ = {isa = PBXFileReference; explicitFileType = wrapper.cfbundle; includeInIndex = 0; path = GlacierUITests.xctest; sourceTree = BUILT_PRODUCTS_DIR; };
+		A99E9311E7D20849B09A27D0 /* Assets.xcassets */ = {isa = PBXFileReference; lastKnownFileType = folder.assetcatalog; path = Assets.xcassets; sourceTree = "<group>"; };
+		B52D6AAC9967E2036F524B91 /* ContentView.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = ContentView.swift; sourceTree = "<group>"; };
+		B62D358B4D39E089035D5C94 /* FileItem.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = FileItem.swift; sourceTree = "<group>"; };
+		B64386233001CAFCDF131C27 /* MainContentArea.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = MainContentArea.swift; sourceTree = "<group>"; };
+		C82C2FB5AB2DFE9AFBAD8305 /* TerminalView.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = TerminalView.swift; sourceTree = "<group>"; };
+		CF5BDA0D91882E19997A60C4 /* AppState.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = AppState.swift; sourceTree = "<group>"; };
+		DDD4F14EF005E20E271FAC11 /* TerminalSession.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = TerminalSession.swift; sourceTree = "<group>"; };
+		E12F526BF85595F4F2377633 /* GlacierCommands.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = GlacierCommands.swift; sourceTree = "<group>"; };
+		E9131023EDD37258AA6A8443 /* GuardedTerminalView.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = GuardedTerminalView.swift; sourceTree = "<group>"; };
+		E9FC3C49D5662DFF52FB6D2D /* FileViewerRouter.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = FileViewerRouter.swift; sourceTree = "<group>"; };
+		F785EA939571F234815930C5 /* FileRowView.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = FileRowView.swift; sourceTree = "<group>"; };
+		F80AC125D3152A7106A12278 /* DebugUITest.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = DebugUITest.swift; sourceTree = "<group>"; };
+/* End PBXFileReference section */
+
+/* Begin PBXFrameworksBuildPhase section */
+		885F3BB9C1B7D0A0B31D2553 /* Frameworks */ = {
+			isa = PBXFrameworksBuildPhase;
+			buildActionMask = 2147483647;
+			files = (
+				4A7E90682365AA3E9308567F /* SwiftTerm in Frameworks */,
+			);
+			runOnlyForDeploymentPostprocessing = 0;
+		};
+/* End PBXFrameworksBuildPhase section */
+
+/* Begin PBXGroup section */
+		14DA57EC1E89113B7CCF655E /* GlacierUITests */ = {
+			isa = PBXGroup;
+			children = (
+				F80AC125D3152A7106A12278 /* DebugUITest.swift */,
+				214D16911A5FB7FC000483E8 /* GlacierUITests.swift */,
+				29A928CAF4BF8420D26624D4 /* Info.plist */,
+			);
+			path = GlacierUITests;
+			sourceTree = "<group>";
+		};
+		2869AE08A908168CF17E9C49 /* Models */ = {
+			isa = PBXGroup;
+			children = (
+				B62D358B4D39E089035D5C94 /* FileItem.swift */,
+				6F637D0BFFB5C3A06AC1555C /* FileTypeRegistry.swift */,
+			);
+			path = Models;
+			sourceTree = "<group>";
+		};
+		323B722C4442D0B000834330 /* Features */ = {
+			isa = PBXGroup;
+			children = (
+				CB22836B08C1176E08747296 /* Editor */,
+				BC8B5A4E36304853EFCE6D14 /* Explorer */,
+				E79D03C45E0FF2B0DE1AE5A6 /* Tabs */,
+				F674166F5C63411D2B06EF32 /* Terminal */,
+				61CDB4CCCF2551D49415E631 /* Viewers */,
+			);
+			path = Features;
+			sourceTree = "<group>";
+		};
+		61CDB4CCCF2551D49415E631 /* Viewers */ = {
+			isa = PBXGroup;
+			children = (
+				E9FC3C49D5662DFF52FB6D2D /* FileViewerRouter.swift */,
+				514C6B81CB9C5AA52346DB3E /* ImageViewerView.swift */,
+				867E85D4AAF4156C80D6179F /* MarkdownPreviewView.swift */,
+				57BF7FC57F6055A25AC0814C /* PDFViewerView.swift */,
+				A47CBAE36C3E3C8F27FFF08C /* TextEditorView.swift */,
+				1E97B9A4AC248E009726AB21 /* VideoViewerView.swift */,
+			);
+			path = Viewers;
+			sourceTree = "<group>";
+		};
+		651D1F9C0391B9EC5D18BA46 = {
+			isa = PBXGroup;
+			children = (
+				91DCC4CB73D553623F07A1BA /* Glacier */,
+				14DA57EC1E89113B7CCF655E /* GlacierUITests */,
+				BDB96C959EBD3A62FA792C3F /* Products */,
+			);
+			sourceTree = "<group>";
+		};
+		91DCC4CB73D553623F07A1BA /* Glacier */ = {
+			isa = PBXGroup;
+			children = (
+				AD51EA4E3B1D40DEABB3BF4E /* App */,
+				FE196AB1784B8959A491B306 /* Core */,
+				323B722C4442D0B000834330 /* Features */,
+				A99E9311E7D20849B09A27D0 /* Assets.xcassets */,
+				525B6E4CCA234E9F6D2D7EE2 /* Glacier.entitlements */,
+				798B7369CB1C69CD948799C7 /* Info.plist */,
+			);
+			path = Glacier;
+			sourceTree = "<group>";
+		};
+		9482FF661724D73D296F7047 /* Theme */ = {
+			isa = PBXGroup;
+			children = (
+				01ED4B70F8C1994C7F03C137 /* Theme.swift */,
+			);
+			path = Theme;
+			sourceTree = "<group>";
+		};
+		AD51EA4E3B1D40DEABB3BF4E /* App */ = {
+			isa = PBXGroup;
+			children = (
+				CF5BDA0D91882E19997A60C4 /* AppState.swift */,
+				B52D6AAC9967E2036F524B91 /* ContentView.swift */,
+				5944FC51D64A920B0E52E5F0 /* GlacierApp.swift */,
+				E12F526BF85595F4F2377633 /* GlacierCommands.swift */,
+				DDD4F14EF005E20E271FAC11 /* TerminalSession.swift */,
+			);
+			path = App;
+			sourceTree = "<group>";
+		};
+		BC8B5A4E36304853EFCE6D14 /* Explorer */ = {
+			isa = PBXGroup;
+			children = (
+				623249D019FA8412880434CB /* ExplorerView.swift */,
+				F785EA939571F234815930C5 /* FileRowView.swift */,
+			);
+			path = Explorer;
+			sourceTree = "<group>";
+		};
+		BDB96C959EBD3A62FA792C3F /* Products */ = {
+			isa = PBXGroup;
+			children = (
+				8D84D6DA96169DD668395E25 /* Glacier.app */,
+				A64424275D2FFF6780CBB0D8 /* GlacierUITests.xctest */,
+			);
+			name = Products;
+			sourceTree = "<group>";
+		};
+		CB22836B08C1176E08747296 /* Editor */ = {
+			isa = PBXGroup;
+			children = (
+				B64386233001CAFCDF131C27 /* MainContentArea.swift */,
+			);
+			path = Editor;
+			sourceTree = "<group>";
+		};
+		E11A3D81B42656F350321176 /* Services */ = {
+			isa = PBXGroup;
+			children = (
+				4576EACAE58F9517F77555F0 /* FileService.swift */,
+				1D18FBC0FF11123033274329 /* SyntaxHighlighter.swift */,
+			);
+			path = Services;
+			sourceTree = "<group>";
+		};
+		E79D03C45E0FF2B0DE1AE5A6 /* Tabs */ = {
+			isa = PBXGroup;
+			children = (
+				9832885CCE672DFC64559C23 /* TabBarView.swift */,
+			);
+			path = Tabs;
+			sourceTree = "<group>";
+		};
+		F674166F5C63411D2B06EF32 /* Terminal */ = {
+			isa = PBXGroup;
+			children = (
+				E9131023EDD37258AA6A8443 /* GuardedTerminalView.swift */,
+				C82C2FB5AB2DFE9AFBAD8305 /* TerminalView.swift */,
+				27E564E480C4BD29A5AD46CC /* TerminalViewCache.swift */,
+			);
+			path = Terminal;
+			sourceTree = "<group>";
+		};
+		FE196AB1784B8959A491B306 /* Core */ = {
+			isa = PBXGroup;
+			children = (
+				2869AE08A908168CF17E9C49 /* Models */,
+				E11A3D81B42656F350321176 /* Services */,
+				9482FF661724D73D296F7047 /* Theme */,
+			);
+			path = Core;
+			sourceTree = "<group>";
+		};
+/* End PBXGroup section */
+
+/* Begin PBXNativeTarget section */
+		24E80CB72AC85BC2B836EFCC /* GlacierUITests */ = {
+			isa = PBXNativeTarget;
+			buildConfigurationList = B655067197528B89942081BD /* Build configuration list for PBXNativeTarget "GlacierUITests" */;
+			buildPhases = (
+				FB4D2EA792943B32BE2A50C9 /* Sources */,
+			);
+			buildRules = (
+			);
+			dependencies = (
+				0F022214DD2658BBCA8554ED /* PBXTargetDependency */,
+			);
+			name = GlacierUITests;
+			packageProductDependencies = (
+			);
+			productName = GlacierUITests;
+			productReference = A64424275D2FFF6780CBB0D8 /* GlacierUITests.xctest */;
+			productType = "com.apple.product-type.bundle.ui-testing";
+		};
+		7670F3100B27B0C7938766C0 /* Glacier */ = {
+			isa = PBXNativeTarget;
+			buildConfigurationList = F10CEC9B3CB1AB9A7BD891D0 /* Build configuration list for PBXNativeTarget "Glacier" */;
+			buildPhases = (
+				2B7D1FE3A1CAD13E0B573A08 /* Sources */,
+				FAC9CEEB3AC411365B707801 /* Resources */,
+				885F3BB9C1B7D0A0B31D2553 /* Frameworks */,
+			);
+			buildRules = (
+			);
+			dependencies = (
+			);
+			name = Glacier;
+			packageProductDependencies = (
+				7613E683B9B6635224D3B6A3 /* SwiftTerm */,
+			);
+			productName = Glacier;
+			productReference = 8D84D6DA96169DD668395E25 /* Glacier.app */;
+			productType = "com.apple.product-type.application";
+		};
+/* End PBXNativeTarget section */
+
+/* Begin PBXProject section */
+		AF54EF5E4ABFD35DF2BFDB32 /* Project object */ = {
+			isa = PBXProject;
+			attributes = {
+				BuildIndependentTargetsInParallel = YES;
+				LastUpgradeCheck = 2600;
+				TargetAttributes = {
+					24E80CB72AC85BC2B836EFCC = {
+						DevelopmentTeam = "";
+						ProvisioningStyle = Manual;
+						TestTargetID = 7670F3100B27B0C7938766C0;
+					};
+					7670F3100B27B0C7938766C0 = {
+						DevelopmentTeam = "";
+						ProvisioningStyle = Manual;
+					};
+				};
+			};
+			buildConfigurationList = 226D14CED95597CACEFC054A /* Build configuration list for PBXProject "Glacier" */;
+			compatibilityVersion = "Xcode 14.0";
+			developmentRegion = en;
+			hasScannedForEncodings = 0;
+			knownRegions = (
+				Base,
+				en,
+			);
+			mainGroup = 651D1F9C0391B9EC5D18BA46;
+			minimizedProjectReferenceProxies = 1;
+			packageReferences = (
+				09FEC232195B97195C29C32B /* XCRemoteSwiftPackageReference "SwiftTerm" */,
+			);
+			preferredProjectObjectVersion = 54;
+			projectDirPath = "";
+			projectRoot = "";
+			targets = (
+				7670F3100B27B0C7938766C0 /* Glacier */,
+				24E80CB72AC85BC2B836EFCC /* GlacierUITests */,
+			);
+		};
+/* End PBXProject section */
+
+/* Begin PBXResourcesBuildPhase section */
+		FAC9CEEB3AC411365B707801 /* Resources */ = {
+			isa = PBXResourcesBuildPhase;
+			buildActionMask = 2147483647;
+			files = (
+				4976F1FE12DB6E8D19B21FF3 /* Assets.xcassets in Resources */,
+			);
+			runOnlyForDeploymentPostprocessing = 0;
+		};
+/* End PBXResourcesBuildPhase section */
+
+/* Begin PBXSourcesBuildPhase section */
+		2B7D1FE3A1CAD13E0B573A08 /* Sources */ = {
+			isa = PBXSourcesBuildPhase;
+			buildActionMask = 2147483647;
+			files = (
+				978D445809AD3EF3FED7B552 /* AppState.swift in Sources */,
+				939FFD364A1F541038A0B479 /* ContentView.swift in Sources */,
+				BBBF864E4057B1D41C4ADE5D /* ExplorerView.swift in Sources */,
+				9EE4F8D1E4C6B1FCAE4EE521 /* FileItem.swift in Sources */,
+				446CB83237B38B6DD2451699 /* FileRowView.swift in Sources */,
+				66E686EFCC52B01B5152BFE0 /* FileService.swift in Sources */,
+				9CCCE74E801685099345E041 /* FileTypeRegistry.swift in Sources */,
+				D4A2C2AD9B128971DEFAE880 /* FileViewerRouter.swift in Sources */,
+				17AA8CAE714DA3BD729D6700 /* GlacierApp.swift in Sources */,
+				779EBCEE08533E2847A2A7FC /* GlacierCommands.swift in Sources */,
+				E0DDD3F98649C0EFD926E828 /* GuardedTerminalView.swift in Sources */,
+				9A7BF0A8BBF368DB731D0B98 /* ImageViewerView.swift in Sources */,
+				DD3B40C53ADCE702E0B8D654 /* MainContentArea.swift in Sources */,
+				48B0354A4DBC5AF642B737C7 /* MarkdownPreviewView.swift in Sources */,
+				E9B15CC4646E60DBF9C5FEA2 /* PDFViewerView.swift in Sources */,
+				26E37FC3639099962A77591E /* SyntaxHighlighter.swift in Sources */,
+				C59B9232DF4E8D540E520215 /* TabBarView.swift in Sources */,
+				F4363502A8B5B4B334A4A3C0 /* TerminalSession.swift in Sources */,
+				5ABADD52AE8E7A50014B3FF5 /* TerminalView.swift in Sources */,
+				609281CF16DD8030B821F72B /* TerminalViewCache.swift in Sources */,
+				3801D7A29E111553A0DE6F01 /* TextEditorView.swift in Sources */,
+				2C954F4E126957730B15E04A /* Theme.swift in Sources */,
+				9946E9550F93000A989EE753 /* VideoViewerView.swift in Sources */,
+			);
+			runOnlyForDeploymentPostprocessing = 0;
+		};
+		FB4D2EA792943B32BE2A50C9 /* Sources */ = {
+			isa = PBXSourcesBuildPhase;
+			buildActionMask = 2147483647;
+			files = (
+				7F3295DBCA75CFB816671B56 /* DebugUITest.swift in Sources */,
+				9E8073F11196A309F96DA380 /* GlacierUITests.swift in Sources */,
+			);
+			runOnlyForDeploymentPostprocessing = 0;
+		};
+/* End PBXSourcesBuildPhase section */
+
+/* Begin PBXTargetDependency section */
+		0F022214DD2658BBCA8554ED /* PBXTargetDependency */ = {
+			isa = PBXTargetDependency;
+			target = 7670F3100B27B0C7938766C0 /* Glacier */;
+			targetProxy = 0F85BEC567576C00F6773BD0 /* PBXContainerItemProxy */;
+		};
+/* End PBXTargetDependency section */
+
+/* Begin XCBuildConfiguration section */
+		27D40E4774E49E4007489FE6 /* Debug */ = {
+			isa = XCBuildConfiguration;
+			buildSettings = {
+				BUNDLE_LOADER = "$(TEST_HOST)";
+				CODE_SIGN_IDENTITY = "-";
+				CODE_SIGN_STYLE = Manual;
+				COMBINE_HIDPI_IMAGES = YES;
+				ENABLE_HARDENED_RUNTIME = NO;
+				INFOPLIST_FILE = GlacierUITests/Info.plist;
+				LD_RUNPATH_SEARCH_PATHS = (
+					"$(inherited)",
+					"@executable_path/Frameworks",
+					"@loader_path/Frameworks",
+				);
+				MACOSX_DEPLOYMENT_TARGET = 26.0;
+				PRODUCT_BUNDLE_IDENTIFIER = com.jfrech.GlacierUITests;
+				SDKROOT = macosx;
+				SWIFT_STRICT_CONCURRENCY = minimal;
+				TEST_TARGET_NAME = Glacier;
+			};
+			name = Debug;
+		};
+		29BCF661136068E7DAB585D2 /* Release */ = {
+			isa = XCBuildConfiguration;
+			buildSettings = {
+				ALWAYS_SEARCH_USER_PATHS = NO;
+				CLANG_ANALYZER_NONNULL = YES;
+				CLANG_ANALYZER_NUMBER_OBJECT_CONVERSION = YES_AGGRESSIVE;
+				CLANG_CXX_LANGUAGE_STANDARD = "gnu++14";
+				CLANG_CXX_LIBRARY = "libc++";
+				CLANG_ENABLE_MODULES = YES;
+				CLANG_ENABLE_OBJC_ARC = YES;
+				CLANG_ENABLE_OBJC_WEAK = YES;
+				CLANG_WARN_BLOCK_CAPTURE_AUTORELEASING = YES;
+				CLANG_WARN_BOOL_CONVERSION = YES;
+				CLANG_WARN_COMMA = YES;
+				CLANG_WARN_CONSTANT_CONVERSION = YES;
+				CLANG_WARN_DEPRECATED_OBJC_IMPLEMENTATIONS = YES;
+				CLANG_WARN_DIRECT_OBJC_ISA_USAGE = YES_ERROR;
+				CLANG_WARN_DOCUMENTATION_COMMENTS = YES;
+				CLANG_WARN_EMPTY_BODY = YES;
+				CLANG_WARN_ENUM_CONVERSION = YES;
+				CLANG_WARN_INFINITE_RECURSION = YES;
+				CLANG_WARN_INT_CONVERSION = YES;
+				CLANG_WARN_NON_LITERAL_NULL_CONVERSION = YES;
+				CLANG_WARN_OBJC_IMPLICIT_RETAIN_SELF = YES;
+				CLANG_WARN_OBJC_LITERAL_CONVERSION = YES;
+				CLANG_WARN_OBJC_ROOT_CLASS = YES_ERROR;
+				CLANG_WARN_QUOTED_INCLUDE_IN_FRAMEWORK_HEADER = YES;
+				CLANG_WARN_RANGE_LOOP_ANALYSIS = YES;
+				CLANG_WARN_STRICT_PROTOTYPES = YES;
+				CLANG_WARN_SUSPICIOUS_MOVE = YES;
+				CLANG_WARN_UNGUARDED_AVAILABILITY = YES_AGGRESSIVE;
+				CLANG_WARN_UNREACHABLE_CODE = YES;
+				CLANG_WARN__DUPLICATE_METHOD_MATCH = YES;
+				CODE_SIGN_IDENTITY = "-";
+				CODE_SIGN_STYLE = Manual;
+				COPY_PHASE_STRIP = NO;
+				DEBUG_INFORMATION_FORMAT = dwarf;
+				DEVELOPMENT_TEAM = "";
+				ENABLE_HARDENED_RUNTIME = NO;
+				ENABLE_NS_ASSERTIONS = NO;
+				ENABLE_STRICT_OBJC_MSGSEND = YES;
+				ENABLE_TESTABILITY = YES;
+				GCC_C_LANGUAGE_STANDARD = gnu11;
+				GCC_NO_COMMON_BLOCKS = YES;
+				GCC_OPTIMIZATION_LEVEL = 0;
+				GCC_WARN_64_TO_32_BIT_CONVERSION = YES;
+				GCC_WARN_ABOUT_RETURN_TYPE = YES_ERROR;
+				GCC_WARN_UNDECLARED_SELECTOR = YES;
+				GCC_WARN_UNINITIALIZED_AUTOS = YES_AGGRESSIVE;
+				GCC_WARN_UNUSED_FUNCTION = YES;
+				GCC_WARN_UNUSED_VARIABLE = YES;
+				MACOSX_DEPLOYMENT_TARGET = 26.0;
+				MTL_ENABLE_DEBUG_INFO = NO;
+				MTL_FAST_MATH = YES;
+				PRODUCT_NAME = "$(TARGET_NAME)";
+				SDKROOT = macosx;
+				SWIFT_COMPILATION_MODE = wholemodule;
+				SWIFT_OPTIMIZATION_LEVEL = "-Onone";
+				SWIFT_VERSION = 6.0;
+			};
+			name = Release;
+		};
+		36784BEE6A5D5F69FA791E24 /* Release */ = {
+			isa = XCBuildConfiguration;
+			buildSettings = {
+				BUNDLE_LOADER = "$(TEST_HOST)";
+				CODE_SIGN_IDENTITY = "-";
+				CODE_SIGN_STYLE = Manual;
+				COMBINE_HIDPI_IMAGES = YES;
+				ENABLE_HARDENED_RUNTIME = NO;
+				INFOPLIST_FILE = GlacierUITests/Info.plist;
+				LD_RUNPATH_SEARCH_PATHS = (
+					"$(inherited)",
+					"@executable_path/Frameworks",
+					"@loader_path/Frameworks",
+				);
+				MACOSX_DEPLOYMENT_TARGET = 26.0;
+				PRODUCT_BUNDLE_IDENTIFIER = com.jfrech.GlacierUITests;
+				SDKROOT = macosx;
+				SWIFT_STRICT_CONCURRENCY = minimal;
+				TEST_TARGET_NAME = Glacier;
+			};
+			name = Release;
+		};
+		3A399AD06F1DF8BBBE986FFA /* Debug */ = {
+			isa = XCBuildConfiguration;
+			buildSettings = {
+				ASSETCATALOG_COMPILER_APPICON_NAME = AppIcon;
+				CODE_SIGN_ENTITLEMENTS = Glacier/Glacier.entitlements;
+				COMBINE_HIDPI_IMAGES = YES;
+				INFOPLIST_FILE = Glacier/Info.plist;
+				LD_RUNPATH_SEARCH_PATHS = (
+					"$(inherited)",
+					"@executable_path/../Frameworks",
+				);
+				MACOSX_DEPLOYMENT_TARGET = 26.0;
+				PRODUCT_BUNDLE_IDENTIFIER = com.jfrech.Glacier;
+				SDKROOT = macosx;
+				SWIFT_STRICT_CONCURRENCY = minimal;
+			};
+			name = Debug;
+		};
+		3DC618265B8397B3C17577DE /* Release */ = {
+			isa = XCBuildConfiguration;
+			buildSettings = {
+				ASSETCATALOG_COMPILER_APPICON_NAME = AppIcon;
+				CODE_SIGN_ENTITLEMENTS = Glacier/Glacier.entitlements;
+				COMBINE_HIDPI_IMAGES = YES;
+				INFOPLIST_FILE = Glacier/Info.plist;
+				LD_RUNPATH_SEARCH_PATHS = (
+					"$(inherited)",
+					"@executable_path/../Frameworks",
+				);
+				MACOSX_DEPLOYMENT_TARGET = 26.0;
+				PRODUCT_BUNDLE_IDENTIFIER = com.jfrech.Glacier;
+				SDKROOT = macosx;
+				SWIFT_STRICT_CONCURRENCY = minimal;
+			};
+			name = Release;
+		};
+		5682EA93444B2A9C8C7C050B /* Debug */ = {
+			isa = XCBuildConfiguration;
+			buildSettings = {
+				ALWAYS_SEARCH_USER_PATHS = NO;
+				CLANG_ANALYZER_NONNULL = YES;
+				CLANG_ANALYZER_NUMBER_OBJECT_CONVERSION = YES_AGGRESSIVE;
+				CLANG_CXX_LANGUAGE_STANDARD = "gnu++14";
+				CLANG_CXX_LIBRARY = "libc++";
+				CLANG_ENABLE_MODULES = YES;
+				CLANG_ENABLE_OBJC_ARC = YES;
+				CLANG_ENABLE_OBJC_WEAK = YES;
+				CLANG_WARN_BLOCK_CAPTURE_AUTORELEASING = YES;
+				CLANG_WARN_BOOL_CONVERSION = YES;
+				CLANG_WARN_COMMA = YES;
+				CLANG_WARN_CONSTANT_CONVERSION = YES;
+				CLANG_WARN_DEPRECATED_OBJC_IMPLEMENTATIONS = YES;
+				CLANG_WARN_DIRECT_OBJC_ISA_USAGE = YES_ERROR;
+				CLANG_WARN_DOCUMENTATION_COMMENTS = YES;
+				CLANG_WARN_EMPTY_BODY = YES;
+				CLANG_WARN_ENUM_CONVERSION = YES;
+				CLANG_WARN_INFINITE_RECURSION = YES;
+				CLANG_WARN_INT_CONVERSION = YES;
+				CLANG_WARN_NON_LITERAL_NULL_CONVERSION = YES;
+				CLANG_WARN_OBJC_IMPLICIT_RETAIN_SELF = YES;
+				CLANG_WARN_OBJC_LITERAL_CONVERSION = YES;
+				CLANG_WARN_OBJC_ROOT_CLASS = YES_ERROR;
+				CLANG_WARN_QUOTED_INCLUDE_IN_FRAMEWORK_HEADER = YES;
+				CLANG_WARN_RANGE_LOOP_ANALYSIS = YES;
+				CLANG_WARN_STRICT_PROTOTYPES = YES;
+				CLANG_WARN_SUSPICIOUS_MOVE = YES;
+				CLANG_WARN_UNGUARDED_AVAILABILITY = YES_AGGRESSIVE;
+				CLANG_WARN_UNREACHABLE_CODE = YES;
+				CLANG_WARN__DUPLICATE_METHOD_MATCH = YES;
+				CODE_SIGN_IDENTITY = "-";
+				CODE_SIGN_STYLE = Manual;
+				COPY_PHASE_STRIP = NO;
+				DEBUG_INFORMATION_FORMAT = dwarf;
+				DEVELOPMENT_TEAM = "";
+				ENABLE_HARDENED_RUNTIME = NO;
+				ENABLE_STRICT_OBJC_MSGSEND = YES;
+				ENABLE_TESTABILITY = YES;
+				GCC_C_LANGUAGE_STANDARD = gnu11;
+				GCC_DYNAMIC_NO_PIC = NO;
+				GCC_NO_COMMON_BLOCKS = YES;
+				GCC_OPTIMIZATION_LEVEL = 0;
+				GCC_PREPROCESSOR_DEFINITIONS = (
+					"$(inherited)",
+					"DEBUG=1",
+				);
+				GCC_WARN_64_TO_32_BIT_CONVERSION = YES;
+				GCC_WARN_ABOUT_RETURN_TYPE = YES_ERROR;
+				GCC_WARN_UNDECLARED_SELECTOR = YES;
+				GCC_WARN_UNINITIALIZED_AUTOS = YES_AGGRESSIVE;
+				GCC_WARN_UNUSED_FUNCTION = YES;
+				GCC_WARN_UNUSED_VARIABLE = YES;
+				MACOSX_DEPLOYMENT_TARGET = 26.0;
+				MTL_ENABLE_DEBUG_INFO = INCLUDE_SOURCE;
+				MTL_FAST_MATH = YES;
+				ONLY_ACTIVE_ARCH = YES;
+				PRODUCT_NAME = "$(TARGET_NAME)";
+				SDKROOT = macosx;
+				SWIFT_ACTIVE_COMPILATION_CONDITIONS = DEBUG;
+				SWIFT_OPTIMIZATION_LEVEL = "-Onone";
+				SWIFT_VERSION = 6.0;
+			};
+			name = Debug;
+		};
+/* End XCBuildConfiguration section */
+
+/* Begin XCConfigurationList section */
+		226D14CED95597CACEFC054A /* Build configuration list for PBXProject "Glacier" */ = {
+			isa = XCConfigurationList;
+			buildConfigurations = (
+				5682EA93444B2A9C8C7C050B /* Debug */,
+				29BCF661136068E7DAB585D2 /* Release */,
+			);
+			defaultConfigurationIsVisible = 0;
+			defaultConfigurationName = Debug;
+		};
+		B655067197528B89942081BD /* Build configuration list for PBXNativeTarget "GlacierUITests" */ = {
+			isa = XCConfigurationList;
+			buildConfigurations = (
+				27D40E4774E49E4007489FE6 /* Debug */,
+				36784BEE6A5D5F69FA791E24 /* Release */,
+			);
+			defaultConfigurationIsVisible = 0;
+			defaultConfigurationName = Debug;
+		};
+		F10CEC9B3CB1AB9A7BD891D0 /* Build configuration list for PBXNativeTarget "Glacier" */ = {
+			isa = XCConfigurationList;
+			buildConfigurations = (
+				3A399AD06F1DF8BBBE986FFA /* Debug */,
+				3DC618265B8397B3C17577DE /* Release */,
+			);
+			defaultConfigurationIsVisible = 0;
+			defaultConfigurationName = Debug;
+		};
+/* End XCConfigurationList section */
+
+/* Begin XCRemoteSwiftPackageReference section */
+		09FEC232195B97195C29C32B /* XCRemoteSwiftPackageReference "SwiftTerm" */ = {
+			isa = XCRemoteSwiftPackageReference;
+			repositoryURL = "https://github.com/migueldeicaza/SwiftTerm";
+			requirement = {
+				kind = upToNextMajorVersion;
+				minimumVersion = 1.2.0;
+			};
+		};
+/* End XCRemoteSwiftPackageReference section */
+
+/* Begin XCSwiftPackageProductDependency section */
+		7613E683B9B6635224D3B6A3 /* SwiftTerm */ = {
+			isa = XCSwiftPackageProductDependency;
+			package = 09FEC232195B97195C29C32B /* XCRemoteSwiftPackageReference "SwiftTerm" */;
+			productName = SwiftTerm;
+		};
+/* End XCSwiftPackageProductDependency section */
+	};
+	rootObject = AF54EF5E4ABFD35DF2BFDB32 /* Project object */;
+}
