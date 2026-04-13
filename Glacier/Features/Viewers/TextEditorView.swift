@@ -1,21 +1,20 @@
 // TextEditorView.swift
-// Code/text viewer with syntax highlighting and line numbers.
-// Supports both source (read-only highlighted) and raw text modes.
+// Editable code/text view with syntax highlighting.
 
 import SwiftUI
+import Combine
 
 struct TextEditorView: View {
-    let text: String
+    @Binding var text: String
     let fileExtension: String
     let url: URL
     var fontSize: CGFloat = 13
 
+    @EnvironmentObject private var appState: AppState
     @Environment(\.appTheme) private var theme
-    @State private var isMarkdownPreview: Bool = false
 
-    private var isMarkdown: Bool {
-        fileExtension == "md" || fileExtension == "markdown"
-    }
+    // Debounced save
+    @State private var saveCancellable: AnyCancellable?
 
     private var languageLabel: String {
         FileTypeRegistry.languageName(for: fileExtension)
@@ -23,34 +22,38 @@ struct TextEditorView: View {
 
     var body: some View {
         VStack(spacing: 0) {
-            // Status bar
             editorStatusBar
 
             Divider()
 
-            // Content
-            if isMarkdown && isMarkdownPreview {
-                MarkdownPreviewView(text: text, fontSize: fontSize)
-                    .transition(.opacity)
-            } else {
-                SyntaxTextView(
-                    text: text,
-                    fileExtension: fileExtension,
-                    showLineNumbers: false,
-                    fontSize: fontSize,
-                    theme: theme
-                )
-                .transition(.opacity)
-            }
+            SyntaxTextView(
+                text: $text,
+                fileExtension: fileExtension,
+                showLineNumbers: false,
+                fontSize: fontSize,
+                theme: theme
+            )
         }
-        .animation(GlacierTheme().animation.fast, value: isMarkdownPreview)
+        .onChange(of: text) { _, newValue in
+            scheduleSave(text: newValue)
+        }
+    }
+
+    // MARK: - Save
+
+    private func scheduleSave(text: String) {
+        saveCancellable?.cancel()
+        saveCancellable = Just(text)
+            .delay(for: .milliseconds(500), scheduler: DispatchQueue.main)
+            .sink { value in
+                try? appState.fileService.writeFile(text: value, to: url)
+            }
     }
 
     // MARK: - Status Bar
 
     private var editorStatusBar: some View {
         HStack(spacing: 12) {
-            // Language badge
             HStack(spacing: 4) {
                 Image(systemName: FileTypeRegistry.icon(for: fileExtension))
                     .font(.system(size: 10))
@@ -62,28 +65,11 @@ struct TextEditorView: View {
 
             Divider().frame(height: 12)
 
-            // Line count
             Text("\(text.components(separatedBy: "\n").count) lines")
                 .font(theme.typography.captionFont)
                 .foregroundStyle(.tertiary)
 
             Spacer()
-
-            // Controls
-            HStack(spacing: 8) {
-                if isMarkdown {
-                    Button {
-                        isMarkdownPreview.toggle()
-                    } label: {
-                        Image(systemName: isMarkdownPreview ? "doc.text.image" : "eye")
-                            .font(.system(size: 11))
-                            .foregroundStyle(isMarkdownPreview ? theme.colors.accent : Color.secondary)
-                    }
-                    .buttonStyle(.plain)
-                    .help(isMarkdownPreview ? "Show Source" : "Preview Markdown")
-                    .accessibilityLabel(isMarkdownPreview ? "Show Source" : "Preview Markdown")
-                }
-            }
         }
         .padding(.horizontal, 12)
         .padding(.vertical, 6)
@@ -92,18 +78,23 @@ struct TextEditorView: View {
     }
 }
 
-// MARK: - Syntax Text View (NSTextView bridge)
+// MARK: - Syntax Text View (editable NSTextView bridge)
 
 struct SyntaxTextView: NSViewRepresentable {
-    let text: String
+    @Binding var text: String
     let fileExtension: String
     let showLineNumbers: Bool
     var fontSize: CGFloat = 13
     let theme: any AppTheme
 
+    func makeCoordinator() -> Coordinator {
+        Coordinator(text: $text)
+    }
+
     func makeNSView(context: Context) -> GlacierScrollView {
         let scrollView = GlacierScrollView()
         scrollView.setup(showLineNumbers: showLineNumbers)
+        scrollView.textView.delegate = context.coordinator
         return scrollView
     }
 
@@ -111,26 +102,56 @@ struct SyntaxTextView: NSViewRepresentable {
         let highlighter = SyntaxHighlighter(theme: theme, fontSize: fontSize)
         let attributed = highlighter.highlight(text, extension: fileExtension)
 
-        // Convert AttributedString → NSAttributedString
-        if let nsAttr = try? NSAttributedString(attributed, including: \.appKit) {
-            nsView.textView.textStorage?.setAttributedString(nsAttr)
+        // Only update if content actually changed to avoid clobbering cursor position
+        let currentString = nsView.textView.string
+        if currentString != text {
+            if let nsAttr = try? NSAttributedString(attributed, including: \.appKit) {
+                nsView.textView.textStorage?.setAttributedString(nsAttr)
+            } else {
+                nsView.textView.font = NSFont.monospacedSystemFont(ofSize: fontSize, weight: .regular)
+                nsView.textView.textColor = NSColor.labelColor
+                nsView.textView.string = text
+            }
         } else {
-            // Plain text fallback — apply default monospace font and text color
-            nsView.textView.font = NSFont.monospacedSystemFont(ofSize: fontSize, weight: .regular)
-            nsView.textView.textColor = NSColor.labelColor
-            nsView.textView.string = text
+            // Content same — re-apply highlighting without replacing (preserves cursor)
+            if let nsAttr = try? NSAttributedString(attributed, including: \.appKit) {
+                let selectedRanges = nsView.textView.selectedRanges
+                nsView.textView.textStorage?.setAttributedString(nsAttr)
+                nsView.textView.selectedRanges = selectedRanges
+            }
         }
 
-        // Force layout recalculation so scroll view reflects actual content size
+        // Sync font size change
+        let newFont = NSFont.monospacedSystemFont(ofSize: fontSize, weight: .regular)
+        if nsView.textView.font?.pointSize != newFont.pointSize {
+            nsView.textView.font = newFont
+        }
+
         if let textContainer = nsView.textView.textContainer {
             nsView.textView.layoutManager?.ensureLayout(for: textContainer)
         }
         nsView.textView.sizeToFit()
         nsView.reflectScrolledClipView(nsView.contentView)
 
-        nsView.textView.isEditable = false
+        nsView.textView.isEditable = true
+        nsView.textView.isSelectable = true
         nsView.textView.backgroundColor = NSColor(theme.colors.editorBackground)
         nsView.setShowLineNumbers(showLineNumbers)
+    }
+
+    // MARK: - Coordinator
+
+    final class Coordinator: NSObject, NSTextViewDelegate {
+        @Binding var text: String
+
+        init(text: Binding<String>) {
+            _text = text
+        }
+
+        func textDidChange(_ notification: Notification) {
+            guard let textView = notification.object as? NSTextView else { return }
+            text = textView.string
+        }
     }
 }
 
@@ -170,10 +191,13 @@ final class GlacierScrollView: NSScrollView {
         textView.isHorizontallyResizable = false
         textView.textContainerInset = NSSize(width: 8, height: 8)
         textView.autoresizingMask = [.width]
+        textView.allowsUndo = true
+        textView.isRichText = false
+        textView.usesFontPanel = false
+        textView.usesRuler = false
 
         documentView = textView
 
-        // Line numbers
         verticalRulerView = lineNumberView
         hasVerticalRuler = showLineNumbers
         rulersVisible = showLineNumbers
@@ -230,7 +254,6 @@ final class LineNumberRulerView: NSRulerView {
         let totalChars = fullText.length
 
         while charIndex < totalChars || charIndex == 0 {
-            // Get glyph index for this char
             let glyphRange = layoutManager.glyphRange(
                 forCharacterRange: NSRange(location: charIndex, length: 0),
                 actualCharacterRange: nil
@@ -242,7 +265,6 @@ final class LineNumberRulerView: NSRulerView {
 
             let yPos = lineRect.minY + inset.height + originOffset.y - visibleRect.minY
 
-            // Only draw if within visible bounds
             if yPos >= -lineRect.height && yPos <= bounds.height + lineRect.height {
                 let label = "\(lineNumber)" as NSString
                 let labelSize = label.size(withAttributes: attrs)
@@ -252,7 +274,6 @@ final class LineNumberRulerView: NSRulerView {
                 )
             }
 
-            // Advance to next line
             let lineRange = (fullText as NSString).lineRange(for: NSRange(location: charIndex, length: 0))
             if lineRange.length == 0 { break }
             charIndex = NSMaxRange(lineRange)

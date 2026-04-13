@@ -28,6 +28,9 @@ private struct FileContentView: View {
     @Environment(\.appTheme) private var theme
 
     @State private var content: FileContent = .empty
+    @State private var editableText: String = ""
+    @State private var editableExt: String = ""
+    @State private var editableExcalidraw: String = "{}"
     @State private var isLoading = true
     @State private var errorMessage: String?
 
@@ -64,8 +67,16 @@ private struct FileContentView: View {
     @ViewBuilder
     private func viewerForContent(_ content: FileContent) -> some View {
         switch content {
-        case .text(let text, let ext):
-            TextEditorView(text: text, fileExtension: ext, url: item.url, fontSize: appState.editorFontSize)
+        case .text(_, let ext):
+            if FileTypeRegistry.kind(for: ext) == .markdown {
+                MarkdownEditorView(text: $editableText, url: item.url, fontSize: appState.editorFontSize)
+            } else {
+                TextEditorView(text: $editableText, fileExtension: ext, url: item.url, fontSize: appState.editorFontSize)
+            }
+        case .markwhen(_, let url):
+            MarkwhenViewer(text: $editableText, url: url, fontSize: appState.editorFontSize)
+        case .excalidraw(_, let url):
+            ExcalidrawViewer(text: $editableExcalidraw, url: url)
         case .image(let url):
             ImageViewerView(url: url)
         case .video(let url):
@@ -85,7 +96,18 @@ private struct FileContentView: View {
         isLoading = true
         errorMessage = nil
         do {
-            content = try await appState.fileService.readFile(at: item.url)
+            let loaded = try await appState.fileService.readFile(at: item.url)
+            content = loaded
+            if case .text(let text, let ext) = loaded {
+                editableText = text
+                editableExt = ext
+            }
+            if case .markwhen(let text, _) = loaded {
+                editableText = text
+            }
+            if case .excalidraw(let text, _) = loaded {
+                editableExcalidraw = text
+            }
         } catch {
             errorMessage = error.localizedDescription
         }

@@ -142,6 +142,12 @@ final class FileService: ObservableObject {
         if let rootURL { openFolder(at: rootURL) }
     }
 
+    // MARK: - Write File
+
+    func writeFile(text: String, to url: URL) throws {
+        try text.write(to: url, atomically: true, encoding: .utf8)
+    }
+
     // MARK: - Read File
 
     func readFile(at url: URL) async throws -> FileContent {
@@ -163,6 +169,18 @@ final class FileService: ObservableObject {
         case .binary:
             return .binary(url)
 
+        case .markwhen:
+            if let text = try? String(contentsOf: url, encoding: .utf8) {
+                return .markwhen(text, url)
+            }
+            return .binary(url)
+
+        case .excalidraw:
+            if let text = try? String(contentsOf: url, encoding: .utf8) {
+                return .excalidraw(text, url)
+            }
+            return .binary(url)
+
         default:
             // Attempt to read as text
             if let text = try? String(contentsOf: url, encoding: .utf8) {
@@ -179,7 +197,9 @@ final class FileService: ObservableObject {
 // MARK: - File Content
 
 enum FileContent {
-    case text(String, String)   // content, extension
+    case text(String, String)       // content, extension
+    case markwhen(String, URL)      // content, url
+    case excalidraw(String, URL)    // content, url
     case image(URL)
     case video(URL)
     case audio(URL)

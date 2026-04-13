@@ -130,9 +130,19 @@ enum FileTypeRegistry {
         "gitignore": "doc.badge.gearshape",
         "env": "doc.badge.gearshape",
         "lock": "lock.doc",
+
+        // Markwhen
+        "mw": "calendar.badge.clock",
+        "markwhen": "calendar.badge.clock",
+
+        // Excalidraw
+        "excalidraw": "pencil.and.scribble",
     ]
 
     private static let colorMap: [String: Color] = [
+        "mw": Color(red: 0.35, green: 0.62, blue: 0.95),
+        "markwhen": Color(red: 0.35, green: 0.62, blue: 0.95),
+        "excalidraw": Color(red: 0.62, green: 0.45, blue: 0.95),
         "swift": Color(red: 0.98, green: 0.45, blue: 0.22),
         "py": Color(red: 0.20, green: 0.60, blue: 0.86),
         "js": Color(red: 0.94, green: 0.81, blue: 0.17),
@@ -180,6 +190,8 @@ enum FileTypeRegistry {
         "mp3": .audio, "wav": .audio, "aac": .audio, "flac": .audio, "m4a": .audio,
         "pdf": .pdf,
         "zip": .binary, "tar": .binary, "gz": .binary, "rar": .binary,
+        "mw": .markwhen, "markwhen": .markwhen,
+        "excalidraw": .excalidraw,
     ]
 
     private static let languageNames: [String: String] = [
@@ -195,6 +207,8 @@ enum FileTypeRegistry {
         "md": "Markdown", "markdown": "Markdown",
         "txt": "Plain Text", "log": "Log",
         "fish": "Fish",
+        "mw": "Markwhen", "markwhen": "Markwhen",
+        "excalidraw": "Excalidraw",
     ]
 
     private static func fallbackIcon(for ext: String) -> String {

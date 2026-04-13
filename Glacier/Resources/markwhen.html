@@ -1,0 +1,456 @@
+<!DOCTYPE html>
+<html>
+<head>
+<meta charset="utf-8">
+<style>
+*{box-sizing:border-box;margin:0;padding:0}
+html,body{height:100vh;overflow:hidden;
+  font-family:-apple-system,BlinkMacSystemFont,'SF Pro Text',sans-serif;font-size:13px}
+body.dark {background:#1c1c1e;color:#e8e8ed}
+body.light{background:#f5f5f7;color:#1c1c1e}
+
+#app{display:flex;flex-direction:column;height:100vh}
+
+/* Header */
+#header{display:flex;align-items:center;height:36px;padding:0 16px;gap:12px;flex-shrink:0;border-bottom-width:1px;border-bottom-style:solid}
+body.dark  #header{background:#1a1a1c;border-color:#3a3a3c}
+body.light #header{background:#f2f2f7;border-color:#d1d1d6}
+#header-title{font-size:11px;font-weight:700;text-transform:uppercase;letter-spacing:0.06em}
+body.dark  #header-title{color:#636366}
+body.light #header-title{color:#8e8e93}
+#header-range{font-size:10px}
+body.dark  #header-range{color:#636366}
+body.light #header-range{color:#8e8e93}
+
+/* Body */
+#body{display:flex;flex:1;overflow:hidden}
+
+/* Sidebar */
+#sidebar{width:220px;flex-shrink:0;overflow-y:auto;border-right-width:1px;border-right-style:solid}
+body.dark  #sidebar{background:#2c2c2e;border-color:#3a3a3c}
+body.light #sidebar{background:#ffffff;border-color:#d1d1d6}
+#sidebar::-webkit-scrollbar{width:5px}
+#sidebar::-webkit-scrollbar-thumb{border-radius:3px}
+body.dark  #sidebar::-webkit-scrollbar-thumb{background:#3a3a3c}
+body.light #sidebar::-webkit-scrollbar-thumb{background:#c7c7cc}
+
+.section-label{padding:8px 12px 4px;font-size:10px;font-weight:700;
+  text-transform:uppercase;letter-spacing:0.08em;
+  border-bottom-width:1px;border-bottom-style:solid;
+  position:sticky;top:0;z-index:1}
+body.dark  .section-label{color:#636366;background:#1a1a1c;border-color:#3a3a3c}
+body.light .section-label{color:#8e8e93;background:#f2f2f7;border-color:#d1d1d6}
+
+.event-row{padding:6px 12px;border-bottom-width:1px;border-bottom-style:solid;cursor:default;transition:background 0.1s}
+body.dark  .event-row{border-color:#2c2c2e}
+body.light .event-row{border-color:#f2f2f7}
+body.dark  .event-row:hover,.event-row.active{background:#3a3a3c}
+body.light .event-row:hover,.event-row.active{background:#f2f2f7}
+.event-name{font-size:12px;font-weight:500;white-space:nowrap;overflow:hidden;text-overflow:ellipsis}
+.event-date{font-size:10px;margin-top:2px;font-variant-numeric:tabular-nums}
+body.dark  .event-date{color:#636366}
+body.light .event-date{color:#8e8e93}
+.event-dot{display:inline-block;width:8px;height:8px;border-radius:50%;
+  margin-right:6px;flex-shrink:0;vertical-align:middle;margin-top:-1px}
+
+/* Chart */
+#chart-wrap{flex:1;overflow:auto;position:relative}
+#chart-wrap::-webkit-scrollbar{height:5px;width:5px}
+#chart-wrap::-webkit-scrollbar-thumb{border-radius:3px}
+body.dark  #chart-wrap::-webkit-scrollbar-thumb{background:#3a3a3c}
+body.light #chart-wrap::-webkit-scrollbar-thumb{background:#c7c7cc}
+#chart{position:relative;min-height:100%}
+
+/* Axis */
+#axis{height:36px;position:sticky;top:0;z-index:10;border-bottom-width:1px;border-bottom-style:solid}
+body.dark  #axis{background:#1a1a1c;border-color:#3a3a3c}
+body.light #axis{background:#f2f2f7;border-color:#d1d1d6}
+.axis-tick{position:absolute;top:0;height:36px;display:flex;align-items:center;
+  padding-left:8px;font-size:10px;white-space:nowrap;font-variant-numeric:tabular-nums;
+  border-left-width:1px;border-left-style:solid}
+body.dark  .axis-tick{color:#636366;border-color:#3a3a3c22}
+body.light .axis-tick{color:#8e8e93;border-color:#d1d1d622}
+
+/* Gantt rows */
+#gantt-rows{position:relative}
+.section-bar{height:28px;display:flex;align-items:center;padding:0 12px;
+  font-size:10px;font-weight:700;text-transform:uppercase;letter-spacing:0.06em;
+  position:sticky;top:36px;z-index:4;border-bottom-width:1px;border-bottom-style:solid}
+body.dark  .section-bar{background:#1a1a1c;color:#636366;border-color:#3a3a3c}
+body.light .section-bar{background:#f2f2f7;color:#8e8e93;border-color:#d1d1d6}
+
+.gantt-row{height:36px;position:relative;border-bottom-width:1px;border-bottom-style:solid}
+body.dark  .gantt-row{border-color:#2c2c2e}
+body.light .gantt-row{border-color:#f5f5f7}
+body.dark  .gantt-row:hover{background:#ffffff04}
+body.light .gantt-row:hover{background:#1c1c1e04}
+
+.gantt-bar{position:absolute;top:8px;height:20px;border-radius:5px;
+  display:flex;align-items:center;padding:0 8px;white-space:nowrap;overflow:hidden;
+  cursor:default;font-size:11px;font-weight:500;color:#fff;
+  box-shadow:0 1px 3px rgba(0,0,0,0.2);transition:filter 0.15s;min-width:6px}
+.gantt-bar:hover{filter:brightness(1.12)}
+.gantt-bar.milestone{width:20px!important;border-radius:50%;padding:0;
+  justify-content:center;font-size:10px}
+
+/* Today line */
+#today-line{position:absolute;top:0;bottom:0;width:2px;opacity:0.6;z-index:5;pointer-events:none}
+body.dark  #today-line{background:#ff453a}
+body.light #today-line{background:#ff3b30}
+
+/* Empty */
+#empty{display:none;align-items:center;justify-content:center;
+  height:100%;flex-direction:column;gap:10px}
+body.dark  #empty{color:#636366}
+body.light #empty{color:#8e8e93}
+
+/* Tooltip */
+#tooltip{position:fixed;border-radius:8px;padding:8px 12px;font-size:11px;
+  box-shadow:0 4px 16px rgba(0,0,0,0.25);pointer-events:none;z-index:100;
+  display:none;max-width:260px;border-width:1px;border-style:solid}
+body.dark  #tooltip{background:#2c2c2e;border-color:#3a3a3c;color:#e8e8ed}
+body.light #tooltip{background:#ffffff;border-color:#d1d1d6;color:#1c1c1e}
+.tt-title{font-weight:600;margin-bottom:3px}
+.tt-date{font-size:10px}
+body.dark  .tt-date{color:#636366}
+body.light .tt-date{color:#8e8e93}
+.tt-notes{margin-top:5px;font-size:10px;line-height:1.5}
+body.dark  .tt-notes{color:#aeaeb2}
+body.light .tt-notes{color:#48484a}
+</style>
+</head>
+<body>
+<div id="app">
+  <div id="header">
+    <span id="header-title">Timeline</span>
+    <span id="header-range"></span>
+  </div>
+  <div id="body">
+    <div id="sidebar"></div>
+    <div id="chart-wrap">
+      <div id="chart">
+        <div id="axis"></div>
+        <div id="gantt-rows"></div>
+        <div id="today-line"></div>
+      </div>
+    </div>
+  </div>
+</div>
+<div id="empty">
+  <svg width="36" height="36" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.5" opacity="0.3">
+    <rect x="3" y="4" width="18" height="18" rx="2"/><line x1="16" y1="2" x2="16" y2="6"/>
+    <line x1="8" y1="2" x2="8" y2="6"/><line x1="3" y1="10" x2="21" y2="10"/>
+  </svg>
+  <span style="font-size:12px">No timeline events found</span>
+</div>
+<div id="tooltip">
+  <div class="tt-title" id="tt-title"></div>
+  <div class="tt-date" id="tt-date"></div>
+  <div class="tt-notes" id="tt-notes"></div>
+</div>
+
+<script>
+// ── Color map ──────────────────────────────────────
+const COLOR_MAP = {
+  black:'#636366', gray:'#8e8e93', red:'#ff3b30', orange:'#ff9500',
+  yellow:'#ffd60a', green:'#30d158', mint:'#63e6be', teal:'#40c8e0',
+  cyan:'#32ade6', blue:'#0a84ff', indigo:'#5e5ce6', purple:'#bf5af2',
+  pink:'#ff375f', darkred:'#d70015', white:'#ffffff',
+};
+const ACCENT = '#0a84ff';
+function colorFor(tag) {
+  if (!tag) return ACCENT;
+  return COLOR_MAP[tag.toLowerCase()] || ACCENT;
+}
+
+// ── Date parsing ───────────────────────────────────
+// Handles: MM/DD/YYYY, YYYY-MM-DD, YYYY-MM, MM/YYYY, Month YYYY, YYYY
+// Tolerates typos: "04//2026" → "04/2026"
+function parseDate(s) {
+  if (!s) return null;
+  s = s.trim().replace(/\/+/g, '/').replace(/-+/g, '-');
+
+  let m;
+  // YYYY-MM-DD
+  m = s.match(/^(\d{4})-(\d{1,2})-(\d{1,2})$/);
+  if (m) return new Date(+m[1], +m[2]-1, +m[3]);
+  // YYYY-MM
+  m = s.match(/^(\d{4})-(\d{1,2})$/);
+  if (m) return new Date(+m[1], +m[2]-1, 1);
+  // MM/DD/YYYY
+  m = s.match(/^(\d{1,2})\/(\d{1,2})\/(\d{4})$/);
+  if (m) return new Date(+m[3], +m[1]-1, +m[2]);
+  // MM/YYYY (after typo cleanup)
+  m = s.match(/^(\d{1,2})\/(\d{4})$/);
+  if (m) return new Date(+m[2], +m[1]-1, 1);
+  // Month YYYY
+  const months = {jan:0,feb:1,mar:2,apr:3,may:4,jun:5,jul:6,aug:7,sep:8,oct:9,nov:10,dec:11};
+  m = s.match(/^([A-Za-z]{3,})\.?\s+(\d{4})$/);
+  if (m) {
+    const mo = months[m[1].toLowerCase().slice(0,3)];
+    if (mo !== undefined) return new Date(+m[2], mo, 1);
+  }
+  // YYYY
+  m = s.match(/^(\d{4})$/);
+  if (m) return new Date(+m[1], 0, 1);
+  return null;
+}
+
+function fmtDate(d) {
+  if (!d) return '';
+  return d.toLocaleDateString('en-US', {month:'short', day:'numeric', year:'numeric'});
+}
+
+// ── Parser ─────────────────────────────────────────
+function parseMarkwhen(raw) {
+  const lines = raw.split('\n');
+  const events = [];
+  let currentSection = 'Timeline';
+  let notes = [];
+  let pendingEvent = null;
+
+  function flushPending() {
+    if (pendingEvent) {
+      pendingEvent.notes = notes.join('\n').trim();
+      events.push(pendingEvent);
+      pendingEvent = null;
+      notes = [];
+    }
+  }
+
+  for (const rawLine of lines) {
+    const line = rawLine.trim();
+    if (!line) continue;
+
+    if (/^section\s/i.test(line)) {
+      flushPending();
+      currentSection = line.replace(/^section\s+/i, '').trim();
+      continue;
+    }
+    if (/^endSection$/i.test(line)) { flushPending(); continue; }
+    if (/^tags:/i.test(line)) continue;
+    if (line.startsWith('//')) continue;
+
+    // Sub-item note
+    if ((line.startsWith('- ') || line.startsWith('* ')) && pendingEvent) {
+      notes.push(line.slice(2).trim());
+      continue;
+    }
+
+    // Event line: "startDate[-endDate]: title [#Color]"
+    // The colon separates date part from title
+    const colonIdx = line.indexOf(':');
+    if (colonIdx < 0) continue;
+
+    const datePart  = line.slice(0, colonIdx).trim();
+    let   titlePart = line.slice(colonIdx + 1).trim();
+    if (!titlePart) continue;
+
+    // Split date range on " - "
+    let startRaw, endRaw;
+    const dashIdx = datePart.indexOf(' - ');
+    if (dashIdx >= 0) {
+      startRaw = datePart.slice(0, dashIdx).trim();
+      endRaw   = datePart.slice(dashIdx + 3).trim();
+    } else {
+      startRaw = datePart;
+      endRaw   = null;
+    }
+
+    const start = parseDate(startRaw);
+    if (!start) continue;
+    const end = endRaw ? (parseDate(endRaw) || start) : start;
+
+    // Extract #Color from title
+    let color = null;
+    titlePart = titlePart.replace(/#([A-Za-z]+)/g, (_, tag) => {
+      color = colorFor(tag);
+      return '';
+    }).trim().replace(/^'(.*)'$/, '$1').trim();
+
+    const isMilestone = !endRaw;
+
+    flushPending();
+    pendingEvent = { section: currentSection, title: titlePart, start, end, color, isMilestone, notes: '' };
+    notes = [];
+  }
+  flushPending();
+  return events;
+}
+
+// ── Theme ──────────────────────────────────────────
+function applyTheme(dark) {
+  document.body.className = dark ? 'dark' : 'light';
+}
+
+// ── Render ─────────────────────────────────────────
+function render(text, dark) {
+  applyTheme(dark);
+  const events = parseMarkwhen(text);
+
+  if (!events.length) {
+    document.getElementById('app').style.display = 'none';
+    document.getElementById('empty').style.display = 'flex';
+    return;
+  }
+
+  const allStarts = events.map(e => e.start).filter(Boolean);
+  const allEnds   = events.map(e => e.end || e.start).filter(Boolean);
+  const allDates  = [...allStarts, ...allEnds];
+  let minDate = new Date(Math.min(...allDates));
+  let maxDate = new Date(Math.max(...allDates));
+  // Pad 2 months each side
+  minDate = new Date(minDate.getFullYear(), minDate.getMonth() - 2, 1);
+  maxDate = new Date(maxDate.getFullYear(), maxDate.getMonth() + 3, 1);
+  const totalMs = maxDate - minDate;
+
+  document.getElementById('header-range').textContent =
+    fmtDate(new Date(Math.min(...allStarts))) + ' – ' + fmtDate(new Date(Math.max(...allEnds)));
+
+  const chartWrap = document.getElementById('chart-wrap');
+  const months = totalMs / (30 * 24 * 3600 * 1000);
+  const chartW = Math.max((chartWrap.clientWidth || 800), months * 72);
+
+  function xFor(d) { return ((d - minDate) / totalMs) * chartW; }
+
+  // Build axis
+  const axis = document.getElementById('axis');
+  axis.style.width = chartW + 'px';
+  axis.innerHTML = '';
+  let tick = new Date(minDate.getFullYear(), minDate.getMonth(), 1);
+  let prevYear = null;
+  while (tick <= maxDate) {
+    const x = xFor(tick);
+    const el = document.createElement('div');
+    el.className = 'axis-tick';
+    el.style.left = x + 'px';
+    const yr = tick.getFullYear();
+    const mo = tick.toLocaleDateString('en-US', {month:'short'});
+    // Show year only when it changes
+    el.textContent = yr !== prevYear ? mo + ' ' + yr : mo;
+    prevYear = yr;
+    axis.appendChild(el);
+    tick = new Date(tick.getFullYear(), tick.getMonth() + 1, 1);
+  }
+
+  // Group events by section
+  const sections = [];
+  const sectionMap = {};
+  for (const e of events) {
+    if (!sectionMap[e.section]) { sectionMap[e.section] = []; sections.push(e.section); }
+    sectionMap[e.section].push(e);
+  }
+
+  const sidebar   = document.getElementById('sidebar');
+  const ganttRows = document.getElementById('gantt-rows');
+  sidebar.innerHTML = '';
+  ganttRows.innerHTML = '';
+  ganttRows.style.width = chartW + 'px';
+
+  const tip = document.getElementById('tooltip');
+
+  for (const sec of sections) {
+    const evs = sectionMap[sec];
+
+    // Sidebar section header
+    const sl = document.createElement('div');
+    sl.className = 'section-label';
+    sl.textContent = sec;
+    sidebar.appendChild(sl);
+
+    // Gantt section header
+    const gb = document.createElement('div');
+    gb.className = 'section-bar';
+    gb.textContent = sec;
+    ganttRows.appendChild(gb);
+
+    for (const ev of evs) {
+      const color = ev.color || ACCENT;
+
+      // Sidebar row
+      const sr = document.createElement('div');
+      sr.className = 'event-row';
+      const nameEl = document.createElement('div');
+      nameEl.className = 'event-name';
+      const dot = document.createElement('span');
+      dot.className = 'event-dot';
+      dot.style.background = color;
+      nameEl.appendChild(dot);
+      nameEl.appendChild(document.createTextNode(ev.title));
+      const dateEl = document.createElement('div');
+      dateEl.className = 'event-date';
+      dateEl.textContent = fmtDate(ev.start) +
+        (+ev.end !== +ev.start ? ' → ' + fmtDate(ev.end) : '');
+      sr.appendChild(nameEl);
+      sr.appendChild(dateEl);
+      sidebar.appendChild(sr);
+
+      // Gantt row
+      const gr = document.createElement('div');
+      gr.className = 'gantt-row';
+
+      const x1 = xFor(ev.start);
+      const x2 = xFor(ev.end || ev.start);
+      const rawW = x2 - x1;
+      const barW = ev.isMilestone ? 20 : Math.max(rawW, 6);
+
+      const bar = document.createElement('div');
+      bar.className = 'gantt-bar' + (ev.isMilestone ? ' milestone' : '');
+      bar.style.left       = x1 + 'px';
+      bar.style.width      = barW + 'px';
+      bar.style.background = color;
+      if (!ev.isMilestone && rawW > 30) bar.textContent = ev.title;
+
+      // Tooltip
+      bar.addEventListener('mouseenter', () => {
+        document.getElementById('tt-title').textContent = ev.title;
+        document.getElementById('tt-date').textContent =
+          fmtDate(ev.start) + (+ev.end !== +ev.start ? ' → ' + fmtDate(ev.end) : '');
+        document.getElementById('tt-notes').textContent = ev.notes || '';
+        tip.style.display = 'block';
+        sr.classList.add('active');
+        bar.style.filter = 'brightness(1.12)';
+      });
+      bar.addEventListener('mousemove', e => {
+        tip.style.left = (e.clientX + 14) + 'px';
+        tip.style.top  = (e.clientY - 10) + 'px';
+      });
+      bar.addEventListener('mouseleave', () => {
+        tip.style.display = 'none';
+        sr.classList.remove('active');
+        bar.style.filter = '';
+      });
+
+      // Sidebar hover sync
+      sr.addEventListener('mouseenter', () => { sr.classList.add('active'); bar.style.filter='brightness(1.12)'; });
+      sr.addEventListener('mouseleave', () => { sr.classList.remove('active'); bar.style.filter=''; });
+      sr.addEventListener('click', () =>
+        bar.scrollIntoView({behavior:'smooth', block:'nearest', inline:'center'}));
+
+      gr.appendChild(bar);
+      ganttRows.appendChild(gr);
+    }
+  }
+
+  // Today line
+  const today = new Date();
+  const tl = document.getElementById('today-line');
+  if (today >= minDate && today <= maxDate) {
+    tl.style.left = xFor(today) + 'px';
+    tl.style.display = 'block';
+  } else {
+    tl.style.display = 'none';
+  }
+
+  // Scroll to today (or earliest event)
+  const targetX = xFor(Math.max(+minDate, Math.min(+today, +maxDate))) - 160;
+  setTimeout(() => chartWrap.scrollLeft = Math.max(0, targetX), 60);
+}
+
+// Called from Swift with the markwhen text and dark flag
+function setContent(text, dark) {
+  render(text, dark);
+}
+</script>
+</body>
+</html>

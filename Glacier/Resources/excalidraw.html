@@ -1,0 +1,131 @@
+<!DOCTYPE html>
+<html>
+<head>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width, initial-scale=1">
+<style>
+*{margin:0;padding:0;box-sizing:border-box}
+html,body,#root{width:100%;height:100vh;overflow:hidden}
+#loading{display:flex;align-items:center;justify-content:center;
+  height:100vh;flex-direction:column;gap:12px;
+  font-family:-apple-system,sans-serif;font-size:13px;color:#8e8e93}
+.spinner{width:22px;height:22px;border:2px solid #d1d1d6;
+  border-top-color:#007aff;border-radius:50%;
+  animation:spin 0.7s linear infinite}
+@keyframes spin{to{transform:rotate(360deg)}}
+</style>
+</head>
+<body>
+<div id="loading">
+  <div class="spinner"></div>
+  <span>Loading Excalidraw…</span>
+</div>
+<div id="root" style="display:none;width:100%;height:100vh"></div>
+
+<!-- All loaded from app bundle — fully offline -->
+<script src="react.min.js"></script>
+<script src="react-dom.min.js"></script>
+<script src="excalidraw.min.js"></script>
+
+<script>
+// ── Config passed in from Swift via evaluateJavaScript ──
+var __INITIAL_DATA__ = null;
+var __THEME__ = 'light';
+
+// ── Debounce ──────────────────────────────────────
+function debounce(fn, ms) {
+  var t;
+  return function() {
+    var args = arguments;
+    clearTimeout(t);
+    t = setTimeout(function() { fn.apply(null, args); }, ms);
+  };
+}
+
+// ── Mount once React + Excalidraw are ready ───────
+function mount() {
+  var ExcalidrawLib = window.ExcalidrawLib;
+  if (!ExcalidrawLib || !window.React || !window.ReactDOM) {
+    document.getElementById('loading').innerHTML =
+      '<span style="color:#ff3b30">Failed to load Excalidraw library.</span>';
+    return;
+  }
+
+  var Excalidraw = ExcalidrawLib.Excalidraw;
+  var createElement = React.createElement;
+  var useRef = React.useRef;
+  var useCallback = React.useCallback;
+
+  // Parse initial data
+  var initialElements = [];
+  var initialAppState = { theme: __THEME__ };
+  var initialFiles = {};
+
+  try {
+    if (__INITIAL_DATA__ && __INITIAL_DATA__.trim() && __INITIAL_DATA__ !== '{}') {
+      var parsed = JSON.parse(__INITIAL_DATA__);
+      initialElements = parsed.elements || [];
+      initialFiles    = parsed.files    || {};
+      if (parsed.appState) {
+        initialAppState = Object.assign({}, parsed.appState);
+      }
+      initialAppState.theme = __THEME__;
+    }
+  } catch(e) {
+    console.warn('Could not parse initial data:', e);
+  }
+
+  var saveDebounced = debounce(function(elements, appState, files) {
+    var payload = JSON.stringify({
+      type: 'excalidraw',
+      version: 2,
+      source: 'glacier',
+      elements: elements,
+      appState: {
+        gridSize: appState.gridSize,
+        viewBackgroundColor: appState.viewBackgroundColor,
+        theme: appState.theme,
+      },
+      files: files || {},
+    });
+    if (window.webkit && window.webkit.messageHandlers && window.webkit.messageHandlers.glacierSave) {
+      window.webkit.messageHandlers.glacierSave.postMessage(payload);
+    }
+  }, 1000);
+
+  function App() {
+    var excalidrawRef = useRef(null);
+
+    var onChange = useCallback(function(elements, appState, files) {
+      saveDebounced(elements, appState, files);
+    }, []);
+
+    return createElement(Excalidraw, {
+      ref: excalidrawRef,
+      initialData: {
+        elements: initialElements,
+        appState: initialAppState,
+        files: initialFiles,
+        scrollToContent: initialElements.length > 0,
+      },
+      theme: __THEME__,
+      onChange: onChange,
+    });
+  }
+
+  document.getElementById('loading').style.display = 'none';
+  document.getElementById('root').style.display = 'block';
+
+  var root = ReactDOM.createRoot(document.getElementById('root'));
+  root.render(createElement(App));
+}
+
+// ── Called by Swift after setting __INITIAL_DATA__ and __THEME__ ──
+function initExcalidraw(jsonData, darkMode) {
+  __INITIAL_DATA__ = jsonData;
+  __THEME__ = darkMode ? 'dark' : 'light';
+  mount();
+}
+</script>
+</body>
+</html>

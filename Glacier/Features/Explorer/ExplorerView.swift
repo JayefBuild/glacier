@@ -93,6 +93,16 @@ private struct ExplorerToolbar: View {
                 showNewFolderSheet = true
             }
 
+            // New Excalidraw Drawing
+            toolbarButton(icon: "pencil.and.scribble", help: "New Excalidraw Drawing") {
+                createExcalidrawDrawing()
+            }
+
+            // New Markwhen Timeline
+            toolbarButton(icon: "calendar.badge.clock", help: "New Markwhen Timeline") {
+                createMarkwhenFile()
+            }
+
             // Collapse All
             toolbarButton(icon: "chevron.up.chevron.down", help: "Collapse All") {
                 withAnimation(GlacierTheme().animation.fast) {
@@ -147,6 +157,67 @@ private struct ExplorerToolbar: View {
         .buttonStyle(.plain)
         .foregroundStyle(.secondary)
         .help(help)
+    }
+
+    private func createMarkwhenFile() {
+        guard let dir = fileService.rootURL else { return }
+
+        var name = "Timeline"
+        var candidate = dir.appendingPathComponent("\(name).mw")
+        var counter = 2
+        while FileManager.default.fileExists(atPath: candidate.path) {
+            name = "Timeline \(counter)"
+            candidate = dir.appendingPathComponent("\(name).mw")
+            counter += 1
+        }
+
+        let template = """
+        section \(name)
+
+        // Add events below. Format: MM/DD/YYYY - MM/DD/YYYY: Event Title #Color
+        // Example:
+        // 01/01/2025 - 06/01/2025: Project Kickoff #Blue
+        // 06/01/2025: Milestone #Pink
+
+        endSection
+        """
+        do {
+            try template.write(to: candidate, atomically: true, encoding: .utf8)
+            fileService.reload()
+            DispatchQueue.main.asyncAfter(deadline: .now() + 0.15) {
+                let item = FileItem(url: candidate, isDirectory: false)
+                appState.openFile(item)
+            }
+        } catch {}
+    }
+
+    private func createExcalidrawDrawing() {
+        guard let dir = fileService.rootURL else { return }
+
+        // Find a unique filename: Drawing.excalidraw, Drawing 2.excalidraw, ...
+        var name = "Drawing"
+        var candidate = dir.appendingPathComponent("\(name).excalidraw")
+        var counter = 2
+        while FileManager.default.fileExists(atPath: candidate.path) {
+            name = "Drawing \(counter)"
+            candidate = dir.appendingPathComponent("\(name).excalidraw")
+            counter += 1
+        }
+
+        let emptyDrawing = """
+        {"type":"excalidraw","version":2,"source":"glacier","elements":[],"appState":{"gridSize":null,"viewBackgroundColor":"#ffffff"},"files":{}}
+        """
+        do {
+            try emptyDrawing.write(to: candidate, atomically: true, encoding: .utf8)
+            fileService.reload()
+            // Open the new file in a tab
+            DispatchQueue.main.asyncAfter(deadline: .now() + 0.15) {
+                let item = FileItem(url: candidate, isDirectory: false)
+                appState.openFile(item)
+            }
+        } catch {
+            // Silently fail — file system issue
+        }
     }
 
     private func revealActiveFile() {

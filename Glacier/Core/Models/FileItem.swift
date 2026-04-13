@@ -67,6 +67,8 @@ enum FileKind: String, CaseIterable {
     case audio
     case pdf
     case binary
+    case markwhen
+    case excalidraw
     case unknown
 }
 

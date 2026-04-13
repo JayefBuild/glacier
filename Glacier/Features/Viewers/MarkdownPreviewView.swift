@@ -1,196 +1,438 @@
 // MarkdownPreviewView.swift
-// Renders Markdown as a styled WKWebView preview.
+// Rich Markdown editing for .md files, with source mode as an escape hatch.
 
 import SwiftUI
 import WebKit
+import Combine
 
-struct MarkdownPreviewView: View {
-    let text: String
+struct MarkdownEditorView: View {
+    @Binding var text: String
+    let url: URL
     var fontSize: CGFloat = 14
 
+    @EnvironmentObject private var appState: AppState
+    @Environment(\.appTheme) private var theme
+
+    @State private var mode: MarkdownEditorMode = .rich
+    @State private var saveCancellable: AnyCancellable?
+
+    private var lineCount: Int {
+        text.components(separatedBy: "\n").count
+    }
+
     var body: some View {
-        MarkdownWebViewRepresentable(text: text, fontSize: fontSize)
-            .frame(maxWidth: .infinity, maxHeight: .infinity)
+        VStack(spacing: 0) {
+            statusBar
+
+            Divider()
+
+            Group {
+                switch mode {
+                case .rich:
+                    MarkdownLiveEditorWebView(text: $text, url: url, fontSize: fontSize)
+                case .source:
+                    SyntaxTextView(
+                        text: $text,
+                        fileExtension: "md",
+                        showLineNumbers: false,
+                        fontSize: fontSize,
+                        theme: theme
+                    )
+                }
+            }
+        }
+        .background(theme.colors.editorBackground)
+        .onChange(of: text) { _, newValue in
+            guard mode == .source else { return }
+            scheduleSave(text: newValue)
+        }
+        .onChange(of: mode) { _, newMode in
+            if newMode == .rich {
+                saveCancellable?.cancel()
+                try? appState.fileService.writeFile(text: text, to: url)
+            }
+        }
+        .onDisappear {
+            saveCancellable?.cancel()
+        }
+    }
+
+    private func scheduleSave(text: String) {
+        saveCancellable?.cancel()
+        saveCancellable = Just(text)
+            .delay(for: .milliseconds(500), scheduler: DispatchQueue.main)
+            .sink { value in
+                try? appState.fileService.writeFile(text: value, to: url)
+            }
+    }
+
+    private var statusBar: some View {
+        HStack(spacing: 12) {
+            HStack(spacing: 4) {
+                Image(systemName: FileTypeRegistry.icon(for: "md"))
+                    .font(.system(size: 10))
+                    .foregroundStyle(FileTypeRegistry.color(for: "md"))
+                Text("Markdown")
+                    .font(theme.typography.captionFont)
+                    .foregroundStyle(.secondary)
+            }
+
+            Divider().frame(height: 12)
+
+            Text("\(lineCount) lines")
+                .font(theme.typography.captionFont)
+                .foregroundStyle(.tertiary)
+
+            Spacer()
+
+            Picker("", selection: $mode) {
+                ForEach(MarkdownEditorMode.allCases) { mode in
+                    Text(mode.title).tag(mode)
+                }
+            }
+            .pickerStyle(.segmented)
+            .frame(width: 140)
+            .labelsHidden()
+        }
+        .padding(.horizontal, 12)
+        .padding(.vertical, 6)
+        .frame(height: 32)
+        .background(theme.colors.editorBackground)
     }
 }
 
-// MARK: - NSViewRepresentable
+private enum MarkdownEditorMode: String, CaseIterable, Identifiable {
+    case rich
+    case source
 
-private struct MarkdownWebViewRepresentable: NSViewRepresentable {
-    let text: String
-    var fontSize: CGFloat = 14
+    var id: String { rawValue }
+
+    var title: String {
+        switch self {
+        case .rich: return "Rich"
+        case .source: return "Source"
+        }
+    }
+}
+
+private struct MarkdownLiveEditorWebView: NSViewRepresentable {
+    @Binding var text: String
+    let url: URL
+    let fontSize: CGFloat
+
+    func makeCoordinator() -> Coordinator {
+        Coordinator(text: $text, url: url)
+    }
 
     func makeNSView(context: Context) -> WKWebView {
-        let prefs = WKWebpagePreferences()
-        prefs.allowsContentJavaScript = false
-
         let config = WKWebViewConfiguration()
-        config.defaultWebpagePreferences = prefs
+        config.defaultWebpagePreferences.allowsContentJavaScript = true
+        config.userContentController.add(context.coordinator, name: "glacierSave")
+        config.userContentController.add(context.coordinator, name: "glacierReady")
 
         let webView = WKWebView(frame: .zero, configuration: config)
         webView.navigationDelegate = context.coordinator
-        webView.setValue(false, forKey: "drawsBackground")  // transparent bg, let CSS handle it
+        webView.setValue(false, forKey: "drawsBackground")
+        context.coordinator.webView = webView
+        webView.loadHTMLString(buildHTML(markdown: text, fontSize: fontSize), baseURL: nil)
         return webView
     }
 
     func updateNSView(_ webView: WKWebView, context: Context) {
-        // Only reload when content changes
-        let newHTML = buildHTML(text)
-        guard newHTML != context.coordinator.lastHTML else { return }
-        context.coordinator.lastHTML = newHTML
-        webView.loadHTMLString(newHTML, baseURL: nil)
+        let script = "window.glacierSetFontSize && window.glacierSetFontSize(\(fontSize));"
+        webView.evaluateJavaScript(script, completionHandler: nil)
     }
 
-    func makeCoordinator() -> Coordinator { Coordinator() }
+    private func buildHTML(markdown: String, fontSize: CGFloat) -> String {
+        let isDark = NSApp.effectiveAppearance.bestMatch(from: [.darkAqua, .aqua]) == .darkAqua
 
-    final class Coordinator: NSObject, WKNavigationDelegate {
-        var lastHTML = ""
+        let fg = isDark ? "#e8e8ed" : "#1c1c1e"
+        let bg = isDark ? "#1c1c1e" : "#ffffff"
+        let panel = isDark ? "#232326" : "#fafaf8"
+        let codeBg = isDark ? "#2c2c2e" : "#f2f2f7"
+        let border = isDark ? "#3a3a3c" : "#d9d9de"
+        let link = isDark ? "#78b8ff" : "#0a66d8"
+        let muted = isDark ? "#9a9aa0" : "#6e6e73"
+        let selection = isDark ? "rgba(120, 184, 255, 0.16)" : "rgba(10, 102, 216, 0.12)"
+        let baseCSS = "https://uicdn.toast.com/editor/3.2.2/toastui-editor.min.css"
+        let themeCSS = isDark
+            ? #"<link rel="stylesheet" href="https://uicdn.toast.com/editor/3.2.2/theme/toastui-editor-dark.min.css">"#
+            : ""
+
+        return """
+        <!DOCTYPE html>
+        <html>
+        <head>
+        <meta charset="utf-8">
+        <meta name="viewport" content="width=device-width, initial-scale=1">
+        <link rel="stylesheet" href="\(baseCSS)">
+        \(themeCSS)
+        <style>
+          :root {
+            --editor-font-size: \(fontSize)px;
+            --editor-fg: \(fg);
+            --editor-bg: \(bg);
+            --editor-panel: \(panel);
+            --editor-code-bg: \(codeBg);
+            --editor-border: \(border);
+            --editor-link: \(link);
+            --editor-muted: \(muted);
+            --editor-selection: \(selection);
+          }
+          * { box-sizing: border-box; }
+          html, body {
+            margin: 0;
+            height: 100%;
+            overflow: hidden;
+            background: var(--editor-bg);
+            color: var(--editor-fg);
+            font-family: -apple-system, BlinkMacSystemFont, "SF Pro Text", sans-serif;
+          }
+          body {
+            font-size: var(--editor-font-size);
+          }
+          #loading {
+            display: flex;
+            align-items: center;
+            justify-content: center;
+            height: 100%;
+            color: var(--editor-muted);
+            font-size: 13px;
+          }
+          #editor-shell {
+            display: none;
+            height: 100%;
+            background: var(--editor-bg);
+          }
+          #editor {
+            height: 100%;
+          }
+          .toastui-editor-defaultUI {
+            border: 0 !important;
+            border-radius: 0 !important;
+            background: transparent !important;
+          }
+          .toastui-editor-defaultUI-toolbar,
+          .toastui-editor-toolbar,
+          .toastui-editor-md-tab-container,
+          .toastui-editor-mode-switch {
+            display: none !important;
+          }
+          .toastui-editor-main,
+          .toastui-editor-main-container,
+          .toastui-editor-ww-container,
+          .toastui-editor.ww-mode {
+            height: 100% !important;
+            border: 0 !important;
+            background: transparent !important;
+          }
+          .ProseMirror.toastui-editor-contents,
+          .toastui-editor-contents {
+            max-width: 820px;
+            margin: 0 auto;
+            padding: 28px 36px 120px;
+            color: var(--editor-fg);
+            font-size: var(--editor-font-size) !important;
+            line-height: 1.75;
+          }
+          .toastui-editor-contents h1,
+          .toastui-editor-contents h2,
+          .toastui-editor-contents h3,
+          .toastui-editor-contents h4,
+          .toastui-editor-contents h5,
+          .toastui-editor-contents h6 {
+            color: var(--editor-fg);
+            line-height: 1.25;
+            letter-spacing: -0.02em;
+            margin-top: 1.3em;
+            margin-bottom: 0.4em;
+          }
+          .toastui-editor-contents h1 {
+            font-size: calc(var(--editor-font-size) * 2.05);
+            font-weight: 750;
+          }
+          .toastui-editor-contents h2 {
+            font-size: calc(var(--editor-font-size) * 1.55);
+            font-weight: 700;
+            padding-bottom: 0.35em;
+            border-bottom: 1px solid var(--editor-border);
+          }
+          .toastui-editor-contents h3 {
+            font-size: calc(var(--editor-font-size) * 1.28);
+            font-weight: 680;
+          }
+          .toastui-editor-contents p,
+          .toastui-editor-contents li {
+            color: var(--editor-fg);
+          }
+          .toastui-editor-contents a {
+            color: var(--editor-link);
+          }
+          .toastui-editor-contents blockquote {
+            margin: 1rem 0;
+            padding: 0.8rem 1rem;
+            border-left: 3px solid var(--editor-border);
+            background: var(--editor-panel);
+            color: var(--editor-muted);
+            border-radius: 0 10px 10px 0;
+          }
+          .toastui-editor-contents code {
+            background: var(--editor-code-bg);
+            border-radius: 6px;
+            padding: 0.14em 0.35em;
+          }
+          .toastui-editor-contents pre {
+            background: var(--editor-code-bg);
+            border: 1px solid var(--editor-border);
+            border-radius: 12px;
+            padding: 16px 18px;
+          }
+          .toastui-editor-contents hr {
+            border-top-color: var(--editor-border);
+            margin: 1.8rem 0;
+          }
+          .toastui-editor-contents table th,
+          .toastui-editor-contents table td {
+            border-color: var(--editor-border);
+          }
+          .toastui-editor-contents table th {
+            background: var(--editor-panel);
+          }
+          .toastui-editor-contents img {
+            border-radius: 12px;
+          }
+          .toastui-editor-contents .task-list-item {
+            list-style: none;
+          }
+          .toastui-editor-contents ::selection {
+            background: var(--editor-selection);
+          }
+          .glacier-error {
+            max-width: 440px;
+            margin: 56px auto;
+            padding: 18px 20px;
+            border: 1px solid var(--editor-border);
+            border-radius: 14px;
+            background: var(--editor-panel);
+            color: var(--editor-muted);
+            line-height: 1.6;
+          }
+          .glacier-error strong {
+            color: var(--editor-fg);
+            display: block;
+            margin-bottom: 6px;
+          }
+        </style>
+        </head>
+        <body>
+          <div id="loading">Loading rich markdown editor…</div>
+          <div id="editor-shell">
+            <div id="editor"></div>
+          </div>
+
+          <script src="https://uicdn.toast.com/editor/3.2.2/toastui-editor-all.min.js"></script>
+          <script>
+            const INITIAL_MARKDOWN = \(javaScriptStringLiteral(markdown));
+            const ROOT = document.documentElement;
+            let editor = null;
+
+            function debounce(fn, ms) {
+              let timer;
+              return (...args) => {
+                clearTimeout(timer);
+                timer = setTimeout(() => fn(...args), ms);
+              };
+            }
+
+            function showError(message) {
+              const loading = document.getElementById('loading');
+              loading.innerHTML = '<div class="glacier-error"><strong>Rich editor unavailable</strong>' + message + '</div>';
+            }
+
+            function syncMarkdownToSwift() {
+              if (!editor) return;
+              window.webkit.messageHandlers.glacierSave.postMessage(editor.getMarkdown());
+            }
+
+            window.glacierSetFontSize = function(size) {
+              ROOT.style.setProperty('--editor-font-size', size + 'px');
+            };
+
+            try {
+              editor = new toastui.Editor({
+                el: document.querySelector('#editor'),
+                height: '100%',
+                initialValue: INITIAL_MARKDOWN,
+                initialEditType: 'wysiwyg',
+                previewStyle: 'tab',
+                hideModeSwitch: true,
+                autofocus: false,
+                usageStatistics: false
+              });
+
+              editor.on('change', debounce(syncMarkdownToSwift, 450));
+              window.glacierSetFontSize(\(fontSize));
+              document.getElementById('loading').style.display = 'none';
+              document.getElementById('editor-shell').style.display = 'block';
+              window.webkit.messageHandlers.glacierReady.postMessage('ready');
+            } catch (error) {
+              showError('The rich Markdown view uses pinned Toast UI assets. Switch to Source mode if loading fails.');
+              console.error(error);
+            }
+          </script>
+        </body>
+        </html>
+        """
+    }
+
+    private func javaScriptStringLiteral(_ value: String) -> String {
+        guard let data = try? JSONEncoder().encode(value),
+              let encoded = String(data: data, encoding: .utf8) else {
+            return "\"\""
+        }
+        return encoded
+    }
+
+    final class Coordinator: NSObject, WKNavigationDelegate, WKScriptMessageHandler {
+        @Binding var text: String
+        let url: URL
+        weak var webView: WKWebView?
+
+        init(text: Binding<String>, url: URL) {
+            _text = text
+            self.url = url
+        }
+
+        func userContentController(_ userContentController: WKUserContentController, didReceive message: WKScriptMessage) {
+            switch message.name {
+            case "glacierSave":
+                guard let markdown = message.body as? String else { return }
+                DispatchQueue.main.async { [weak self] in
+                    guard let self else { return }
+                    self.text = markdown
+                    try? markdown.write(to: self.url, atomically: true, encoding: .utf8)
+                }
+            case "glacierReady":
+                break
+            default:
+                break
+            }
+        }
 
         func webView(_ webView: WKWebView,
                      decidePolicyFor navigationAction: WKNavigationAction,
                      decisionHandler: @escaping (WKNavigationActionPolicy) -> Void) {
-            if navigationAction.navigationType == .linkActivated,
-               let url = navigationAction.request.url {
+            guard let url = navigationAction.request.url else {
+                decisionHandler(.allow)
+                return
+            }
+
+            if navigationAction.navigationType == .linkActivated {
                 NSWorkspace.shared.open(url)
                 decisionHandler(.cancel)
             } else {
                 decisionHandler(.allow)
             }
         }
-    }
-
-    // MARK: - HTML
-
-    private func buildHTML(_ markdown: String) -> String {
-        let isDark = NSApp.effectiveAppearance.bestMatch(from: [.darkAqua, .aqua]) == .darkAqua
-
-        let fg      = isDark ? "#e8e8ed"  : "#1c1c1e"
-        let bg      = isDark ? "#1c1c1e"  : "#ffffff"
-        let codeBg  = isDark ? "#2c2c2e"  : "#f2f2f7"
-        let link    = isDark ? "#64b5f6"  : "#007aff"
-        let border  = isDark ? "#3a3a3c"  : "#d1d1d6"
-        let h1fg    = isDark ? "#f5f5f7"  : "#000000"
-        let muted   = isDark ? "#98989d"  : "#6e6e73"
-
-        let body = markdownToHTML(markdown)
-
-        return """
-        <!DOCTYPE html><html><head>
-        <meta charset="utf-8">
-        <style>
-        *{box-sizing:border-box;margin:0;padding:0}
-        html,body{height:100%;background:\(bg)}
-        body{font-family:-apple-system,BlinkMacSystemFont,'SF Pro Text',sans-serif;
-          font-size:\(fontSize)px;line-height:1.7;color:\(fg);padding:28px 36px;max-width:820px}
-        h1,h2,h3,h4,h5,h6{color:\(h1fg);margin:24px 0 8px;font-weight:600;line-height:1.3}
-        h1{font-size:28px;font-weight:700}
-        h2{font-size:22px;border-bottom:1px solid \(border);padding-bottom:6px}
-        h3{font-size:18px}
-        p{margin-bottom:14px}
-        a{color:\(link);text-decoration:none}
-        a:hover{text-decoration:underline}
-        code{font-family:'SF Mono',Menlo,monospace;font-size:12.5px;
-          background:\(codeBg);padding:2px 5px;border-radius:4px}
-        pre{background:\(codeBg);border-radius:8px;padding:16px;
-          overflow-x:auto;margin-bottom:16px}
-        pre code{background:none;padding:0}
-        blockquote{border-left:3px solid \(border);padding-left:16px;
-          color:\(muted);margin:12px 0}
-        ul,ol{padding-left:20px;margin-bottom:14px}
-        li{margin-bottom:4px}
-        hr{border:none;border-top:1px solid \(border);margin:24px 0}
-        table{border-collapse:collapse;width:100%;margin-bottom:16px}
-        th,td{border:1px solid \(border);padding:8px 12px;text-align:left}
-        th{background:\(codeBg);font-weight:600}
-        img{max-width:100%;border-radius:8px}
-        strong{font-weight:600}em{font-style:italic}
-        </style></head><body>\(body)</body></html>
-        """
-    }
-
-    // MARK: - Simple Markdown → HTML
-
-    private func markdownToHTML(_ md: String) -> String {
-        let lines = md.components(separatedBy: "\n")
-        var out: [String] = []
-        var inCode = false
-        var inUL = false
-        var inOL = false
-
-        for rawLine in lines {
-            // Code fence
-            if rawLine.hasPrefix("```") {
-                if inUL { out.append("</ul>"); inUL = false }
-                if inOL { out.append("</ol>"); inOL = false }
-                inCode ? out.append("</code></pre>") : out.append("<pre><code>")
-                inCode.toggle()
-                continue
-            }
-            if inCode {
-                out.append(esc(rawLine))
-                continue
-            }
-
-            let line = rawLine
-
-            // Close lists if needed
-            let isULItem = line.hasPrefix("- ") || line.hasPrefix("* ")
-            let isOLItem = line.range(of: #"^\d+\. "#, options: .regularExpression) != nil
-            if !isULItem && inUL { out.append("</ul>"); inUL = false }
-            if !isOLItem && inOL { out.append("</ol>"); inOL = false }
-
-            if line.hasPrefix("######") {
-                out.append("<h6>\(inline(String(line.dropFirst(7))))</h6>")
-            } else if line.hasPrefix("#####") {
-                out.append("<h5>\(inline(String(line.dropFirst(6))))</h5>")
-            } else if line.hasPrefix("####") {
-                out.append("<h4>\(inline(String(line.dropFirst(5))))</h4>")
-            } else if line.hasPrefix("###") {
-                out.append("<h3>\(inline(String(line.dropFirst(4))))</h3>")
-            } else if line.hasPrefix("##") {
-                out.append("<h2>\(inline(String(line.dropFirst(3))))</h2>")
-            } else if line.hasPrefix("# ") {
-                out.append("<h1>\(inline(String(line.dropFirst(2))))</h1>")
-            } else if line.hasPrefix("---") || line.hasPrefix("***") || line.hasPrefix("___") {
-                out.append("<hr>")
-            } else if line.hasPrefix("> ") {
-                out.append("<blockquote><p>\(inline(String(line.dropFirst(2))))</p></blockquote>")
-            } else if isULItem {
-                if !inUL { out.append("<ul>"); inUL = true }
-                let text = line.hasPrefix("- ") ? String(line.dropFirst(2)) : String(line.dropFirst(2))
-                out.append("<li>\(inline(text))</li>")
-            } else if isOLItem {
-                if !inOL { out.append("<ol>"); inOL = true }
-                let text = line.replacingOccurrences(of: #"^\d+\. "#, with: "", options: .regularExpression)
-                out.append("<li>\(inline(text))</li>")
-            } else if line.trimmingCharacters(in: .whitespaces).isEmpty {
-                out.append("<br>")
-            } else {
-                out.append("<p>\(inline(line))</p>")
-            }
-        }
-
-        if inUL { out.append("</ul>") }
-        if inOL { out.append("</ol>") }
-        if inCode { out.append("</code></pre>") }
-
-        return out.joined(separator: "\n")
-    }
-
-    private func inline(_ s: String) -> String {
-        var t = s
-        t = t.replacingOccurrences(of: #"\*\*(.+?)\*\*"#, with: "<strong>$1</strong>", options: .regularExpression)
-        t = t.replacingOccurrences(of: #"__(.+?)__"#,     with: "<strong>$1</strong>", options: .regularExpression)
-        t = t.replacingOccurrences(of: #"\*(.+?)\*"#,     with: "<em>$1</em>",         options: .regularExpression)
-        t = t.replacingOccurrences(of: #"_(.+?)_"#,       with: "<em>$1</em>",         options: .regularExpression)
-        t = t.replacingOccurrences(of: #"`(.+?)`"#,       with: "<code>$1</code>",     options: .regularExpression)
-        t = t.replacingOccurrences(of: #"\[(.+?)\]\((.+?)\)"#, with: "<a href=\"$2\">$1</a>", options: .regularExpression)
-        return t
-    }
-
-    private func esc(_ s: String) -> String {
-        s.replacingOccurrences(of: "&", with: "&amp;")
-         .replacingOccurrences(of: "<", with: "&lt;")
-         .replacingOccurrences(of: ">", with: "&gt;")
     }
 }

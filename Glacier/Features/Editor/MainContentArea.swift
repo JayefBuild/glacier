@@ -29,19 +29,6 @@ struct MainContentArea: View {
             .animation(theme.animation.standard, value: appState.activeTabID)
         }
         .background(theme.colors.editorBackground)
-        .toolbar {
-            ToolbarItemGroup(placement: .primaryAction) {
-                // New terminal tab
-                Button {
-                    appState.openNewTerminal(
-                        workingDirectory: appState.fileService.rootURL
-                    )
-                } label: {
-                    Image(systemName: "terminal")
-                }
-                .help("New Terminal Tab (⌘T)")
-            }
-        }
     }
 }
 

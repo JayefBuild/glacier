@@ -35,6 +35,8 @@ targets:
       - path: Glacier
         excludes:
           - "**/*.md"
+    resources:
+      - path: Glacier/Resources/markwhen.html
     settings:
       PRODUCT_BUNDLE_IDENTIFIER: com.jfrech.Glacier
       INFOPLIST_FILE: Glacier/Info.plist

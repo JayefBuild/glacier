@@ -25,8 +25,14 @@ struct ContentView: View {
         .navigationSplitViewStyle(.balanced)
         .environmentObject(appState)
         .focusedValue(\.appState, appState)
+        .toolbar(removing: .sidebarToggle)
         .background(
-            WindowConfigurator(title: windowTitle)
+            WindowConfigurator(
+                title: windowTitle,
+                onNewTerminal: {
+                    appState.openNewTerminal(workingDirectory: appState.fileService.rootURL)
+                }
+            )
                 .frame(width: 0, height: 0)
                 .allowsHitTesting(false)
         )
