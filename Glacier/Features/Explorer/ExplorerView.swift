@@ -26,6 +26,9 @@ private struct ExplorerContent: View {
             } else {
                 ExplorerTreeView(fileService: fileService)
             }
+            Spacer(minLength: 0)
+            Divider()
+            WorkspaceSwitcherView(fileService: fileService)
         }
         .frame(maxWidth: .infinity, maxHeight: .infinity, alignment: .topLeading)
         .background(.ultraThinMaterial)

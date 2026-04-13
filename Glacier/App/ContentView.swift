@@ -1,11 +1,15 @@
 // ContentView.swift
-// Root layout: NavigationSplitView with sidebar + main content area.
+// Root layout: each window instance owns its own AppState — fully independent workspace.
 
 import SwiftUI
 
 struct ContentView: View {
-    @EnvironmentObject private var appState: AppState
+    @StateObject private var appState = AppState()
     @Environment(\.appTheme) private var theme
+
+    private var windowTitle: String {
+        appState.fileService.rootURL?.lastPathComponent ?? "Glacier"
+    }
 
     var body: some View {
         NavigationSplitView {
@@ -19,5 +23,19 @@ struct ContentView: View {
             MainContentArea()
         }
         .navigationSplitViewStyle(.balanced)
+        .environmentObject(appState)
+        .focusedValue(\.appState, appState)
+        .background(
+            WindowConfigurator(title: windowTitle)
+                .frame(width: 0, height: 0)
+                .allowsHitTesting(false)
+        )
+        .onAppear {
+            // If a workspace was queued for a new tab, open it now
+            if let url = WorkspaceStore.shared.pendingOpenURL {
+                WorkspaceStore.shared.pendingOpenURL = nil
+                appState.fileService.openFolder(at: url)
+            }
+        }
     }
 }

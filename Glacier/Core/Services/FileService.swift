@@ -19,6 +19,7 @@ final class FileService: ObservableObject {
         rootURL = url
         rootItems = []
         isLoading = true
+        WorkspaceStore.shared.add(url)
         Task.detached(priority: .userInitiated) {
             let items = self.loadChildren(of: url)
             await MainActor.run {

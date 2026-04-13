@@ -1,10 +1,10 @@
 // GlacierCommands.swift
-// Menu bar commands for the app.
+// Menu bar commands — always operate on the focused window's AppState.
 
 import SwiftUI
 
 struct GlacierCommands: Commands {
-    let appState: AppState
+    @FocusedValue(\.appState) private var appState: AppState?
 
     var body: some Commands {
         CommandGroup(replacing: .newItem) {
@@ -14,13 +14,13 @@ struct GlacierCommands: Commands {
             .keyboardShortcut("o", modifiers: [.command, .shift])
 
             Button("New Terminal Tab") {
-                appState.openNewTerminal()
+                appState?.openNewTerminal()
             }
             .keyboardShortcut("t", modifiers: [.command])
 
             Button("Close Tab") {
-                if let tab = appState.activeTab {
-                    appState.closeTab(tab)
+                if let tab = appState?.activeTab {
+                    appState?.closeTab(tab)
                 }
             }
             .keyboardShortcut("w", modifiers: [.command])
@@ -29,7 +29,7 @@ struct GlacierCommands: Commands {
         CommandGroup(after: .windowArrangement) {
             Button("Toggle Sidebar") {
                 withAnimation(GlacierTheme().animation.standard) {
-                    appState.isSidebarVisible.toggle()
+                    appState?.isSidebarVisible.toggle()
                 }
             }
             .keyboardShortcut("\\", modifiers: .command)
@@ -37,17 +37,17 @@ struct GlacierCommands: Commands {
 
         CommandMenu("View") {
             Button("Increase Font Size") {
-                appState.adjustFontSize(by: 1)
+                appState?.adjustFontSize(by: 1)
             }
             .keyboardShortcut("+", modifiers: .command)
 
             Button("Decrease Font Size") {
-                appState.adjustFontSize(by: -1)
+                appState?.adjustFontSize(by: -1)
             }
             .keyboardShortcut("-", modifiers: .command)
 
             Button("Reset Font Size") {
-                appState.resetFontSize()
+                appState?.resetFontSize()
             }
             .keyboardShortcut("0", modifiers: .command)
         }
@@ -55,7 +55,7 @@ struct GlacierCommands: Commands {
 
     private func openFolder() {
         openFolderPanel { url in
-            appState.fileService.openFolder(at: url)
+            appState?.fileService.openFolder(at: url)
         }
     }
 }
