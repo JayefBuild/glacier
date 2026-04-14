@@ -27,12 +27,7 @@ struct ContentView: View {
         .focusedValue(\.appState, appState)
         .toolbar(removing: .sidebarToggle)
         .background(
-            WindowConfigurator(
-                title: windowTitle,
-                onNewTerminal: {
-                    appState.openNewTerminal(workingDirectory: appState.fileService.rootURL)
-                }
-            )
+            WindowConfigurator(title: windowTitle)
                 .frame(width: 0, height: 0)
                 .allowsHitTesting(false)
         )

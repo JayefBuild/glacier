@@ -2,6 +2,7 @@
 // File/folder sidebar with recursive tree view, toolbar, and context menus.
 
 import SwiftUI
+import AppKit
 
 struct ExplorerView: View {
     @EnvironmentObject private var appState: AppState
@@ -9,6 +10,59 @@ struct ExplorerView: View {
 
     var body: some View {
         ExplorerContent(fileService: appState.fileService)
+            .toolbar(removing: .sidebarToggle)
+            .toolbar {
+                ToolbarItem(placement: .navigation) {
+                    TitlebarControlStrip(
+                        onNewTerminal: {
+                            appState.openNewTerminal(workingDirectory: appState.fileService.rootURL)
+                        },
+                        onToggleSidebar: {
+                            toggleSidebar()
+                        }
+                    )
+                }
+            }
+    }
+
+    private func toggleSidebar() {
+        NSApp.sendAction(#selector(NSSplitViewController.toggleSidebar(_:)), to: nil, from: nil)
+    }
+}
+
+private struct TitlebarControlStrip: View {
+    let onNewTerminal: () -> Void
+    let onToggleSidebar: () -> Void
+
+    var body: some View {
+        HStack(spacing: 0) {
+            stripButton(symbolName: "apple.terminal", help: "New Terminal Tab", action: onNewTerminal)
+
+            Rectangle()
+                .fill(.quaternary)
+                .frame(width: 1, height: 18)
+
+            stripButton(symbolName: "sidebar.left", help: "Toggle Sidebar", action: onToggleSidebar)
+        }
+        .frame(height: 32)
+        .background(.regularMaterial, in: Capsule())
+        .overlay(
+            Capsule()
+                .strokeBorder(.white.opacity(0.5), lineWidth: 0.5)
+        )
+    }
+
+    private func stripButton(symbolName: String, help: String, action: @escaping () -> Void) -> some View {
+        Button(action: action) {
+            Image(systemName: symbolName)
+                .font(.system(size: 15, weight: .medium))
+                .symbolRenderingMode(.monochrome)
+                .frame(width: 42, height: 30)
+                .contentShape(Rectangle())
+        }
+        .buttonStyle(.plain)
+        .foregroundStyle(.secondary)
+        .help(help)
     }
 }
 
