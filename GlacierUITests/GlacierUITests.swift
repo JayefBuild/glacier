@@ -10,6 +10,7 @@
 
 import XCTest
 
+@MainActor
 final class GlacierUITests: XCTestCase {
 
     var app: XCUIApplication!
@@ -122,6 +123,50 @@ final class GlacierUITests: XCTestCase {
 
         let attachment = XCTAttachment(screenshot: screenshot)
         attachment.name = "Glacier with /tmp/glacier_test (markdown folder) opened"
+        attachment.lifetime = .keepAlways
+        add(attachment)
+    }
+
+    func testMarkwhenViewerRendersOfficialTimeline() throws {
+        app.terminate()
+        app.launchEnvironment["GLACIER_OPEN_FILE"] = "/tmp/glacier_markwhen_test/roadmap.mw"
+        app.launchArguments = ["-NSQuitAlwaysKeepsWindows", "NO"]
+        app.launch()
+        sleep(5)
+        app.activate()
+        sleep(2)
+
+        XCTAssertEqual(
+            app.state, .runningForeground,
+            "App should still be running after opening a Markwhen file"
+        )
+
+        let hierarchyAttachment = XCTAttachment(string: app.debugDescription)
+        hierarchyAttachment.name = "Markwhen accessibility hierarchy"
+        hierarchyAttachment.lifetime = .keepAlways
+        add(hierarchyAttachment)
+
+        let milestoneText = app.staticTexts["P89.1"].firstMatch
+        let sectionText = app.staticTexts["Planning & Sprint"].firstMatch
+        let monthText = app.staticTexts["Sep"].firstMatch
+
+        let renderedTimelineTextAppeared =
+            milestoneText.waitForExistence(timeout: 10) ||
+            sectionText.waitForExistence(timeout: 10) ||
+            monthText.waitForExistence(timeout: 10)
+
+        XCTAssertTrue(
+            renderedTimelineTextAppeared,
+            "Expected official Markwhen timeline labels to appear in the accessibility tree"
+        )
+
+        let screenshot = app.windows.firstMatch.exists ? app.windows.firstMatch.screenshot() : app.screenshot()
+        let image = screenshot.image
+        XCTAssertGreaterThan(Int(image.size.width), 0, "Screenshot must have non-zero width")
+        XCTAssertGreaterThan(Int(image.size.height), 0, "Screenshot must have non-zero height")
+
+        let attachment = XCTAttachment(screenshot: screenshot)
+        attachment.name = "Glacier with official Markwhen timeline renderer"
         attachment.lifetime = .keepAlways
         add(attachment)
     }

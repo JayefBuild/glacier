@@ -45,11 +45,6 @@ private struct TitlebarControlStrip: View {
             stripButton(symbolName: "sidebar.left", help: "Toggle Sidebar", action: onToggleSidebar)
         }
         .frame(height: 32)
-        .background(.regularMaterial, in: Capsule())
-        .overlay(
-            Capsule()
-                .strokeBorder(.white.opacity(0.5), lineWidth: 0.5)
-        )
     }
 
     private func stripButton(symbolName: String, help: String, action: @escaping () -> Void) -> some View {

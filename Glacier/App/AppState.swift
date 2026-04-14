@@ -70,8 +70,15 @@ final class AppState: ObservableObject {
     // MARK: - Init
 
     init() {
-        // Test hook: open a folder passed via environment variable at launch
-        if let path = ProcessInfo.processInfo.environment["GLACIER_OPEN_FOLDER"] {
+        // Test hooks: allow UI tests to boot straight into a workspace or file.
+        let environment = ProcessInfo.processInfo.environment
+        if let path = environment["GLACIER_OPEN_FILE"] {
+            let fileURL = URL(fileURLWithPath: path)
+            Task { @MainActor in
+                self.fileService.openFolder(at: fileURL.deletingLastPathComponent())
+                self.openFile(FileItem(url: fileURL, isDirectory: false))
+            }
+        } else if let path = environment["GLACIER_OPEN_FOLDER"] {
             Task { @MainActor in
                 self.fileService.openFolder(at: URL(fileURLWithPath: path))
             }

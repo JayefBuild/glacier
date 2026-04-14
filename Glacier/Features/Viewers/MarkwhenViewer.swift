@@ -121,7 +121,8 @@ struct MarkwhenWebView: NSViewRepresentable {
     func updateNSView(_ webView: WKWebView, context: Context) {
         guard context.coordinator.lastText != text else { return }
         context.coordinator.lastText = text
-        injectContent(into: webView, text: text)
+        context.coordinator.pendingText = text
+        Self.injectContent(into: webView, text: text)
     }
 
     private func loadPage(in webView: WKWebView) {
@@ -132,13 +133,34 @@ struct MarkwhenWebView: NSViewRepresentable {
         webView.loadFileURL(htmlURL, allowingReadAccessTo: htmlURL.deletingLastPathComponent())
     }
 
-    private func injectContent(into webView: WKWebView, text: String) {
+    private static func injectContent(into webView: WKWebView, text: String) {
         let isDark = NSApp.effectiveAppearance.bestMatch(from: [.darkAqua, .aqua]) == .darkAqua
-        let escaped = text
-            .replacingOccurrences(of: "\\", with: "\\\\")
-            .replacingOccurrences(of: "`", with: "\\`")
-            .replacingOccurrences(of: "$", with: "\\$")
-        webView.evaluateJavaScript("setContent(`\(escaped)`, \(isDark ? "true" : "false"));", completionHandler: nil)
+        guard let textLiteral = javaScriptStringLiteral(for: text) else {
+            NSLog("Markwhen injection failed: unable to encode text payload")
+            return
+        }
+
+        let script = "window.glacierMarkwhenSetText?.(\(textLiteral), \(isDark ? "true" : "false"));"
+        webView.evaluateJavaScript(script) { _, error in
+            if let error {
+                NSLog("Markwhen injection failed: %@", String(describing: error))
+            }
+        }
+    }
+
+    private static func javaScriptStringLiteral(for text: String) -> String? {
+        guard
+            let data = try? JSONSerialization.data(withJSONObject: [text]),
+            var arrayLiteral = String(data: data, encoding: .utf8)
+        else {
+            return nil
+        }
+
+        arrayLiteral.removeFirst()
+        arrayLiteral.removeLast()
+        return arrayLiteral
+            .replacingOccurrences(of: "\u{2028}", with: "\\u2028")
+            .replacingOccurrences(of: "\u{2029}", with: "\\u2029")
     }
 
     final class Coordinator: NSObject, WKNavigationDelegate {
@@ -148,12 +170,7 @@ struct MarkwhenWebView: NSViewRepresentable {
 
         func webView(_ webView: WKWebView, didFinish navigation: WKNavigation!) {
             guard !pendingText.isEmpty else { return }
-            let isDark = NSApp.effectiveAppearance.bestMatch(from: [.darkAqua, .aqua]) == .darkAqua
-            let escaped = pendingText
-                .replacingOccurrences(of: "\\", with: "\\\\")
-                .replacingOccurrences(of: "`", with: "\\`")
-                .replacingOccurrences(of: "$", with: "\\$")
-            webView.evaluateJavaScript("setContent(`\(escaped)`, \(isDark ? "true" : "false"));", completionHandler: nil)
+            MarkwhenWebView.injectContent(into: webView, text: pendingText)
         }
 
         func webView(_ webView: WKWebView,
