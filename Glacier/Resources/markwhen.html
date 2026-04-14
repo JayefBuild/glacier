@@ -5,55 +5,42 @@
 <style>
 *{box-sizing:border-box;margin:0;padding:0}
 html,body{height:100vh;overflow:hidden;
-  font-family:-apple-system,BlinkMacSystemFont,'SF Pro Text',sans-serif;font-size:13px}
+  font-family:-apple-system,BlinkMacSystemFont,'SF Pro Text',sans-serif;font-size:12px}
 body.dark {background:#1c1c1e;color:#e8e8ed}
 body.light{background:#f5f5f7;color:#1c1c1e}
 
 #app{display:flex;flex-direction:column;height:100vh}
 
 /* Header */
-#header{display:flex;align-items:center;height:36px;padding:0 16px;gap:12px;flex-shrink:0;border-bottom-width:1px;border-bottom-style:solid}
-body.dark  #header{background:#1a1a1c;border-color:#3a3a3c}
-body.light #header{background:#f2f2f7;border-color:#d1d1d6}
-#header-title{font-size:11px;font-weight:700;text-transform:uppercase;letter-spacing:0.06em}
-body.dark  #header-title{color:#636366}
-body.light #header-title{color:#8e8e93}
+#header{display:flex;align-items:center;height:32px;padding:0 14px;gap:10px;
+  flex-shrink:0;border-bottom-width:1px;border-bottom-style:solid}
+body.dark  #header{background:#1a1a1c;border-color:#2c2c2e}
+body.light #header{background:#f2f2f7;border-color:#e0e0e5}
+#header-title{font-size:11px;font-weight:600;letter-spacing:0.02em}
+body.dark  #header-title{color:#8e8e93}
+body.light #header-title{color:#6e6e73}
 #header-range{font-size:10px}
-body.dark  #header-range{color:#636366}
-body.light #header-range{color:#8e8e93}
+body.dark  #header-range{color:#48484a}
+body.light #header-range{color:#aeaeb2}
 
-/* Body */
+/* Main scroll area */
 #body{display:flex;flex:1;overflow:hidden}
 
-/* Sidebar */
-#sidebar{width:220px;flex-shrink:0;overflow-y:auto;border-right-width:1px;border-right-style:solid}
-body.dark  #sidebar{background:#2c2c2e;border-color:#3a3a3c}
-body.light #sidebar{background:#ffffff;border-color:#d1d1d6}
-#sidebar::-webkit-scrollbar{width:5px}
-#sidebar::-webkit-scrollbar-thumb{border-radius:3px}
-body.dark  #sidebar::-webkit-scrollbar-thumb{background:#3a3a3c}
-body.light #sidebar::-webkit-scrollbar-thumb{background:#c7c7cc}
+/* Row labels column (left of chart) */
+#labels{width:200px;flex-shrink:0;overflow:hidden;display:flex;flex-direction:column}
+body.dark  #labels{background:#1c1c1e;border-right:1px solid #2c2c2e}
+body.light #labels{background:#f5f5f7;border-right:1px solid #e5e5ea}
 
-.section-label{padding:8px 12px 4px;font-size:10px;font-weight:700;
-  text-transform:uppercase;letter-spacing:0.08em;
-  border-bottom-width:1px;border-bottom-style:solid;
-  position:sticky;top:0;z-index:1}
-body.dark  .section-label{color:#636366;background:#1a1a1c;border-color:#3a3a3c}
-body.light .section-label{color:#8e8e93;background:#f2f2f7;border-color:#d1d1d6}
+/* Labels axis placeholder — matches chart axis height */
+#labels-axis{height:32px;flex-shrink:0;border-bottom-width:1px;border-bottom-style:solid}
+body.dark  #labels-axis{background:#1a1a1c;border-color:#2c2c2e}
+body.light #labels-axis{background:#f2f2f7;border-color:#e0e0e5}
 
-.event-row{padding:6px 12px;border-bottom-width:1px;border-bottom-style:solid;cursor:default;transition:background 0.1s}
-body.dark  .event-row{border-color:#2c2c2e}
-body.light .event-row{border-color:#f2f2f7}
-body.dark  .event-row:hover,.event-row.active{background:#3a3a3c}
-body.light .event-row:hover,.event-row.active{background:#f2f2f7}
-.event-name{font-size:12px;font-weight:500;white-space:nowrap;overflow:hidden;text-overflow:ellipsis}
-.event-date{font-size:10px;margin-top:2px;font-variant-numeric:tabular-nums}
-body.dark  .event-date{color:#636366}
-body.light .event-date{color:#8e8e93}
-.event-dot{display:inline-block;width:8px;height:8px;border-radius:50%;
-  margin-right:6px;flex-shrink:0;vertical-align:middle;margin-top:-1px}
+/* Labels inner — scrolls in sync with chart */
+#labels-inner{flex:1;overflow:hidden}
+#labels-content{position:relative}
 
-/* Chart */
+/* Chart area */
 #chart-wrap{flex:1;overflow:auto;position:relative}
 #chart-wrap::-webkit-scrollbar{height:5px;width:5px}
 #chart-wrap::-webkit-scrollbar-thumb{border-radius:3px}
@@ -61,62 +48,142 @@ body.dark  #chart-wrap::-webkit-scrollbar-thumb{background:#3a3a3c}
 body.light #chart-wrap::-webkit-scrollbar-thumb{background:#c7c7cc}
 #chart{position:relative;min-height:100%}
 
-/* Axis */
-#axis{height:36px;position:sticky;top:0;z-index:10;border-bottom-width:1px;border-bottom-style:solid}
-body.dark  #axis{background:#1a1a1c;border-color:#3a3a3c}
-body.light #axis{background:#f2f2f7;border-color:#d1d1d6}
-.axis-tick{position:absolute;top:0;height:36px;display:flex;align-items:center;
-  padding-left:8px;font-size:10px;white-space:nowrap;font-variant-numeric:tabular-nums;
-  border-left-width:1px;border-left-style:solid}
-body.dark  .axis-tick{color:#636366;border-color:#3a3a3c22}
-body.light .axis-tick{color:#8e8e93;border-color:#d1d1d622}
+/* Time axis */
+#axis{height:32px;position:sticky;top:0;z-index:10;
+  border-bottom-width:1px;border-bottom-style:solid;display:flex;align-items:stretch}
+body.dark  #axis{background:#1a1a1c;border-color:#2c2c2e}
+body.light #axis{background:#f2f2f7;border-color:#e0e0e5}
+.axis-tick{position:absolute;top:0;height:32px;display:flex;align-items:flex-end;
+  padding-bottom:7px;padding-left:7px;font-size:10px;white-space:nowrap;
+  font-variant-numeric:tabular-nums;border-left-width:1px;border-left-style:solid}
+body.dark  .axis-tick{color:#48484a;border-color:#2c2c2e}
+body.light .axis-tick{color:#aeaeb2;border-color:#e0e0e5}
+.axis-tick.year-tick{font-weight:600;padding-bottom:4px}
+body.dark  .axis-tick.year-tick{color:#636366}
+body.light .axis-tick.year-tick{color:#8e8e93}
 
-/* Gantt rows */
+/* Gantt rows container */
 #gantt-rows{position:relative}
-.section-bar{height:28px;display:flex;align-items:center;padding:0 12px;
-  font-size:10px;font-weight:700;text-transform:uppercase;letter-spacing:0.06em;
-  position:sticky;top:36px;z-index:4;border-bottom-width:1px;border-bottom-style:solid}
-body.dark  .section-bar{background:#1a1a1c;color:#636366;border-color:#3a3a3c}
-body.light .section-bar{background:#f2f2f7;color:#8e8e93;border-color:#d1d1d6}
 
-.gantt-row{height:36px;position:relative;border-bottom-width:1px;border-bottom-style:solid}
-body.dark  .gantt-row{border-color:#2c2c2e}
-body.light .gantt-row{border-color:#f5f5f7}
-body.dark  .gantt-row:hover{background:#ffffff04}
-body.light .gantt-row:hover{background:#1c1c1e04}
+/* Day-level grid lines (lighter than month) */
+.grid-line-day{opacity:0.4}
 
-.gantt-bar{position:absolute;top:8px;height:20px;border-radius:5px;
-  display:flex;align-items:center;padding:0 8px;white-space:nowrap;overflow:hidden;
-  cursor:default;font-size:11px;font-weight:500;color:#fff;
-  box-shadow:0 1px 3px rgba(0,0,0,0.2);transition:filter 0.15s;min-width:6px}
-.gantt-bar:hover{filter:brightness(1.12)}
-.gantt-bar.milestone{width:20px!important;border-radius:50%;padding:0;
-  justify-content:center;font-size:10px}
+/* Section header spanning full row */
+.section-bar{height:26px;display:flex;align-items:center;padding:0 10px;
+  font-size:9.5px;font-weight:700;text-transform:uppercase;letter-spacing:0.08em;
+  position:sticky;top:32px;z-index:4;border-bottom-width:1px;border-bottom-style:solid;
+  border-top-width:1px;border-top-style:solid}
+body.dark  .section-bar{background:#1c1c1e;color:#48484a;border-color:#2c2c2e}
+body.light .section-bar{background:#f5f5f7;color:#aeaeb2;border-color:#e5e5ea}
+.section-bar-clickable{cursor:pointer;transition:background 0.1s}
+body.dark  .section-bar-clickable:hover{background:#2c2c2e}
+body.light .section-bar-clickable:hover{background:#ebebf0}
+
+/* Label side section header */
+.label-section{height:26px;display:flex;align-items:center;padding:0 8px 0 10px;
+  font-size:9.5px;font-weight:700;text-transform:uppercase;letter-spacing:0.08em;
+  border-bottom-width:1px;border-bottom-style:solid;
+  border-top-width:1px;border-top-style:solid}
+body.dark  .label-section{background:#1c1c1e;color:#48484a;border-color:#2c2c2e}
+body.light .label-section{background:#f5f5f7;color:#aeaeb2;border-color:#e5e5ea}
+.label-section-clickable{cursor:pointer;transition:background 0.1s}
+body.dark  .label-section-clickable:hover{background:#2c2c2e;color:#636366}
+body.light .label-section-clickable:hover{background:#ebebf0;color:#8e8e93}
+.section-chevron{font-size:8px;opacity:0.7;flex-shrink:0;transition:transform 0.15s}
+
+/* Summary row (collapsed section) */
+.label-row-summary .label-text{font-style:italic}
+body.dark  .label-row-summary .label-text{color:#48484a}
+body.light .label-row-summary .label-text{color:#aeaeb2}
+.gantt-bar-summary{border-radius:6px}
+
+/* Gantt row */
+.gantt-row{height:30px;position:relative;border-bottom-width:1px;border-bottom-style:solid}
+body.dark  .gantt-row{border-color:#232325}
+body.light .gantt-row{border-color:#eeeeef}
+body.dark  .gantt-row:hover{background:#ffffff03}
+body.light .gantt-row:hover{background:#00000003}
+
+/* Label row */
+.label-row{height:30px;display:flex;align-items:center;padding:0 10px 0 12px;
+  border-bottom-width:1px;border-bottom-style:solid;cursor:default;transition:background 0.1s}
+body.dark  .label-row{border-color:#232325}
+body.light .label-row{border-color:#eeeeef}
+body.dark  .label-row:hover,.label-row.active{background:#2c2c2e}
+body.light .label-row:hover,.label-row.active{background:#ebebf0}
+.label-text{font-size:11.5px;font-weight:400;
+  white-space:nowrap;overflow:hidden;text-overflow:ellipsis;
+  display:flex;align-items:center;gap:5px}
+body.dark  .label-text{color:#c8c8cc}
+body.light .label-text{color:#2c2c2e}
+.label-dot{width:7px;height:7px;border-radius:50%;flex-shrink:0}
+.label-milestone{width:8px;height:8px;border-radius:2px;
+  flex-shrink:0;transform:rotate(45deg)}
+
+/* Gantt bar — slim pill style */
+.gantt-bar{position:absolute;top:9px;height:12px;border-radius:6px;
+  cursor:default;transition:filter 0.12s,opacity 0.12s;
+  min-width:4px;overflow:hidden}
+.gantt-bar:hover{filter:brightness(1.1)}
+.gantt-bar-fill{position:absolute;inset:0;border-radius:6px;opacity:0.75}
+.gantt-bar-shine{position:absolute;top:0;left:0;right:0;height:50%;
+  border-radius:6px 6px 0 0;background:rgba(255,255,255,0.18);pointer-events:none}
+
+/* Milestone diamond */
+.gantt-milestone{position:absolute;top:9px;width:12px;height:12px;
+  border-radius:3px;transform:rotate(45deg);cursor:default;
+  transition:filter 0.12s;opacity:0.85}
+.gantt-milestone:hover{filter:brightness(1.15)}
+
+/* Bar label (shown right of bar when space allows) */
+.bar-label{position:absolute;top:9px;height:12px;display:flex;align-items:center;
+  font-size:10px;font-weight:500;white-space:nowrap;pointer-events:none;line-height:1}
+body.dark  .bar-label{color:#8e8e93}
+body.light .bar-label{color:#6e6e73}
 
 /* Today line */
-#today-line{position:absolute;top:0;bottom:0;width:2px;opacity:0.6;z-index:5;pointer-events:none}
-body.dark  #today-line{background:#ff453a}
-body.light #today-line{background:#ff3b30}
+#today-line{position:absolute;top:0;bottom:0;width:1.5px;opacity:0.7;z-index:5;pointer-events:none}
+body.dark  #today-line{background:rgba(255,69,58,0.9)}
+body.light #today-line{background:rgba(255,59,48,0.9)}
 
-/* Empty */
+/* Today label at top */
+#today-label{position:absolute;top:32px;font-size:9px;font-weight:600;
+  padding:1px 4px;border-radius:3px;transform:translateX(-50%);z-index:6;pointer-events:none;
+  letter-spacing:0.04em}
+body.dark  #today-label{background:rgba(255,69,58,0.85);color:#fff}
+body.light #today-label{background:rgba(255,59,48,0.85);color:#fff}
+
+/* Vertical grid lines (per month) */
+.grid-line{position:absolute;top:0;bottom:0;width:1px;pointer-events:none;z-index:0}
+body.dark  .grid-line{background:#2c2c2e}
+body.light .grid-line{background:#e8e8ed}
+
+/* Empty state */
 #empty{display:none;align-items:center;justify-content:center;
   height:100%;flex-direction:column;gap:10px}
-body.dark  #empty{color:#636366}
-body.light #empty{color:#8e8e93}
+body.dark  #empty{color:#48484a}
+body.light #empty{color:#aeaeb2}
 
 /* Tooltip */
-#tooltip{position:fixed;border-radius:8px;padding:8px 12px;font-size:11px;
-  box-shadow:0 4px 16px rgba(0,0,0,0.25);pointer-events:none;z-index:100;
-  display:none;max-width:260px;border-width:1px;border-style:solid}
-body.dark  #tooltip{background:#2c2c2e;border-color:#3a3a3c;color:#e8e8ed}
-body.light #tooltip{background:#ffffff;border-color:#d1d1d6;color:#1c1c1e}
-.tt-title{font-weight:600;margin-bottom:3px}
-.tt-date{font-size:10px}
+#tooltip{position:fixed;border-radius:9px;padding:9px 12px;font-size:11px;
+  box-shadow:0 6px 20px rgba(0,0,0,0.3);pointer-events:none;z-index:200;
+  display:none;max-width:280px;border-width:1px;border-style:solid;
+  backdrop-filter:blur(12px)}
+body.dark  #tooltip{background:rgba(44,44,46,0.95);border-color:#3a3a3c;color:#e8e8ed}
+body.light #tooltip{background:rgba(255,255,255,0.97);border-color:#d8d8df;color:#1c1c1e}
+.tt-title{font-weight:600;margin-bottom:3px;font-size:12px}
+.tt-date{font-size:10px;font-variant-numeric:tabular-nums}
 body.dark  .tt-date{color:#636366}
 body.light .tt-date{color:#8e8e93}
-.tt-notes{margin-top:5px;font-size:10px;line-height:1.5}
+.tt-notes{margin-top:5px;font-size:10.5px;line-height:1.55}
 body.dark  .tt-notes{color:#aeaeb2}
 body.light .tt-notes{color:#48484a}
+
+/* Zoom hint */
+#zoom-hint{position:fixed;bottom:12px;right:14px;font-size:10px;padding:4px 8px;
+  border-radius:6px;pointer-events:none;z-index:50;opacity:0;transition:opacity 0.4s}
+body.dark  #zoom-hint{background:#2c2c2e;color:#636366;border:1px solid #3a3a3c}
+body.light #zoom-hint{background:#ebebf0;color:#8e8e93;border:1px solid #d8d8df}
 </style>
 </head>
 <body>
@@ -126,28 +193,37 @@ body.light .tt-notes{color:#48484a}
     <span id="header-range"></span>
   </div>
   <div id="body">
-    <div id="sidebar"></div>
+    <div id="labels">
+      <div id="labels-axis"></div>
+      <div id="labels-inner">
+        <div id="labels-content"></div>
+      </div>
+    </div>
     <div id="chart-wrap">
       <div id="chart">
         <div id="axis"></div>
         <div id="gantt-rows"></div>
         <div id="today-line"></div>
+        <div id="today-label">TODAY</div>
       </div>
     </div>
   </div>
 </div>
 <div id="empty">
-  <svg width="36" height="36" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.5" opacity="0.3">
-    <rect x="3" y="4" width="18" height="18" rx="2"/><line x1="16" y1="2" x2="16" y2="6"/>
-    <line x1="8" y1="2" x2="8" y2="6"/><line x1="3" y1="10" x2="21" y2="10"/>
+  <svg width="34" height="34" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.2" opacity="0.25">
+    <rect x="3" y="4" width="18" height="18" rx="2"/>
+    <line x1="16" y1="2" x2="16" y2="6"/>
+    <line x1="8" y1="2" x2="8" y2="6"/>
+    <line x1="3" y1="10" x2="21" y2="10"/>
   </svg>
-  <span style="font-size:12px">No timeline events found</span>
+  <span style="font-size:12px;opacity:0.4">No timeline events found</span>
 </div>
 <div id="tooltip">
   <div class="tt-title" id="tt-title"></div>
   <div class="tt-date" id="tt-date"></div>
   <div class="tt-notes" id="tt-notes"></div>
 </div>
+<div id="zoom-hint">⌃ scroll to zoom</div>
 
 <script>
 // ── Color map ──────────────────────────────────────
@@ -155,7 +231,7 @@ const COLOR_MAP = {
   black:'#636366', gray:'#8e8e93', red:'#ff3b30', orange:'#ff9500',
   yellow:'#ffd60a', green:'#30d158', mint:'#63e6be', teal:'#40c8e0',
   cyan:'#32ade6', blue:'#0a84ff', indigo:'#5e5ce6', purple:'#bf5af2',
-  pink:'#ff375f', darkred:'#d70015', white:'#ffffff',
+  pink:'#ff375f', darkred:'#d70015', white:'#ebebf0',
 };
 const ACCENT = '#0a84ff';
 function colorFor(tag) {
@@ -164,33 +240,25 @@ function colorFor(tag) {
 }
 
 // ── Date parsing ───────────────────────────────────
-// Handles: MM/DD/YYYY, YYYY-MM-DD, YYYY-MM, MM/YYYY, Month YYYY, YYYY
-// Tolerates typos: "04//2026" → "04/2026"
 function parseDate(s) {
   if (!s) return null;
   s = s.trim().replace(/\/+/g, '/').replace(/-+/g, '-');
 
   let m;
-  // YYYY-MM-DD
   m = s.match(/^(\d{4})-(\d{1,2})-(\d{1,2})$/);
   if (m) return new Date(+m[1], +m[2]-1, +m[3]);
-  // YYYY-MM
   m = s.match(/^(\d{4})-(\d{1,2})$/);
   if (m) return new Date(+m[1], +m[2]-1, 1);
-  // MM/DD/YYYY
   m = s.match(/^(\d{1,2})\/(\d{1,2})\/(\d{4})$/);
   if (m) return new Date(+m[3], +m[1]-1, +m[2]);
-  // MM/YYYY (after typo cleanup)
   m = s.match(/^(\d{1,2})\/(\d{4})$/);
   if (m) return new Date(+m[2], +m[1]-1, 1);
-  // Month YYYY
   const months = {jan:0,feb:1,mar:2,apr:3,may:4,jun:5,jul:6,aug:7,sep:8,oct:9,nov:10,dec:11};
   m = s.match(/^([A-Za-z]{3,})\.?\s+(\d{4})$/);
   if (m) {
     const mo = months[m[1].toLowerCase().slice(0,3)];
     if (mo !== undefined) return new Date(+m[2], mo, 1);
   }
-  // YYYY
   m = s.match(/^(\d{4})$/);
   if (m) return new Date(+m[1], 0, 1);
   return null;
@@ -221,7 +289,6 @@ function parseMarkwhen(raw) {
   for (const rawLine of lines) {
     const line = rawLine.trim();
     if (!line) continue;
-
     if (/^section\s/i.test(line)) {
       flushPending();
       currentSection = line.replace(/^section\s+/i, '').trim();
@@ -230,23 +297,15 @@ function parseMarkwhen(raw) {
     if (/^endSection$/i.test(line)) { flushPending(); continue; }
     if (/^tags:/i.test(line)) continue;
     if (line.startsWith('//')) continue;
-
-    // Sub-item note
     if ((line.startsWith('- ') || line.startsWith('* ')) && pendingEvent) {
       notes.push(line.slice(2).trim());
       continue;
     }
-
-    // Event line: "startDate[-endDate]: title [#Color]"
-    // The colon separates date part from title
     const colonIdx = line.indexOf(':');
     if (colonIdx < 0) continue;
-
     const datePart  = line.slice(0, colonIdx).trim();
     let   titlePart = line.slice(colonIdx + 1).trim();
     if (!titlePart) continue;
-
-    // Split date range on " - "
     let startRaw, endRaw;
     const dashIdx = datePart.indexOf(' - ');
     if (dashIdx >= 0) {
@@ -256,20 +315,15 @@ function parseMarkwhen(raw) {
       startRaw = datePart;
       endRaw   = null;
     }
-
     const start = parseDate(startRaw);
     if (!start) continue;
     const end = endRaw ? (parseDate(endRaw) || start) : start;
-
-    // Extract #Color from title
     let color = null;
     titlePart = titlePart.replace(/#([A-Za-z]+)/g, (_, tag) => {
       color = colorFor(tag);
       return '';
     }).trim().replace(/^'(.*)'$/, '$1').trim();
-
     const isMilestone = !endRaw;
-
     flushPending();
     pendingEvent = { section: currentSection, title: titlePart, start, end, color, isMilestone, notes: '' };
     notes = [];
@@ -278,13 +332,64 @@ function parseMarkwhen(raw) {
   return events;
 }
 
+// ── State ──────────────────────────────────────────
+let currentText = '';
+let isDark = false;
+let pxPerMonth = 80;           // zoom: px per month
+let renderState = null;        // { events, minDate, maxDate }
+const collapsedSections = {};  // sectionName → true/false
+
 // ── Theme ──────────────────────────────────────────
 function applyTheme(dark) {
   document.body.className = dark ? 'dark' : 'light';
 }
 
+// ── Mouse position tracking (for zoom anchor) ──────
+let lastMouseX = null; // clientX relative to chart-wrap
+const chartWrapEl = () => document.getElementById('chart-wrap');
+document.addEventListener('mousemove', (e) => {
+  const cw = chartWrapEl();
+  if (!cw) return;
+  const rect = cw.getBoundingClientRect();
+  if (e.clientX >= rect.left && e.clientX <= rect.right) {
+    lastMouseX = e.clientX - rect.left;
+  }
+}, { passive: true });
+
+// ── Ctrl+scroll zoom anchored to mouse ─────────────
+document.addEventListener('wheel', (e) => {
+  if (!e.ctrlKey) return;
+  e.preventDefault();
+
+  const cw = chartWrapEl();
+  if (!cw || !renderState) return;
+
+  // What chart-x is under the mouse right now?
+  const anchorClientX = e.clientX;
+  const rect = cw.getBoundingClientRect();
+  const mouseOffsetInWrap = anchorClientX - rect.left;
+  const chartXUnderMouse = cw.scrollLeft + mouseOffsetInWrap;
+
+  const oldPx = pxPerMonth;
+  const factor = e.deltaY > 0 ? 0.88 : 1.14;
+  // Allow zooming all the way to day-level (~2400px/month = ~80px/day)
+  pxPerMonth = Math.max(8, Math.min(2400, pxPerMonth * factor));
+
+  const scale = pxPerMonth / oldPx;
+
+  // Re-render at new zoom
+  const { events, minDate, maxDate } = renderState;
+  drawChart(events, minDate, maxDate, false);
+
+  // Restore the chart-x under mouse to the same screen position
+  const newChartX = chartXUnderMouse * scale;
+  cw.scrollLeft = newChartX - mouseOffsetInWrap;
+}, { passive: false });
+
 // ── Render ─────────────────────────────────────────
 function render(text, dark) {
+  currentText = text;
+  isDark = dark;
   applyTheme(dark);
   const events = parseMarkwhen(text);
 
@@ -293,47 +398,105 @@ function render(text, dark) {
     document.getElementById('empty').style.display = 'flex';
     return;
   }
+  document.getElementById('app').style.display = 'flex';
+  document.getElementById('empty').style.display = 'none';
 
   const allStarts = events.map(e => e.start).filter(Boolean);
   const allEnds   = events.map(e => e.end || e.start).filter(Boolean);
-  const allDates  = [...allStarts, ...allEnds];
-  let minDate = new Date(Math.min(...allDates));
-  let maxDate = new Date(Math.max(...allDates));
-  // Pad 2 months each side
+  let minDate = new Date(Math.min(...allStarts, ...allEnds));
+  let maxDate = new Date(Math.max(...allStarts, ...allEnds));
   minDate = new Date(minDate.getFullYear(), minDate.getMonth() - 2, 1);
   maxDate = new Date(maxDate.getFullYear(), maxDate.getMonth() + 3, 1);
+
+  renderState = { events, minDate, maxDate };
+  drawChart(events, minDate, maxDate, true);
+}
+
+function rerender() {
+  const { events, minDate, maxDate } = renderState;
+  drawChart(events, minDate, maxDate, false);
+}
+
+function drawChart(events, minDate, maxDate, scrollToToday) {
   const totalMs = maxDate - minDate;
-
-  document.getElementById('header-range').textContent =
-    fmtDate(new Date(Math.min(...allStarts))) + ' – ' + fmtDate(new Date(Math.max(...allEnds)));
-
-  const chartWrap = document.getElementById('chart-wrap');
-  const months = totalMs / (30 * 24 * 3600 * 1000);
-  const chartW = Math.max((chartWrap.clientWidth || 800), months * 72);
+  const totalMonths = totalMs / (30.4375 * 24 * 3600 * 1000);
+  const cw = document.getElementById('chart-wrap');
+  const chartW = Math.max(totalMonths * pxPerMonth, (cw.clientWidth || 800));
 
   function xFor(d) { return ((d - minDate) / totalMs) * chartW; }
 
-  // Build axis
+  // Header range
+  const allStarts = events.map(e => e.start);
+  const allEnds   = events.map(e => e.end || e.start);
+  document.getElementById('header-range').textContent =
+    fmtDate(new Date(Math.min(...allStarts))) + ' – ' + fmtDate(new Date(Math.max(...allEnds)));
+
+  // ── Axis ──────────────────────────────────────────
+  // Zoom thresholds (px per day):
+  //   < 20  → month mode  (labels every 1, 2, or 3 months)
+  //   ≥ 20  → day mode    (Obsidian-style equal-width day cells)
+  const pxPerDay = pxPerMonth / 30.4375;
+  const useDay   = pxPerDay >= 20;
+
   const axis = document.getElementById('axis');
   axis.style.width = chartW + 'px';
   axis.innerHTML = '';
-  let tick = new Date(minDate.getFullYear(), minDate.getMonth(), 1);
-  let prevYear = null;
-  while (tick <= maxDate) {
-    const x = xFor(tick);
-    const el = document.createElement('div');
-    el.className = 'axis-tick';
-    el.style.left = x + 'px';
-    const yr = tick.getFullYear();
-    const mo = tick.toLocaleDateString('en-US', {month:'short'});
-    // Show year only when it changes
-    el.textContent = yr !== prevYear ? mo + ' ' + yr : mo;
-    prevYear = yr;
-    axis.appendChild(el);
-    tick = new Date(tick.getFullYear(), tick.getMonth() + 1, 1);
+
+  if (useDay) {
+    // ── Day mode: equal-width cells like Obsidian ──
+    // Two-row axis: top row = month labels (sticky), bottom row = day numbers
+    // We simulate with positioned ticks but make each day cell equal-width
+    // by walking day-by-day and placing ticks at exact pixel positions.
+    // Month label ticks get bold+border; day ticks get the day number.
+    let t = new Date(minDate.getFullYear(), minDate.getMonth(), 1);
+    let prevMonth = -1;
+    while (t <= maxDate) {
+      const x = xFor(t);
+      const mo = t.getMonth();
+      const isMonthStart = mo !== prevMonth;
+      const el = document.createElement('div');
+      el.className = 'axis-tick' + (isMonthStart ? ' year-tick' : '');
+      el.style.left = x + 'px';
+      // Width = pxPerDay so text is centered in its cell
+      el.style.width = Math.round(pxPerDay) + 'px';
+      el.style.justifyContent = 'center';
+      el.style.paddingLeft = '0';
+      el.style.borderLeft = isMonthStart ? '' : '1px solid transparent'; // kept for spacing
+      if (isMonthStart) {
+        el.textContent = t.toLocaleDateString('en-US', {month:'short', day:'numeric'});
+        prevMonth = mo;
+      } else {
+        el.textContent = t.getDate();
+      }
+      axis.appendChild(el);
+      t = new Date(t.getFullYear(), t.getMonth(), t.getDate() + 1);
+    }
+  } else {
+    // ── Month mode ─────────────────────────────────
+    const skipMonths = pxPerMonth < 35 ? 3 : pxPerMonth < 55 ? 2 : 1;
+    let tick = new Date(minDate.getFullYear(), minDate.getMonth(), 1);
+    let prevYear = null;
+    let tickIdx = 0;
+    while (tick <= maxDate) {
+      const x = xFor(tick);
+      const yr = tick.getFullYear();
+      const isYearChange = yr !== prevYear;
+      const el = document.createElement('div');
+      el.className = 'axis-tick' + (isYearChange ? ' year-tick' : '');
+      el.style.left = x + 'px';
+      if (isYearChange) {
+        el.textContent = tick.toLocaleDateString('en-US', {month:'short'}) + " '" + String(yr).slice(2);
+        prevYear = yr;
+      } else if (tickIdx % skipMonths === 0) {
+        el.textContent = tick.toLocaleDateString('en-US', {month:'short'});
+      }
+      axis.appendChild(el);
+      tickIdx++;
+      tick = new Date(tick.getFullYear(), tick.getMonth() + 1, 1);
+    }
   }
 
-  // Group events by section
+  // Group by section
   const sections = [];
   const sectionMap = {};
   for (const e of events) {
@@ -341,93 +504,179 @@ function render(text, dark) {
     sectionMap[e.section].push(e);
   }
 
-  const sidebar   = document.getElementById('sidebar');
+  const labelsContent = document.getElementById('labels-content');
   const ganttRows = document.getElementById('gantt-rows');
-  sidebar.innerHTML = '';
+  labelsContent.innerHTML = '';
   ganttRows.innerHTML = '';
   ganttRows.style.width = chartW + 'px';
 
-  const tip = document.getElementById('tooltip');
+  // Grid lines
+  {
+    if (useDay) {
+      // Day-level: one line per day; month boundaries are bolder
+      let td = new Date(minDate.getFullYear(), minDate.getMonth(), 1);
+      while (td <= maxDate) {
+        const gl = document.createElement('div');
+        const isMonthStart = td.getDate() === 1;
+        gl.className = 'grid-line' + (isMonthStart ? '' : ' grid-line-day');
+        gl.style.left = xFor(td) + 'px';
+        ganttRows.appendChild(gl);
+        td = new Date(td.getFullYear(), td.getMonth(), td.getDate() + 1);
+      }
+    } else {
+      // Month-level grid lines
+      let t2 = new Date(minDate.getFullYear(), minDate.getMonth(), 1);
+      while (t2 <= maxDate) {
+        const gl = document.createElement('div');
+        gl.className = 'grid-line';
+        gl.style.left = xFor(t2) + 'px';
+        ganttRows.appendChild(gl);
+        t2 = new Date(t2.getFullYear(), t2.getMonth() + 1, 1);
+      }
+    }
+  }
 
   for (const sec of sections) {
     const evs = sectionMap[sec];
+    const isCollapsed = !!collapsedSections[sec];
 
-    // Sidebar section header
-    const sl = document.createElement('div');
-    sl.className = 'section-label';
-    sl.textContent = sec;
-    sidebar.appendChild(sl);
+    // ── Section header — labels side ──────────────
+    const ls = document.createElement('div');
+    ls.className = 'label-section label-section-clickable';
+    // chevron + name
+    const chevron = document.createElement('span');
+    chevron.className = 'section-chevron';
+    chevron.textContent = isCollapsed ? '▶' : '▼';
+    ls.appendChild(chevron);
+    ls.appendChild(document.createTextNode(' ' + sec));
+    labelsContent.appendChild(ls);
 
-    // Gantt section header
+    // ── Section header — gantt side ───────────────
     const gb = document.createElement('div');
-    gb.className = 'section-bar';
+    gb.className = 'section-bar section-bar-clickable';
     gb.textContent = sec;
+
+    // Toggle collapse on click (both sides)
+    const toggleCollapse = () => {
+      collapsedSections[sec] = !collapsedSections[sec];
+      rerender();
+    };
+    ls.addEventListener('click', toggleCollapse);
+    gb.addEventListener('click', toggleCollapse);
     ganttRows.appendChild(gb);
 
+    if (isCollapsed) {
+      // Show a single summary row: span from earliest start to latest end
+      const secStarts = evs.map(e => +e.start);
+      const secEnds   = evs.map(e => +(e.end || e.start));
+      const secMin    = Math.min(...secStarts);
+      const secMax    = Math.max(...secEnds);
+      const secColor  = evs.find(e => e.color)?.color || ACCENT;
+
+      // Label row (summary)
+      const lr = document.createElement('div');
+      lr.className = 'label-row label-row-summary';
+      const lt = document.createElement('div');
+      lt.className = 'label-text';
+      const dot = document.createElement('span');
+      dot.className = 'label-dot';
+      dot.style.background = secColor;
+      lt.appendChild(dot);
+      lt.appendChild(document.createTextNode(`${evs.length} events`));
+      lr.appendChild(lt);
+      labelsContent.appendChild(lr);
+
+      // Gantt summary row
+      const gr = document.createElement('div');
+      gr.className = 'gantt-row';
+      const x1 = xFor(new Date(secMin));
+      const x2 = xFor(new Date(secMax));
+      const barW = Math.max(x2 - x1, 4);
+      const bar = document.createElement('div');
+      bar.className = 'gantt-bar gantt-bar-summary';
+      bar.style.left       = x1 + 'px';
+      bar.style.width      = barW + 'px';
+      bar.style.background = secColor;
+      bar.style.opacity    = isDark ? '0.4' : '0.3';
+      const shine = document.createElement('div');
+      shine.className = 'gantt-bar-shine';
+      bar.appendChild(shine);
+      gr.appendChild(bar);
+      ganttRows.appendChild(gr);
+
+      continue; // skip individual event rows
+    }
+
+    // ── Individual event rows ─────────────────────
     for (const ev of evs) {
       const color = ev.color || ACCENT;
 
-      // Sidebar row
-      const sr = document.createElement('div');
-      sr.className = 'event-row';
-      const nameEl = document.createElement('div');
-      nameEl.className = 'event-name';
-      const dot = document.createElement('span');
-      dot.className = 'event-dot';
-      dot.style.background = color;
-      nameEl.appendChild(dot);
-      nameEl.appendChild(document.createTextNode(ev.title));
-      const dateEl = document.createElement('div');
-      dateEl.className = 'event-date';
-      dateEl.textContent = fmtDate(ev.start) +
-        (+ev.end !== +ev.start ? ' → ' + fmtDate(ev.end) : '');
-      sr.appendChild(nameEl);
-      sr.appendChild(dateEl);
-      sidebar.appendChild(sr);
+      const lr = document.createElement('div');
+      lr.className = 'label-row';
+      const lt = document.createElement('div');
+      lt.className = 'label-text';
+      if (ev.isMilestone) {
+        const diamond = document.createElement('span');
+        diamond.className = 'label-milestone';
+        diamond.style.background = color;
+        lt.appendChild(diamond);
+      } else {
+        const dot = document.createElement('span');
+        dot.className = 'label-dot';
+        dot.style.background = color;
+        lt.appendChild(dot);
+      }
+      lt.appendChild(document.createTextNode(ev.title));
+      lr.appendChild(lt);
+      labelsContent.appendChild(lr);
 
-      // Gantt row
       const gr = document.createElement('div');
       gr.className = 'gantt-row';
-
       const x1 = xFor(ev.start);
       const x2 = xFor(ev.end || ev.start);
       const rawW = x2 - x1;
-      const barW = ev.isMilestone ? 20 : Math.max(rawW, 6);
 
-      const bar = document.createElement('div');
-      bar.className = 'gantt-bar' + (ev.isMilestone ? ' milestone' : '');
-      bar.style.left       = x1 + 'px';
-      bar.style.width      = barW + 'px';
-      bar.style.background = color;
-      if (!ev.isMilestone && rawW > 30) bar.textContent = ev.title;
+      if (ev.isMilestone) {
+        const ms = document.createElement('div');
+        ms.className = 'gantt-milestone';
+        ms.style.left       = (x1 - 6) + 'px';
+        ms.style.background = color;
+        ms.addEventListener('mouseenter', showTip.bind(null, ev, lr, ms));
+        ms.addEventListener('mousemove', moveTip);
+        ms.addEventListener('mouseleave', hideTip.bind(null, lr, ms));
+        gr.appendChild(ms);
+        const bl = document.createElement('div');
+        bl.className = 'bar-label';
+        bl.style.left = (x1 + 10) + 'px';
+        bl.textContent = ev.title;
+        gr.appendChild(bl);
+      } else {
+        const barW = Math.max(rawW, 4);
+        const bar = document.createElement('div');
+        bar.className = 'gantt-bar';
+        bar.style.left       = x1 + 'px';
+        bar.style.width      = barW + 'px';
+        bar.style.background = color;
+        bar.style.opacity    = isDark ? '0.72' : '0.65';
+        const shine = document.createElement('div');
+        shine.className = 'gantt-bar-shine';
+        bar.appendChild(shine);
+        bar.addEventListener('mouseenter', showTip.bind(null, ev, lr, bar));
+        bar.addEventListener('mousemove', moveTip);
+        bar.addEventListener('mouseleave', hideTip.bind(null, lr, bar));
+        gr.appendChild(bar);
+        const bl = document.createElement('div');
+        bl.className = 'bar-label';
+        bl.style.left = (x1 + barW + 5) + 'px';
+        bl.textContent = ev.title;
+        gr.appendChild(bl);
+      }
 
-      // Tooltip
-      bar.addEventListener('mouseenter', () => {
-        document.getElementById('tt-title').textContent = ev.title;
-        document.getElementById('tt-date').textContent =
-          fmtDate(ev.start) + (+ev.end !== +ev.start ? ' → ' + fmtDate(ev.end) : '');
-        document.getElementById('tt-notes').textContent = ev.notes || '';
-        tip.style.display = 'block';
-        sr.classList.add('active');
-        bar.style.filter = 'brightness(1.12)';
+      lr.addEventListener('click', () => {
+        const barEl = gr.querySelector('.gantt-bar, .gantt-milestone');
+        if (barEl) barEl.scrollIntoView({behavior:'smooth', block:'nearest', inline:'center'});
       });
-      bar.addEventListener('mousemove', e => {
-        tip.style.left = (e.clientX + 14) + 'px';
-        tip.style.top  = (e.clientY - 10) + 'px';
-      });
-      bar.addEventListener('mouseleave', () => {
-        tip.style.display = 'none';
-        sr.classList.remove('active');
-        bar.style.filter = '';
-      });
 
-      // Sidebar hover sync
-      sr.addEventListener('mouseenter', () => { sr.classList.add('active'); bar.style.filter='brightness(1.12)'; });
-      sr.addEventListener('mouseleave', () => { sr.classList.remove('active'); bar.style.filter=''; });
-      sr.addEventListener('click', () =>
-        bar.scrollIntoView({behavior:'smooth', block:'nearest', inline:'center'}));
-
-      gr.appendChild(bar);
       ganttRows.appendChild(gr);
     }
   }
@@ -435,19 +684,59 @@ function render(text, dark) {
   // Today line
   const today = new Date();
   const tl = document.getElementById('today-line');
+  const tlabel = document.getElementById('today-label');
   if (today >= minDate && today <= maxDate) {
-    tl.style.left = xFor(today) + 'px';
+    const tx = xFor(today);
+    tl.style.left = tx + 'px';
     tl.style.display = 'block';
+    tlabel.style.left = tx + 'px';
+    tlabel.style.display = 'block';
   } else {
     tl.style.display = 'none';
+    tlabel.style.display = 'none';
   }
 
-  // Scroll to today (or earliest event)
-  const targetX = xFor(Math.max(+minDate, Math.min(+today, +maxDate))) - 160;
-  setTimeout(() => chartWrap.scrollLeft = Math.max(0, targetX), 60);
+  // Sync label scroll with chart scroll (vertical only)
+  const li = document.getElementById('labels-inner');
+  cw.onscroll = () => { li.scrollTop = cw.scrollTop; };
+
+  // Scroll to today
+  if (scrollToToday) {
+    const targetX = xFor(Math.max(+minDate, Math.min(+today, +maxDate))) - (cw.clientWidth || 600) * 0.35;
+    setTimeout(() => { cw.scrollLeft = Math.max(0, targetX); }, 60);
+  }
 }
 
-// Called from Swift with the markwhen text and dark flag
+// ── Tooltip helpers ────────────────────────────────
+function showTip(ev, lr, el) {
+  document.getElementById('tt-title').textContent = ev.title;
+  document.getElementById('tt-date').textContent =
+    fmtDate(ev.start) + (+ev.end !== +ev.start ? ' → ' + fmtDate(ev.end) : '');
+  const notesEl = document.getElementById('tt-notes');
+  notesEl.textContent = ev.notes || '';
+  notesEl.style.display = ev.notes ? '' : 'none';
+  document.getElementById('tooltip').style.display = 'block';
+  lr.classList.add('active');
+  el.style.filter = 'brightness(1.15)';
+}
+function moveTip(e) {
+  const tip = document.getElementById('tooltip');
+  const x = e.clientX + 16;
+  const y = e.clientY - 12;
+  const tw = tip.offsetWidth;
+  const th = tip.offsetHeight;
+  const vw = window.innerWidth;
+  const vh = window.innerHeight;
+  tip.style.left = (x + tw > vw ? x - tw - 30 : x) + 'px';
+  tip.style.top  = (y + th > vh ? y - th + 20 : y) + 'px';
+}
+function hideTip(lr, el) {
+  document.getElementById('tooltip').style.display = 'none';
+  lr.classList.remove('active');
+  el.style.filter = '';
+}
+
+// ── Entry point (called from Swift) ───────────────
 function setContent(text, dark) {
   render(text, dark);
 }
