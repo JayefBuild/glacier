@@ -7,6 +7,7 @@ import Foundation
 /// Without this, SwiftUI can deallocate the NSView when switching tabs.
 final class TerminalViewCache: @unchecked Sendable {
     static let shared = TerminalViewCache()
+    private let focusDebugLoggingEnabled = ProcessInfo.processInfo.environment["GLACIER_DEBUG_FOCUS"] == "1"
 
     private var cache: [UUID: GuardedTerminalView] = [:]
     private let lock = NSLock()
@@ -29,5 +30,14 @@ final class TerminalViewCache: @unchecked Sendable {
         lock.lock()
         defer { lock.unlock() }
         cache.removeValue(forKey: id)
+    }
+
+    @MainActor
+    func focus(_ id: UUID) {
+        let view = get(id)
+        if focusDebugLoggingEnabled {
+            focusDebugLog("GlacierFocus cache focus session=\(id.uuidString) cached=\(view != nil)")
+        }
+        view?.focusNow()
     }
 }

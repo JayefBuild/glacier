@@ -8,9 +8,9 @@ struct TextEditorView: View {
     @Binding var text: String
     let fileExtension: String
     let url: URL
-    var fontSize: CGFloat = 13
+    var fontSize: CGFloat = 15
+    let fileService: FileService
 
-    @EnvironmentObject private var appState: AppState
     @Environment(\.appTheme) private var theme
 
     // Debounced save
@@ -18,6 +18,15 @@ struct TextEditorView: View {
 
     private var languageLabel: String {
         FileTypeRegistry.languageName(for: fileExtension)
+    }
+
+    private var lineCount: Int {
+        guard !text.isEmpty else { return 1 }
+        return text.reduce(into: 1) { count, character in
+            if character == "\n" {
+                count += 1
+            }
+        }
     }
 
     var body: some View {
@@ -46,7 +55,9 @@ struct TextEditorView: View {
         saveCancellable = Just(text)
             .delay(for: .milliseconds(500), scheduler: DispatchQueue.main)
             .sink { value in
-                try? appState.fileService.writeFile(text: value, to: url)
+                Task { @MainActor in
+                    try? fileService.writeFile(text: value, to: url)
+                }
             }
     }
 
@@ -65,7 +76,7 @@ struct TextEditorView: View {
 
             Divider().frame(height: 12)
 
-            Text("\(text.components(separatedBy: "\n").count) lines")
+            Text("\(lineCount) lines")
                 .font(theme.typography.captionFont)
                 .foregroundStyle(.tertiary)
 
@@ -84,7 +95,7 @@ struct SyntaxTextView: NSViewRepresentable {
     @Binding var text: String
     let fileExtension: String
     let showLineNumbers: Bool
-    var fontSize: CGFloat = 13
+    var fontSize: CGFloat = 15
     let theme: any AppTheme
 
     func makeCoordinator() -> Coordinator {
@@ -99,53 +110,74 @@ struct SyntaxTextView: NSViewRepresentable {
     }
 
     func updateNSView(_ nsView: GlacierScrollView, context: Context) {
-        let highlighter = SyntaxHighlighter(theme: theme, fontSize: fontSize)
-        let attributed = highlighter.highlight(text, extension: fileExtension)
-
-        // Only update if content actually changed to avoid clobbering cursor position
-        let currentString = nsView.textView.string
-        if currentString != text {
-            if let nsAttr = try? NSAttributedString(attributed, including: \.appKit) {
-                nsView.textView.textStorage?.setAttributedString(nsAttr)
-            } else {
-                nsView.textView.font = NSFont.monospacedSystemFont(ofSize: fontSize, weight: .regular)
-                nsView.textView.textColor = NSColor.labelColor
-                nsView.textView.string = text
-            }
-        } else {
-            // Content same — re-apply highlighting without replacing (preserves cursor)
-            if let nsAttr = try? NSAttributedString(attributed, including: \.appKit) {
-                let selectedRanges = nsView.textView.selectedRanges
-                nsView.textView.textStorage?.setAttributedString(nsAttr)
-                nsView.textView.selectedRanges = selectedRanges
-            }
-        }
-
-        // Sync font size change
-        let newFont = NSFont.monospacedSystemFont(ofSize: fontSize, weight: .regular)
-        if nsView.textView.font?.pointSize != newFont.pointSize {
-            nsView.textView.font = newFont
-        }
-
-        if let textContainer = nsView.textView.textContainer {
-            nsView.textView.layoutManager?.ensureLayout(for: textContainer)
-        }
-        nsView.textView.sizeToFit()
-        nsView.reflectScrolledClipView(nsView.contentView)
-
-        nsView.textView.isEditable = true
-        nsView.textView.isSelectable = true
-        nsView.textView.backgroundColor = NSColor(theme.colors.editorBackground)
-        nsView.setShowLineNumbers(showLineNumbers)
+        context.coordinator.update(
+            nsView: nsView,
+            text: text,
+            fileExtension: fileExtension,
+            showLineNumbers: showLineNumbers,
+            fontSize: fontSize,
+            theme: theme
+        )
     }
 
     // MARK: - Coordinator
 
     final class Coordinator: NSObject, NSTextViewDelegate {
         @Binding var text: String
+        private var renderedText = ""
+        private var renderedFileExtension = ""
+        private var renderedThemeName = ""
+        private var renderedFontSize: CGFloat = 0
+        private var renderedLineNumbers = false
 
         init(text: Binding<String>) {
             _text = text
+        }
+
+        @MainActor
+        func update(
+            nsView: GlacierScrollView,
+            text: String,
+            fileExtension: String,
+            showLineNumbers: Bool,
+            fontSize: CGFloat,
+            theme: any AppTheme
+        ) {
+            nsView.textView.backgroundColor = NSColor(theme.colors.editorBackground)
+            if renderedLineNumbers != showLineNumbers {
+                nsView.setShowLineNumbers(showLineNumbers)
+                renderedLineNumbers = showLineNumbers
+            }
+
+            let didChangeHighlightInputs =
+                renderedText != text ||
+                renderedFileExtension != fileExtension ||
+                renderedThemeName != theme.name ||
+                renderedFontSize != fontSize
+
+            guard didChangeHighlightInputs else { return }
+
+            let highlighter = SyntaxHighlighter(theme: theme, fontSize: fontSize)
+            let attributed = highlighter.highlight(text, extension: fileExtension)
+            let currentString = nsView.textView.string
+            let selectedRanges = nsView.textView.selectedRanges
+
+            if let nsAttr = try? NSAttributedString(attributed, including: \.appKit) {
+                nsView.textView.textStorage?.setAttributedString(nsAttr)
+                if currentString == text {
+                    nsView.textView.selectedRanges = selectedRanges
+                }
+            } else {
+                nsView.textView.font = NSFont.monospacedSystemFont(ofSize: fontSize, weight: .regular)
+                nsView.textView.textColor = NSColor.labelColor
+                nsView.textView.string = text
+            }
+
+            renderedText = text
+            renderedFileExtension = fileExtension
+            renderedThemeName = theme.name
+            renderedFontSize = fontSize
+            nsView.invalidateLineNumbers()
         }
 
         func textDidChange(_ notification: Notification) {
@@ -192,6 +224,8 @@ final class GlacierScrollView: NSScrollView {
         textView.textContainerInset = NSSize(width: 8, height: 8)
         textView.autoresizingMask = [.width]
         textView.allowsUndo = true
+        textView.isEditable = true
+        textView.isSelectable = true
         textView.isRichText = false
         textView.usesFontPanel = false
         textView.usesRuler = false
@@ -209,6 +243,10 @@ final class GlacierScrollView: NSScrollView {
     func setShowLineNumbers(_ show: Bool) {
         hasVerticalRuler = show
         rulersVisible = show
+    }
+
+    func invalidateLineNumbers() {
+        lineNumberView.needsDisplay = true
     }
 }
 
@@ -237,7 +275,7 @@ final class LineNumberRulerView: NSRulerView {
 
     override func drawHashMarksAndLabels(in rect: NSRect) {
         guard let textView, let layoutManager = textView.layoutManager,
-              let textContainer = textView.textContainer else { return }
+              textView.textContainer != nil else { return }
 
         let visibleRect = textView.enclosingScrollView?.documentVisibleRect ?? textView.bounds
         let inset = textView.textContainerInset

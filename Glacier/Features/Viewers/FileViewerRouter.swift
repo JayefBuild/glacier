@@ -5,15 +5,44 @@ import SwiftUI
 
 struct FileViewerRouter: View {
     let tab: Tab
+    let pane: EditorPane
+    let isFocused: Bool
     @EnvironmentObject private var appState: AppState
-    @Environment(\.appTheme) private var theme
 
     var body: some View {
         switch tab.kind {
         case .file(let item):
-            FileContentView(item: item, tab: tab)
+            FileContentView(
+                item: item,
+                editorFontSize: appState.editorFontSize,
+                fileService: appState.fileService
+            )
         case .terminal(let session):
-            TerminalView(session: session)
+            TerminalView(
+                session: session,
+                isFocused: isFocused,
+                onInteraction: { appState.focusPane(pane) },
+                onCommand: { command in
+                    appState.focusPane(pane)
+
+                    switch command {
+                    case .newTerminalTab:
+                        appState.openNewTerminal()
+                    case .closeTab:
+                        if let tab = appState.activeTab {
+                            appState.closeTab(tab)
+                        }
+                    case .splitRight:
+                        appState.splitFocusedPaneRight()
+                    case .splitDown:
+                        appState.splitFocusedPaneDown()
+                    case .closeSplit:
+                        appState.closeSplit()
+                    }
+                }
+            )
+        case .gitGraph:
+            GitGraphView(fileService: appState.fileService)
         }
     }
 }
@@ -22,9 +51,9 @@ struct FileViewerRouter: View {
 
 private struct FileContentView: View {
     let item: FileItem
-    let tab: Tab
+    let editorFontSize: CGFloat
+    let fileService: FileService
 
-    @EnvironmentObject private var appState: AppState
     @Environment(\.appTheme) private var theme
 
     @State private var content: FileContent = .empty
@@ -69,14 +98,30 @@ private struct FileContentView: View {
         switch content {
         case .text(_, let ext):
             if FileTypeRegistry.kind(for: ext) == .markdown {
-                MarkdownEditorView(text: $editableText, url: item.url, fontSize: appState.editorFontSize)
+                MarkdownEditorView(
+                    text: $editableText,
+                    url: item.url,
+                    fontSize: editorFontSize,
+                    fileService: fileService
+                )
             } else {
-                TextEditorView(text: $editableText, fileExtension: ext, url: item.url, fontSize: appState.editorFontSize)
+                TextEditorView(
+                    text: $editableText,
+                    fileExtension: ext,
+                    url: item.url,
+                    fontSize: editorFontSize,
+                    fileService: fileService
+                )
             }
         case .markwhen(_, let url):
-            MarkwhenViewer(text: $editableText, url: url, fontSize: appState.editorFontSize)
+            MarkwhenViewer(
+                text: $editableText,
+                url: url,
+                fontSize: editorFontSize,
+                fileService: fileService
+            )
         case .excalidraw(_, let url):
-            ExcalidrawViewer(text: $editableExcalidraw, url: url)
+            ExcalidrawViewer(text: $editableExcalidraw, url: url, fileService: fileService)
         case .image(let url):
             ImageViewerView(url: url)
         case .video(let url):
@@ -96,7 +141,7 @@ private struct FileContentView: View {
         isLoading = true
         errorMessage = nil
         do {
-            let loaded = try await appState.fileService.readFile(at: item.url)
+            let loaded = try await fileService.readFile(at: item.url)
             content = loaded
             if case .text(let text, let ext) = loaded {
                 editableText = text

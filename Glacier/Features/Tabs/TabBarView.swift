@@ -4,14 +4,27 @@
 import SwiftUI
 
 struct TabBarView: View {
+    let pane: EditorPane?
+
     @EnvironmentObject private var appState: AppState
     @Environment(\.appTheme) private var theme
+
+    init(pane: EditorPane? = nil) {
+        self.pane = pane
+    }
+
+    private var displayedTabs: [Tab] {
+        if let pane {
+            return appState.tabs(for: pane)
+        }
+        return appState.tabs
+    }
 
     var body: some View {
         ScrollView(.horizontal, showsIndicators: false) {
             HStack(spacing: 2) {
-                ForEach(appState.tabs) { tab in
-                    TabItemView(tab: tab)
+                ForEach(displayedTabs) { tab in
+                    TabItemView(tab: tab, pane: pane)
                 }
             }
             .padding(.horizontal, 8)
@@ -29,6 +42,7 @@ struct TabBarView: View {
 
 struct TabItemView: View {
     let tab: Tab
+    let pane: EditorPane?
 
     @EnvironmentObject private var appState: AppState
     @Environment(\.appTheme) private var theme
@@ -37,8 +51,19 @@ struct TabItemView: View {
     @State private var isRenaming = false
     @State private var renameText = ""
 
-    private var isActive: Bool { appState.activeTabID == tab.id }
-    private var isVisibleInPane: Bool { appState.isTabVisible(tab.id) }
+    private var isActive: Bool {
+        if let pane {
+            return appState.visibleTabID(for: pane) == tab.id
+        }
+        return appState.activeTabID == tab.id
+    }
+
+    private var belongsToPane: Bool {
+        if let pane {
+            return appState.paneAssignment(for: tab.id) == pane
+        }
+        return appState.isTabVisible(tab.id)
+    }
 
     private var isTerminal: Bool {
         if case .terminal = tab.kind { return true }
@@ -70,7 +95,7 @@ struct TabItemView: View {
                         if isTerminal { beginRename() }
                     }
                     .onTapGesture(count: 1) {
-                        appState.activateTab(id: tab.id)
+                        activateTab()
                     }
             }
 
@@ -95,7 +120,7 @@ struct TabItemView: View {
                     RoundedRectangle(cornerRadius: theme.radius.small)
                         .fill(.ultraThinMaterial)
                         .shadow(color: .black.opacity(0.08), radius: 2, y: 1)
-                } else if isVisibleInPane {
+                } else if belongsToPane {
                     RoundedRectangle(cornerRadius: theme.radius.small)
                         .fill(theme.colors.hoverBackground.opacity(0.75))
                 } else if isHovered {
@@ -109,7 +134,7 @@ struct TabItemView: View {
         }
         .onHover { isHovered = $0 }
         .onTapGesture {
-            if !isRenaming { appState.activateTab(id: tab.id) }
+            if !isRenaming { activateTab() }
         }
         .accessibilityIdentifier("tab-\(tab.title)")
         .contextMenu {
@@ -120,9 +145,16 @@ struct TabItemView: View {
 
             Button("Close Tab") { appState.closeTab(tab) }
             Button("Close Other Tabs") {
-                let others = appState.tabs.filter { $0.id != tab.id }
-                others.forEach { appState.closeTab($0) }
+                appState.closeOtherTabs(keeping: tab.id, in: pane)
             }
+        }
+    }
+
+    private func activateTab() {
+        if let pane {
+            appState.activateTab(id: tab.id, in: pane)
+        } else {
+            appState.activateTab(id: tab.id)
         }
     }
 

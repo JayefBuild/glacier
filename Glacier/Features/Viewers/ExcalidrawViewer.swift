@@ -8,10 +8,10 @@ import WebKit
 struct ExcalidrawViewer: View {
     @Binding var text: String
     let url: URL
-    @EnvironmentObject private var appState: AppState
+    let fileService: FileService
 
     var body: some View {
-        ExcalidrawWebView(text: $text, url: url, appState: appState)
+        ExcalidrawWebView(text: $text, url: url, fileService: fileService)
             .frame(maxWidth: .infinity, maxHeight: .infinity)
     }
 }
@@ -21,10 +21,10 @@ struct ExcalidrawViewer: View {
 struct ExcalidrawWebView: NSViewRepresentable {
     @Binding var text: String
     let url: URL
-    let appState: AppState
+    let fileService: FileService
 
     func makeCoordinator() -> Coordinator {
-        Coordinator(text: $text, url: url, appState: appState)
+        Coordinator(text: $text, url: url, fileService: fileService)
     }
 
     func makeNSView(context: Context) -> WKWebView {
@@ -56,14 +56,14 @@ struct ExcalidrawWebView: NSViewRepresentable {
     final class Coordinator: NSObject, WKNavigationDelegate, WKScriptMessageHandler {
         @Binding var text: String
         let url: URL
-        let appState: AppState
+        let fileService: FileService
         weak var webView: WKWebView?
         var didLoadInitialData = false
 
-        init(text: Binding<String>, url: URL, appState: AppState) {
+        init(text: Binding<String>, url: URL, fileService: FileService) {
             _text = text
             self.url = url
-            self.appState = appState
+            self.fileService = fileService
         }
 
         func webView(_ webView: WKWebView, didFinish navigation: WKNavigation!) {
@@ -104,7 +104,9 @@ struct ExcalidrawWebView: NSViewRepresentable {
             DispatchQueue.main.async { [weak self] in
                 guard let self else { return }
                 self.text = json
-                try? self.appState.fileService.writeFile(text: json, to: self.url)
+                Task { @MainActor in
+                    try? self.fileService.writeFile(text: json, to: self.url)
+                }
             }
         }
 

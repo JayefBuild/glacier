@@ -141,16 +141,16 @@ struct GlacierTheme: AppTheme {
 
     var typography: ThemeTypography {
         ThemeTypography(
-            editorFont: .system(size: 13, weight: .regular, design: .monospaced),
-            editorFontSize: 13,
+            editorFont: .system(size: 15, weight: .regular, design: .monospaced),
+            editorFontSize: 15,
             editorFontName: "SFMono-Regular",
-            terminalFont: .system(size: 13, weight: .regular, design: .monospaced),
+            terminalFont: .system(size: 15, weight: .regular, design: .monospaced),
             terminalFontName: "SFMono-Regular",
-            terminalFontSize: 13,
-            sidebarItemFont: .system(size: 12, weight: .regular),
-            tabFont: .system(size: 12, weight: .medium),
-            labelFont: .system(size: 13, weight: .regular),
-            captionFont: .system(size: 11, weight: .regular)
+            terminalFontSize: 15,
+            sidebarItemFont: .system(size: 14, weight: .regular),
+            tabFont: .system(size: 14, weight: .medium),
+            labelFont: .system(size: 15, weight: .regular),
+            captionFont: .system(size: 13, weight: .regular)
         )
     }
 

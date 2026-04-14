@@ -13,3 +13,21 @@ extension FocusedValues {
         set { self[FocusedAppStateKey.self] = newValue }
     }
 }
+
+@MainActor
+final class ActiveAppStateStore {
+    static let shared = ActiveAppStateStore()
+
+    weak var appState: AppState?
+
+    private init() {}
+
+    func activate(_ appState: AppState) {
+        self.appState = appState
+    }
+
+    func deactivate(_ appState: AppState) {
+        guard self.appState === appState else { return }
+        self.appState = nil
+    }
+}

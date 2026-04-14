@@ -27,7 +27,7 @@ struct ContentView: View {
         .focusedValue(\.appState, appState)
         .toolbar(removing: .sidebarToggle)
         .background(
-            WindowConfigurator(title: windowTitle)
+            WindowConfigurator(title: windowTitle, appState: appState)
                 .frame(width: 0, height: 0)
                 .allowsHitTesting(false)
         )

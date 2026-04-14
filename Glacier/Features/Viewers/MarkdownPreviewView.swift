@@ -8,16 +8,21 @@ import Combine
 struct MarkdownEditorView: View {
     @Binding var text: String
     let url: URL
-    var fontSize: CGFloat = 14
+    var fontSize: CGFloat = 16
+    let fileService: FileService
 
-    @EnvironmentObject private var appState: AppState
     @Environment(\.appTheme) private var theme
 
     @State private var mode: MarkdownEditorMode = .rich
     @State private var saveCancellable: AnyCancellable?
 
     private var lineCount: Int {
-        text.components(separatedBy: "\n").count
+        guard !text.isEmpty else { return 1 }
+        return text.reduce(into: 1) { count, character in
+            if character == "\n" {
+                count += 1
+            }
+        }
     }
 
     var body: some View {
@@ -49,7 +54,9 @@ struct MarkdownEditorView: View {
         .onChange(of: mode) { _, newMode in
             if newMode == .rich {
                 saveCancellable?.cancel()
-                try? appState.fileService.writeFile(text: text, to: url)
+                Task { @MainActor in
+                    try? fileService.writeFile(text: text, to: url)
+                }
             }
         }
         .onDisappear {
@@ -62,7 +69,9 @@ struct MarkdownEditorView: View {
         saveCancellable = Just(text)
             .delay(for: .milliseconds(500), scheduler: DispatchQueue.main)
             .sink { value in
-                try? appState.fileService.writeFile(text: value, to: url)
+                Task { @MainActor in
+                    try? fileService.writeFile(text: value, to: url)
+                }
             }
     }
 

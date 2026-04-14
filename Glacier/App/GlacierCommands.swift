@@ -4,7 +4,11 @@
 import SwiftUI
 
 struct GlacierCommands: Commands {
-    @FocusedValue(\.appState) private var appState: AppState?
+    @FocusedValue(\.appState) private var focusedAppState: AppState?
+
+    private var appState: AppState? {
+        focusedAppState ?? ActiveAppStateStore.shared.appState
+    }
 
     var body: some Commands {
         CommandGroup(replacing: .newItem) {
@@ -50,6 +54,26 @@ struct GlacierCommands: Commands {
                 appState?.resetFontSize()
             }
             .keyboardShortcut("0", modifiers: .command)
+
+            Divider()
+
+            Button("Split Right") {
+                appState?.splitFocusedPaneRight()
+            }
+            .keyboardShortcut(.rightArrow, modifiers: [.command, .option])
+            .disabled(!(appState?.canSplitFocusedPane ?? false))
+
+            Button("Split Down") {
+                appState?.splitFocusedPaneDown()
+            }
+            .keyboardShortcut(.downArrow, modifiers: [.command, .option])
+            .disabled(!(appState?.canSplitFocusedPane ?? false))
+
+            Button("Close Split") {
+                appState?.closeSplit()
+            }
+            .keyboardShortcut("\\", modifiers: [.command, .option])
+            .disabled(!(appState?.isSplitViewVisible ?? false))
         }
     }
 

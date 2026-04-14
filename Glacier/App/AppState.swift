@@ -5,16 +5,40 @@ import SwiftUI
 import Combine
 import UniformTypeIdentifiers
 
+let focusDebugLoggingEnabled = ProcessInfo.processInfo.environment["GLACIER_DEBUG_FOCUS"] == "1"
+let focusDebugLogPath = ProcessInfo.processInfo.environment["GLACIER_DEBUG_FOCUS_LOG"]
+
+@MainActor
+func focusDebugLog(_ message: String) {
+    guard focusDebugLoggingEnabled else { return }
+
+    if let focusDebugLogPath {
+        let url = URL(fileURLWithPath: focusDebugLogPath)
+        let data = Data("\(message)\n".utf8)
+
+        if FileManager.default.fileExists(atPath: url.path),
+           let handle = try? FileHandle(forWritingTo: url) {
+            try? handle.seekToEnd()
+            try? handle.write(contentsOf: data)
+            try? handle.close()
+        } else {
+            try? data.write(to: url, options: .atomic)
+        }
+    }
+}
+
 // MARK: - Tab Kind
 
 enum TabKind: Equatable {
     case file(FileItem)
     case terminal(TerminalSession)
+    case gitGraph
 
     static func == (lhs: TabKind, rhs: TabKind) -> Bool {
         switch (lhs, rhs) {
         case (.file(let a), .file(let b)): return a.id == b.id
         case (.terminal(let a), .terminal(let b)): return a.id == b.id
+        case (.gitGraph, .gitGraph): return true
         default: return false
         }
     }
@@ -84,10 +108,16 @@ struct Tab: Identifiable, Equatable {
         self.kind = .terminal(terminal)
     }
 
+    init(gitGraph _: Void = ()) {
+        self.id = UUID()
+        self.kind = .gitGraph
+    }
+
     var title: String {
         switch kind {
         case .file(let item): return item.name
         case .terminal(let session): return session.title
+        case .gitGraph: return "Git Graph"
         }
     }
 
@@ -95,6 +125,7 @@ struct Tab: Identifiable, Equatable {
         switch kind {
         case .file(let item): return item.icon
         case .terminal: return "terminal"
+        case .gitGraph: return "point.3.connected.trianglepath.dotted"
         }
     }
 
@@ -102,6 +133,7 @@ struct Tab: Identifiable, Equatable {
         switch kind {
         case .file(let item): return item.iconColor
         case .terminal: return .green
+        case .gitGraph: return .accentColor
         }
     }
 
@@ -140,7 +172,7 @@ final class AppState: ObservableObject {
 
     // MARK: - Font Size
 
-    @Published var editorFontSize: CGFloat = 13
+    @Published var editorFontSize: CGFloat = 15
 
     // MARK: - Tabs
 
@@ -148,6 +180,7 @@ final class AppState: ObservableObject {
     @Published var activeTabID: UUID?
     @Published var primaryTabID: UUID?
     @Published var secondaryTabID: UUID?
+    @Published private var tabPaneAffinities: [UUID: EditorPane] = [:]
     @Published var focusedPane: EditorPane = .primary
     @Published var splitOrientation: EditorSplitOrientation = .sideBySide
 
@@ -165,6 +198,10 @@ final class AppState: ObservableObject {
 
     var isSplitViewVisible: Bool {
         primaryTab != nil && secondaryTab != nil
+    }
+
+    var canSplitFocusedPane: Bool {
+        isSplitViewVisible || tabs.count > 1
     }
 
     // MARK: - Open File
@@ -197,6 +234,24 @@ final class AppState: ObservableObject {
         showTab(id: tab.id, in: focusedPane)
     }
 
+    func openGitGraph() {
+        if let existing = tabs.first(where: {
+            if case .gitGraph = $0.kind { return true }
+            return false
+        }) {
+            if let pane = pane(for: existing.id) {
+                focusPane(pane)
+            } else {
+                showTab(id: existing.id, in: focusedPane)
+            }
+            return
+        }
+
+        let tab = Tab(gitGraph: ())
+        tabs.append(tab)
+        showTab(id: tab.id, in: focusedPane)
+    }
+
     // MARK: - Close Tab
 
     func closeTab(_ tab: Tab) {
@@ -204,14 +259,27 @@ final class AppState: ObservableObject {
         let wasPrimary = primaryTabID == tab.id
         let wasSecondary = secondaryTabID == tab.id
 
+        if case .terminal(let session) = tab.kind {
+            TerminalViewCache.shared.remove(session.id)
+        }
+
         tabs.remove(at: idx)
+        tabPaneAffinities.removeValue(forKey: tab.id)
 
         if wasPrimary {
-            primaryTabID = replacementTabID(afterRemovingIndex: idx, excluding: Set([secondaryTabID].compactMap { $0 }))
+            primaryTabID = replacementTabID(
+                afterRemovingIndex: idx,
+                replacing: .primary,
+                excluding: Set([secondaryTabID].compactMap { $0 })
+            )
         }
 
         if wasSecondary {
-            secondaryTabID = replacementTabID(afterRemovingIndex: idx, excluding: Set([primaryTabID].compactMap { $0 }))
+            secondaryTabID = replacementTabID(
+                afterRemovingIndex: idx,
+                replacing: .secondary,
+                excluding: Set([primaryTabID].compactMap { $0 })
+            )
         }
 
         normalizePaneAssignments()
@@ -225,9 +293,54 @@ final class AppState: ObservableObject {
         }
     }
 
+    func activateTab(id: UUID, in pane: EditorPane) {
+        if tabID(for: pane) == id {
+            focusPane(pane)
+        } else {
+            showTab(id: id, in: pane)
+        }
+    }
+
+    func closeOtherTabs(keeping id: UUID, in pane: EditorPane? = nil) {
+        let tabsToClose: [Tab]
+        if let pane, isSplitViewVisible {
+            tabsToClose = tabs(for: pane).filter { $0.id != id }
+        } else {
+            tabsToClose = tabs.filter { $0.id != id }
+        }
+
+        tabsToClose.forEach { closeTab($0) }
+    }
+
     func focusPane(_ pane: EditorPane) {
+        if focusDebugLoggingEnabled {
+            focusDebugLog("GlacierFocus focusPane pane=\(pane.rawValue)")
+        }
         focusedPane = pane
         activeTabID = tabID(for: pane) ?? primaryTabID
+        restoreTerminalFocusForVisibleTab(in: pane)
+    }
+
+    func splitFocusedPaneRight() {
+        splitFocusedPane(edge: .right)
+    }
+
+    func splitFocusedPaneDown() {
+        splitFocusedPane(edge: .bottom)
+    }
+
+    func closeSplit() {
+        guard isSplitViewVisible else { return }
+
+        switch focusedPane {
+        case .primary:
+            secondaryTabID = nil
+        case .secondary:
+            primaryTabID = secondaryTabID
+            secondaryTabID = nil
+        }
+
+        normalizePaneAssignments()
     }
 
     func splitPane(with tabID: UUID, edge: EditorSplitDropEdge) {
@@ -276,7 +389,7 @@ final class AppState: ObservableObject {
 
     // MARK: - Terminal Font Size
 
-    private let defaultFontSize: CGFloat = 13
+    private let defaultFontSize: CGFloat = 15
 
     func adjustFontSize(by delta: CGFloat) {
         guard let tab = activeTab else { return }
@@ -285,6 +398,8 @@ final class AppState: ObservableObject {
             session.fontSize = max(8, min(36, session.fontSize + delta))
         case .file:
             editorFontSize = max(8, min(36, editorFontSize + delta))
+        case .gitGraph:
+            break
         }
     }
 
@@ -295,6 +410,8 @@ final class AppState: ObservableObject {
             session.fontSize = defaultFontSize
         case .file:
             editorFontSize = defaultFontSize
+        case .gitGraph:
+            break
         }
     }
 
@@ -308,6 +425,19 @@ final class AppState: ObservableObject {
 
     func isTabVisible(_ id: UUID) -> Bool {
         pane(for: id) != nil
+    }
+
+    func paneAssignment(for id: UUID) -> EditorPane {
+        pane(for: id) ?? tabPaneAffinities[id] ?? .primary
+    }
+
+    func tabs(for pane: EditorPane) -> [Tab] {
+        guard isSplitViewVisible else { return tabs }
+        return tabs.filter { paneAssignment(for: $0.id) == pane }
+    }
+
+    func visibleTabID(for pane: EditorPane) -> UUID? {
+        tabID(for: pane)
     }
 
     func pane(for id: UUID) -> EditorPane? {
@@ -364,6 +494,8 @@ final class AppState: ObservableObject {
             secondaryTabID = nil
         }
 
+        syncVisibleTabPaneAffinities()
+
         if primaryTabID == nil {
             activeTabID = nil
             focusedPane = .primary
@@ -388,6 +520,25 @@ final class AppState: ObservableObject {
         }
     }
 
+    private func restoreTerminalFocusForVisibleTab(in pane: EditorPane) {
+        guard let tab = tab(with: tabID(for: pane)) else { return }
+        guard case .terminal(let session) = tab.kind else { return }
+        if focusDebugLoggingEnabled {
+            focusDebugLog("GlacierFocus restore pane=\(pane.rawValue) session=\(session.id.uuidString)")
+        }
+        TerminalViewCache.shared.focus(session.id)
+    }
+
+    private func syncVisibleTabPaneAffinities() {
+        if let primaryTabID {
+            tabPaneAffinities[primaryTabID] = .primary
+        }
+
+        if let secondaryTabID {
+            tabPaneAffinities[secondaryTabID] = .secondary
+        }
+    }
+
     private func splitCompanionID(for draggedTabID: UUID, preferredAnchor anchorID: UUID) -> UUID? {
         if anchorID != draggedTabID {
             return anchorID
@@ -401,6 +552,28 @@ final class AppState: ObservableObject {
         return tabs.map(\.id).first(where: { $0 != draggedTabID })
     }
 
+    private func splitFocusedPane(edge: EditorSplitDropEdge) {
+        if isSplitViewVisible {
+            splitOrientation = edge.orientation
+            return
+        }
+
+        guard let anchorID = tabID(for: focusedPane) ?? activeTabID ?? primaryTabID else {
+            return
+        }
+
+        guard let splitTabID = nextTabIDForSplit(excluding: anchorID) else {
+            return
+        }
+
+        splitPane(with: splitTabID, edge: edge)
+    }
+
+    private func nextTabIDForSplit(excluding anchorID: UUID) -> UUID? {
+        let candidateIDs = tabs.map(\.id).filter { $0 != anchorID }
+        return candidateIDs.first(where: { pane(for: $0) == nil }) ?? candidateIDs.first
+    }
+
     private func isDirectory(_ url: URL) -> Bool {
         var isDirectory: ObjCBool = false
         FileManager.default.fileExists(atPath: url.path, isDirectory: &isDirectory)
@@ -412,9 +585,19 @@ final class AppState: ObservableObject {
         return tabs.first { $0.id == id }
     }
 
-    private func replacementTabID(afterRemovingIndex index: Int, excluding excluded: Set<UUID>) -> UUID? {
+    private func replacementTabID(afterRemovingIndex index: Int, replacing pane: EditorPane, excluding excluded: Set<UUID>) -> UUID? {
         guard !tabs.isEmpty else { return nil }
         let start = min(index, tabs.count - 1)
+
+        for tab in tabs[start...] where !excluded.contains(tab.id) && paneAssignment(for: tab.id) == pane {
+            return tab.id
+        }
+
+        if start > 0 {
+            for tab in tabs[..<start].reversed() where !excluded.contains(tab.id) && paneAssignment(for: tab.id) == pane {
+                return tab.id
+            }
+        }
 
         for tab in tabs[start...] where !excluded.contains(tab.id) {
             return tab.id

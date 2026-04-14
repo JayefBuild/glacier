@@ -17,9 +17,8 @@ struct PDFViewerView: NSViewRepresentable {
     }
 
     func updateNSView(_ pdfView: PDFView, context: Context) {
-        if let document = PDFDocument(url: url) {
-            pdfView.document = document
-        }
+        guard pdfView.document?.documentURL != url else { return }
+        pdfView.document = PDFDocument(url: url)
     }
 }
 

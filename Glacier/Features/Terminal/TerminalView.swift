@@ -4,62 +4,92 @@
 import SwiftUI
 import SwiftTerm
 
+enum TerminalShortcutCommand {
+    case newTerminalTab
+    case closeTab
+    case splitRight
+    case splitDown
+    case closeSplit
+}
+
 struct TerminalView: View {
     @ObservedObject var session: TerminalSession
+    let isFocused: Bool
+    let onInteraction: () -> Void
+    let onCommand: (TerminalShortcutCommand) -> Void
     @Environment(\.appTheme) private var theme
 
     var body: some View {
-        SwiftTermRepresentable(session: session, fontSize: session.fontSize, theme: theme)
+        SwiftTermRepresentable(
+            session: session,
+            fontSize: session.fontSize,
+            theme: theme,
+            isFocused: isFocused,
+            onInteraction: onInteraction,
+            onCommand: onCommand
+        )
             .id(session.id)
             .frame(maxWidth: .infinity, maxHeight: .infinity)
     }
 }
 
-// MARK: - NSViewControllerRepresentable
+// MARK: - NSViewRepresentable
 
-struct SwiftTermRepresentable: NSViewControllerRepresentable {
+struct SwiftTermRepresentable: NSViewRepresentable {
     let session: TerminalSession
     let fontSize: CGFloat
     let theme: any AppTheme
+    let isFocused: Bool
+    let onInteraction: () -> Void
+    let onCommand: (TerminalShortcutCommand) -> Void
 
-    func makeNSViewController(context: Context) -> TerminalHostController {
-        if let cached = TerminalViewCache.shared.get(session.id) {
-            return TerminalHostController(terminalView: cached)
+    func makeNSView(context: Context) -> GuardedTerminalView {
+        let terminalView = cachedOrCreateTerminalView()
+        terminalView.onInteraction = onInteraction
+        terminalView.onCommand = onCommand
+        return terminalView
+    }
+
+    func updateNSView(_ terminalView: GuardedTerminalView, context: Context) {
+        terminalView.onInteraction = onInteraction
+        terminalView.onCommand = onCommand
+
+        let newFont = resolvedFont(size: fontSize)
+        if terminalView.font.pointSize != newFont.pointSize {
+            terminalView.font = newFont
         }
 
-        let tv = GuardedTerminalView(frame: .zero)
+        terminalView.needsDisplay = true
+        terminalView.setFocused(isFocused)
+    }
 
-        let bg = NSColor(red: 0.05, green: 0.05, blue: 0.07, alpha: 1)
-        let fg = NSColor(white: 0.9, alpha: 1)
-        let font = resolvedFont(size: session.fontSize)
+    private func cachedOrCreateTerminalView() -> GuardedTerminalView {
+        if let cached = TerminalViewCache.shared.get(session.id) {
+            cached.removeFromSuperview()
+            cached.debugName = session.id.uuidString
+            return cached
+        }
 
-        tv.configureNativeColors()
-        tv.font = font
-        tv.nativeBackgroundColor = bg
-        tv.nativeForegroundColor = fg
+        let terminalView = GuardedTerminalView(frame: .zero)
+        terminalView.debugName = session.id.uuidString
+        terminalView.configureNativeColors()
+        terminalView.font = resolvedFont(size: fontSize)
+        terminalView.nativeBackgroundColor = NSColor(red: 0.05, green: 0.05, blue: 0.07, alpha: 1)
+        terminalView.nativeForegroundColor = NSColor(white: 0.9, alpha: 1)
 
         let shell = ProcessInfo.processInfo.environment["SHELL"] ?? "/bin/zsh"
         let cwd = session.workingDirectory.path
-        tv.startProcess(executable: shell,
-                        args: ["--login", "-i"],
-                        environment: buildEnvironment(cwd: cwd),
-                        execName: shell,
-                        currentDirectory: cwd)
+        terminalView.startProcess(
+            executable: shell,
+            args: ["--login", "-i"],
+            environment: buildEnvironment(cwd: cwd),
+            execName: shell,
+            currentDirectory: cwd
+        )
 
-        TerminalViewCache.shared.set(session.id, view: tv)
-        return TerminalHostController(terminalView: tv)
+        TerminalViewCache.shared.set(session.id, view: terminalView)
+        return terminalView
     }
-
-    func updateNSViewController(_ nsViewController: TerminalHostController, context: Context) {
-        // Apply live font size changes
-        guard let tv = TerminalViewCache.shared.get(session.id) else { return }
-        let newFont = resolvedFont(size: session.fontSize)
-        if tv.font.pointSize != newFont.pointSize {
-            tv.font = newFont
-        }
-    }
-
-    // MARK: - Helpers
 
     private func resolvedFont(size: CGFloat) -> NSFont {
         NSFont(name: theme.typography.terminalFontName, size: size)
@@ -74,23 +104,5 @@ struct SwiftTermRepresentable: NSViewControllerRepresentable {
         env["HOME"] = NSHomeDirectory()
         env["SHELL"] = ProcessInfo.processInfo.environment["SHELL"] ?? "/bin/zsh"
         return env.map { "\($0.key)=\($0.value)" }
-    }
-}
-
-// MARK: - Host controller
-
-final class TerminalHostController: NSViewController {
-    private let terminalView: GuardedTerminalView
-
-    init(terminalView: GuardedTerminalView) {
-        self.terminalView = terminalView
-        super.init(nibName: nil, bundle: nil)
-    }
-
-    @available(*, unavailable)
-    required init?(coder: NSCoder) { fatalError() }
-
-    override func loadView() {
-        view = terminalView
     }
 }

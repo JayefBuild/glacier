@@ -8,12 +8,20 @@ import Combine
 struct MarkwhenViewer: View {
     @Binding var text: String
     let url: URL
-    var fontSize: CGFloat = 13
+    var fontSize: CGFloat = 15
+    let fileService: FileService
 
-    @EnvironmentObject private var appState: AppState
     @Environment(\.appTheme) private var theme
     @State private var showSource: Bool = false
     @State private var saveCancellable: AnyCancellable?
+
+    private var eventCount: Int {
+        text.split(whereSeparator: \.isNewline).reduce(into: 0) { count, line in
+            if line.contains(":") {
+                count += 1
+            }
+        }
+    }
 
     var body: some View {
         VStack(spacing: 0) {
@@ -30,7 +38,7 @@ struct MarkwhenViewer: View {
 
                 Divider().frame(height: 12)
 
-                Text("\(text.components(separatedBy: "\n").filter { $0.contains(":") }.count) events")
+                Text("\(eventCount) events")
                     .font(theme.typography.captionFont)
                     .foregroundStyle(.tertiary)
 
@@ -92,7 +100,9 @@ struct MarkwhenViewer: View {
         saveCancellable = Just(text)
             .delay(for: .milliseconds(500), scheduler: DispatchQueue.main)
             .sink { value in
-                try? appState.fileService.writeFile(text: value, to: url)
+                Task { @MainActor in
+                    try? fileService.writeFile(text: value, to: url)
+                }
             }
     }
 }
