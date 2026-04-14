@@ -29,6 +29,7 @@ struct TabBarView: View {
 
 struct TabItemView: View {
     let tab: Tab
+
     @EnvironmentObject private var appState: AppState
     @Environment(\.appTheme) private var theme
 
@@ -37,6 +38,7 @@ struct TabItemView: View {
     @State private var renameText = ""
 
     private var isActive: Bool { appState.activeTabID == tab.id }
+    private var isVisibleInPane: Bool { appState.isTabVisible(tab.id) }
 
     private var isTerminal: Bool {
         if case .terminal = tab.kind { return true }
@@ -49,7 +51,6 @@ struct TabItemView: View {
                 .font(.system(size: 11))
                 .foregroundStyle(tab.iconColor)
 
-            // Inline rename field (terminal tabs only)
             if isRenaming, case .terminal(let session) = tab.kind {
                 TextField("", text: $renameText)
                     .font(theme.typography.tabFont)
@@ -57,7 +58,6 @@ struct TabItemView: View {
                     .frame(minWidth: 60, maxWidth: 140)
                     .onSubmit { commitRename(session: session) }
                     .onExitCommand { isRenaming = false }
-                    // Clicking outside dismisses
                     .onChange(of: isActive) { _, active in
                         if !active { isRenaming = false }
                     }
@@ -66,7 +66,6 @@ struct TabItemView: View {
                     .font(theme.typography.tabFont)
                     .foregroundStyle(isActive ? theme.colors.primaryText : theme.colors.secondaryText)
                     .lineLimit(1)
-                    // Double-click to rename terminal tabs
                     .onTapGesture(count: 2) {
                         if isTerminal { beginRename() }
                     }
@@ -89,25 +88,32 @@ struct TabItemView: View {
         }
         .padding(.horizontal, 10)
         .padding(.vertical, 5)
+        .contentShape(Rectangle())
         .background(
             Group {
                 if isActive {
                     RoundedRectangle(cornerRadius: theme.radius.small)
                         .fill(.ultraThinMaterial)
                         .shadow(color: .black.opacity(0.08), radius: 2, y: 1)
+                } else if isVisibleInPane {
+                    RoundedRectangle(cornerRadius: theme.radius.small)
+                        .fill(theme.colors.hoverBackground.opacity(0.75))
                 } else if isHovered {
                     RoundedRectangle(cornerRadius: theme.radius.small)
                         .fill(theme.colors.hoverBackground)
                 }
             }
         )
+        .draggable(DraggedTabReference(id: tab.id)) {
+            TabDragPreview(tab: tab)
+        }
         .onHover { isHovered = $0 }
         .onTapGesture {
             if !isRenaming { appState.activateTab(id: tab.id) }
         }
+        .accessibilityIdentifier("tab-\(tab.title)")
         .contextMenu {
-            // Rename — terminal tabs only
-            if isTerminal, case .terminal(let session) = tab.kind {
+            if isTerminal, case .terminal = tab.kind {
                 Button("Rename…") { beginRename() }
                 Divider()
             }
@@ -120,8 +126,6 @@ struct TabItemView: View {
         }
     }
 
-    // MARK: - Rename
-
     private func beginRename() {
         renameText = tab.title
         isRenaming = true
@@ -130,5 +134,33 @@ struct TabItemView: View {
     private func commitRename(session: TerminalSession) {
         appState.renameTerminal(session, to: renameText)
         isRenaming = false
+    }
+}
+
+private struct TabDragPreview: View {
+    let tab: Tab
+
+    @Environment(\.appTheme) private var theme
+
+    var body: some View {
+        HStack(spacing: 6) {
+            Image(systemName: tab.icon)
+                .font(.system(size: 11))
+                .foregroundStyle(tab.iconColor)
+
+            Text(tab.title)
+                .font(theme.typography.tabFont)
+                .lineLimit(1)
+                .foregroundStyle(theme.colors.primaryText)
+        }
+        .padding(.horizontal, 10)
+        .padding(.vertical, 6)
+        .background(.ultraThinMaterial)
+        .clipShape(RoundedRectangle(cornerRadius: theme.radius.small))
+        .overlay {
+            RoundedRectangle(cornerRadius: theme.radius.small)
+                .strokeBorder(theme.colors.borderSubtle, lineWidth: 1)
+        }
+        .shadow(color: .black.opacity(0.12), radius: 8, y: 4)
     }
 }
