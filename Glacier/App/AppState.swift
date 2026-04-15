@@ -156,10 +156,13 @@ final class AppState: ObservableObject {
     // MARK: - Services
 
     let fileService = FileService()
+    private var cancellables = Set<AnyCancellable>()
 
     // MARK: - Init
 
     init() {
+        observeFileTreeChanges()
+
         // Test hooks: allow UI tests to boot straight into a workspace or file.
         let environment = ProcessInfo.processInfo.environment
         if let path = environment["GLACIER_OPEN_FILE"] {
@@ -188,6 +191,19 @@ final class AppState: ObservableObject {
     // MARK: - Font Size
 
     @Published var editorFontSize: CGFloat = 15
+    @Published var sidebarFontSize: CGFloat = 14
+
+    var sidebarCaptionFontSize: CGFloat {
+        max(10, sidebarFontSize - 1)
+    }
+
+    var sidebarLabelFontSize: CGFloat {
+        sidebarFontSize + 1
+    }
+
+    var sidebarMetadataFontSize: CGFloat {
+        max(9, sidebarFontSize - 4)
+    }
 
     // MARK: - Tabs
 
@@ -283,9 +299,14 @@ final class AppState: ObservableObject {
             return
         }
 
-        selectedFileItem = item
-        selectedFileURLs = [item.url]
-        explorerSelectionAnchorURL = item.url
+        selectExplorerURL(item.url)
+    }
+
+    func selectExplorerURL(_ url: URL, anchorURL: URL? = nil) {
+        let normalizedURL = url.standardizedFileURL
+        selectedFileItem = fileItem(at: normalizedURL)
+        selectedFileURLs = [normalizedURL]
+        explorerSelectionAnchorURL = anchorURL ?? normalizedURL
     }
 
     func shouldPreserveVisibleFileSelectionWhenTogglingFolder(_ item: FileItem) -> Bool {
@@ -598,11 +619,13 @@ final class AppState: ObservableObject {
     // MARK: - Terminal Font Size
 
     private let defaultEditorFontSize: CGFloat = 15
+    private let defaultSidebarFontSize: CGFloat = 14
     private var defaultTerminalFontSize: CGFloat {
         TerminalAppearance.current.defaultFontSize ?? defaultEditorFontSize
     }
 
     func adjustFontSize(by delta: CGFloat) {
+        sidebarFontSize = max(11, min(28, sidebarFontSize + delta))
         guard let tab = activeTab else { return }
         switch tab.kind {
         case .terminal(let terminal):
@@ -615,6 +638,7 @@ final class AppState: ObservableObject {
     }
 
     func resetFontSize() {
+        sidebarFontSize = defaultSidebarFontSize
         guard let tab = activeTab else { return }
         switch tab.kind {
         case .terminal(let terminal):
@@ -758,7 +782,7 @@ final class AppState: ObservableObject {
 
     private func syncExplorerSelectionToVisibleFile(in pane: EditorPane) {
         guard let item = visibleFileItem(in: pane) else { return }
-        selectExplorerItem(item)
+        selectExplorerURL(item.url)
     }
 
     private var selectedExplorerTargetURL: URL? {
@@ -778,9 +802,11 @@ final class AppState: ObservableObject {
     }
 
     private func fileItem(at url: URL) -> FileItem? {
+        let normalizedURL = url.standardizedFileURL
+
         func search(_ items: [FileItem]) -> FileItem? {
             for item in items {
-                if item.url == url {
+                if item.url == normalizedURL {
                     return item
                 }
 
@@ -793,6 +819,47 @@ final class AppState: ObservableObject {
         }
 
         return search(fileService.rootItems)
+    }
+
+    private func observeFileTreeChanges() {
+        fileService.$rootItems
+            .sink { [weak self] _ in
+                self?.reconcileExplorerSelectionAfterTreeChange()
+            }
+            .store(in: &cancellables)
+    }
+
+    private func reconcileExplorerSelectionAfterTreeChange() {
+        if selectedFileURLs.count > 1 {
+            let survivingURLs = Set(selectedFileURLs.filter { fileExists(at: $0) })
+            selectedFileURLs = survivingURLs
+            if let selectedFileItem, survivingURLs.contains(selectedFileItem.url) {
+                self.selectedFileItem = fileItem(at: selectedFileItem.url)
+            } else {
+                self.selectedFileItem = nil
+            }
+            if survivingURLs.isEmpty {
+                explorerSelectionAnchorURL = nil
+            }
+            return
+        }
+
+        if let visibleURL = focusedVisibleFileURL, fileExists(at: visibleURL) {
+            selectExplorerURL(visibleURL, anchorURL: explorerSelectionAnchorURL)
+            return
+        }
+
+        guard let selectedURL = selectedExplorerTargetURL else { return }
+        guard fileExists(at: selectedURL) else {
+            clearExplorerSelection()
+            return
+        }
+
+        selectExplorerURL(selectedURL, anchorURL: explorerSelectionAnchorURL)
+    }
+
+    private func fileExists(at url: URL) -> Bool {
+        FileManager.default.fileExists(atPath: url.path)
     }
 
     private func restoreTerminalFocusForVisibleTab(in pane: EditorPane) {

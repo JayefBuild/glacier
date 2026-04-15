@@ -7,6 +7,7 @@ import AppKit
 struct WorkspaceSwitcherView: View {
     @ObservedObject var fileService: FileService
     @ObservedObject private var store = WorkspaceStore.shared
+    @EnvironmentObject private var appState: AppState
     @Environment(\.appTheme) private var theme
 
     @State private var showPopover = false
@@ -25,7 +26,7 @@ struct WorkspaceSwitcherView: View {
                     .foregroundStyle(fileService.rootURL != nil ? theme.colors.accent : .secondary)
 
                 Text(currentName)
-                    .font(theme.typography.captionFont)
+                    .font(.system(size: appState.sidebarCaptionFontSize, weight: .medium))
                     .fontWeight(.medium)
                     .foregroundStyle(fileService.rootURL != nil ? theme.colors.primaryText : .secondary)
                     .lineLimit(1)
@@ -61,13 +62,14 @@ private struct WorkspacePickerPopover: View {
     @ObservedObject var fileService: FileService
     @ObservedObject var store: WorkspaceStore
     @Binding var isPresented: Bool
+    @EnvironmentObject private var appState: AppState
     @Environment(\.appTheme) private var theme
 
     var body: some View {
         VStack(alignment: .leading, spacing: 0) {
             // Header
             Text("Workspaces")
-                .font(theme.typography.captionFont)
+                .font(.system(size: appState.sidebarCaptionFontSize, weight: .semibold))
                 .fontWeight(.semibold)
                 .foregroundStyle(.secondary)
                 .padding(.horizontal, 12)
@@ -78,7 +80,7 @@ private struct WorkspacePickerPopover: View {
 
             if store.recents.isEmpty {
                 Text("No recent workspaces")
-                    .font(theme.typography.captionFont)
+                    .font(.system(size: appState.sidebarCaptionFontSize, weight: .regular))
                     .foregroundStyle(.tertiary)
                     .padding(.horizontal, 12)
                     .padding(.vertical, 10)
@@ -116,7 +118,7 @@ private struct WorkspacePickerPopover: View {
                 }
             } label: {
                 Label("Open Folder…", systemImage: "folder.badge.plus")
-                    .font(theme.typography.captionFont)
+                    .font(.system(size: appState.sidebarCaptionFontSize, weight: .regular))
                     .foregroundStyle(theme.colors.accent)
             }
             .buttonStyle(.plain)
@@ -168,6 +170,7 @@ private struct WorkspaceRow: View {
     let onOpenInNewTab: () -> Void
     let onRemove: () -> Void
 
+    @EnvironmentObject private var appState: AppState
     @Environment(\.appTheme) private var theme
     @State private var isHovered = false
 
@@ -181,13 +184,13 @@ private struct WorkspaceRow: View {
 
             VStack(alignment: .leading, spacing: 1) {
                 Text(workspace.name)
-                    .font(theme.typography.captionFont)
+                    .font(.system(size: appState.sidebarCaptionFontSize, weight: isCurrent ? .semibold : .regular))
                     .fontWeight(isCurrent ? .semibold : .regular)
                     .foregroundStyle(theme.colors.primaryText)
                     .lineLimit(1)
 
                 Text(workspace.url.path.replacingOccurrences(of: NSHomeDirectory(), with: "~"))
-                    .font(.system(size: 9))
+                    .font(.system(size: appState.sidebarMetadataFontSize))
                     .foregroundStyle(.tertiary)
                     .lineLimit(1)
                     .truncationMode(.middle)

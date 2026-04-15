@@ -96,7 +96,7 @@ struct FileRowView: View {
                 directory: item.isDirectory ? item.url : item.url.deletingLastPathComponent()
             ) { name in
                 let dir = item.isDirectory ? item.url : item.url.deletingLastPathComponent()
-                try appState.fileService.createFile(named: name, in: dir)
+                _ = try appState.fileService.createFile(named: name, in: dir)
                 appState.fileService.reload()
             }
         }
@@ -107,7 +107,7 @@ struct FileRowView: View {
                 directory: item.isDirectory ? item.url : item.url.deletingLastPathComponent()
             ) { name in
                 let dir = item.isDirectory ? item.url : item.url.deletingLastPathComponent()
-                try appState.fileService.createFolder(named: name, in: dir)
+                _ = try appState.fileService.createFolder(named: name, in: dir)
                 appState.fileService.reload()
             }
         }
@@ -154,7 +154,7 @@ struct FileRowView: View {
                 .frame(width: theme.spacing.iconSize)
 
             Text(item.name)
-                .font(theme.typography.sidebarItemFont)
+                .font(.system(size: appState.sidebarFontSize, weight: .regular))
                 .foregroundStyle(theme.colors.primaryText)
                 .lineLimit(1)
                 .truncationMode(.middle)

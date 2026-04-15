@@ -3,6 +3,7 @@
 
 import Foundation
 import Combine
+import Darwin
 
 @MainActor
 final class FileService: ObservableObject {
@@ -13,25 +14,53 @@ final class FileService: ObservableObject {
     @Published var rootURL: URL?
     @Published var isLoading: Bool = false
 
+    private var expandedDirectoryURLs: Set<URL> = []
+    private var directoryMonitors: [URL: DirectoryMonitor] = [:]
+    private var pendingReloadWorkItem: DispatchWorkItem?
+
     // MARK: - Open Folder
 
     func openFolder(at url: URL) {
-        rootURL = url
-        rootItems = []
+        let normalizedURL = url.standardizedFileURL
+        let isSameRoot = rootURL?.standardizedFileURL == normalizedURL
+
+        rootURL = normalizedURL
+        if !isSameRoot {
+            rootItems = []
+            expandedDirectoryURLs = []
+            replaceDirectoryMonitors(with: [])
+        }
         isLoading = true
-        WorkspaceStore.shared.add(url)
+        WorkspaceStore.shared.add(normalizedURL)
+
+        let expandedDirectories = Set(expandedDirectoryURLs.filter { directoryExists(at: $0) })
         Task.detached(priority: .userInitiated) {
-            let items = self.loadChildren(of: url)
+            let items = self.loadChildren(of: normalizedURL, expandedDirectories: expandedDirectories)
             await MainActor.run {
                 self.rootItems = items
+                self.expandedDirectoryURLs = expandedDirectories
                 self.isLoading = false
+                self.synchronizeDirectoryMonitors()
             }
         }
+    }
+
+    func closeFolder() {
+        rootURL = nil
+        rootItems = []
+        expandedDirectoryURLs = []
+        pendingReloadWorkItem?.cancel()
+        pendingReloadWorkItem = nil
+        replaceDirectoryMonitors(with: [])
     }
 
     // MARK: - Load Children
 
     nonisolated func loadChildren(of url: URL) -> [FileItem] {
+        loadChildren(of: url, expandedDirectories: [])
+    }
+
+    nonisolated private func loadChildren(of url: URL, expandedDirectories: Set<URL>) -> [FileItem] {
         guard let contents = try? FileManager.default.contentsOfDirectory(
             at: url,
             includingPropertiesForKeys: [.isDirectoryKey, .isHiddenKey, .nameKey],
@@ -41,7 +70,14 @@ final class FileService: ObservableObject {
         return contents
             .compactMap { childURL -> FileItem? in
                 let isDirectory = (try? childURL.resourceValues(forKeys: [.isDirectoryKey]).isDirectory) ?? false
-                return FileItem(url: childURL, isDirectory: isDirectory)
+                let normalizedChildURL = childURL.standardizedFileURL
+                let item = FileItem(url: normalizedChildURL, isDirectory: isDirectory)
+                if isDirectory, expandedDirectories.contains(normalizedChildURL) {
+                    item.children = loadChildren(of: normalizedChildURL, expandedDirectories: expandedDirectories)
+                    item.isLoaded = true
+                    item.isExpanded = true
+                }
+                return item
             }
             .sorted { lhs, rhs in
                 // Folders first, then alphabetical
@@ -57,19 +93,30 @@ final class FileService: ObservableObject {
     func toggleExpansion(of item: FileItem) {
         if item.isExpanded {
             item.isExpanded = false
+            expandedDirectoryURLs.remove(item.url)
+            synchronizeDirectoryMonitors()
             return
         }
+
+        expandedDirectoryURLs.insert(item.url)
         if item.isLoaded {
             item.isExpanded = true
+            if let children = item.children {
+                restoreExpandedDirectories(in: children)
+            }
+            synchronizeDirectoryMonitors()
             return
         }
+
+        let expandedDirectories = expandedDirectoryURLs
         // Load off the main thread, then update on main
         Task.detached(priority: .userInitiated) {
-            let children = self.loadChildren(of: item.url)
+            let children = self.loadChildren(of: item.url, expandedDirectories: expandedDirectories)
             await MainActor.run {
                 item.children = children
                 item.isLoaded = true
                 item.isExpanded = true
+                self.synchronizeDirectoryMonitors()
             }
         }
     }
@@ -99,7 +146,7 @@ final class FileService: ObservableObject {
         let dest = item.url.deletingLastPathComponent().appendingPathComponent(newName)
         try FileManager.default.moveItem(at: item.url, to: dest)
         // Reload the parent directory
-        if let rootURL { openFolder(at: rootURL) }
+        reload()
     }
 
     // MARK: - Trash
@@ -107,7 +154,8 @@ final class FileService: ObservableObject {
     func trash(item: FileItem) throws {
         try FileManager.default.trashItem(at: item.url, resultingItemURL: nil)
         // Reload
-        if let rootURL { openFolder(at: rootURL) }
+        expandedDirectoryURLs.remove(item.url)
+        reload()
     }
 
     // MARK: - Collapse All
@@ -120,6 +168,8 @@ final class FileService: ObservableObject {
             }
         }
         collapse(rootItems)
+        expandedDirectoryURLs.removeAll()
+        synchronizeDirectoryMonitors()
     }
 
     // MARK: - Move
@@ -133,13 +183,14 @@ final class FileService: ObservableObject {
         guard dest != sourceURL else { return }
 
         try FileManager.default.moveItem(at: sourceURL, to: dest)
-        if let rootURL { openFolder(at: rootURL) }
+        reload()
     }
 
     // MARK: - Reload
 
     func reload() {
-        if let rootURL { openFolder(at: rootURL) }
+        guard let rootURL else { return }
+        openFolder(at: rootURL)
     }
 
     // MARK: - Visible Items
@@ -209,6 +260,85 @@ final class FileService: ObservableObject {
                 return .binary(url)
             }
         }
+    }
+
+    private func restoreExpandedDirectories(in items: [FileItem]) {
+        for item in items where item.isDirectory && expandedDirectoryURLs.contains(item.url) {
+            item.isExpanded = true
+            item.isLoaded = true
+            if let children = item.children {
+                restoreExpandedDirectories(in: children)
+            }
+        }
+    }
+
+    private func directoryExists(at url: URL) -> Bool {
+        var isDirectory: ObjCBool = false
+        let exists = FileManager.default.fileExists(atPath: url.path, isDirectory: &isDirectory)
+        return exists && isDirectory.boolValue
+    }
+
+    private func synchronizeDirectoryMonitors() {
+        guard let rootURL else {
+            replaceDirectoryMonitors(with: [])
+            return
+        }
+
+        var urls = Set(expandedDirectoryURLs.filter { directoryExists(at: $0) })
+        urls.insert(rootURL)
+        replaceDirectoryMonitors(with: Array(urls))
+    }
+
+    private func replaceDirectoryMonitors(with urls: [URL]) {
+        let normalizedURLs = Set(urls.map(\.standardizedFileURL))
+        directoryMonitors = directoryMonitors.filter { normalizedURLs.contains($0.key) }
+
+        for url in normalizedURLs where directoryMonitors[url] == nil {
+            if let monitor = DirectoryMonitor(url: url, onChange: { [weak self] in
+                Task { @MainActor in
+                    self?.scheduleReload()
+                }
+            }) {
+                directoryMonitors[url] = monitor
+            }
+        }
+    }
+
+    private func scheduleReload() {
+        pendingReloadWorkItem?.cancel()
+
+        let workItem = DispatchWorkItem { [weak self] in
+            self?.reload()
+        }
+        pendingReloadWorkItem = workItem
+        DispatchQueue.main.asyncAfter(deadline: .now() + 0.12, execute: workItem)
+    }
+}
+
+private final class DirectoryMonitor {
+    private let fileDescriptor: CInt
+    private let source: DispatchSourceFileSystemObject
+
+    init?(url: URL, onChange: @escaping @Sendable () -> Void) {
+        fileDescriptor = Darwin.open(url.path, O_EVTONLY)
+        guard fileDescriptor >= 0 else {
+            return nil
+        }
+
+        source = DispatchSource.makeFileSystemObjectSource(
+            fileDescriptor: fileDescriptor,
+            eventMask: [.write, .rename, .delete, .extend, .attrib, .link, .revoke],
+            queue: DispatchQueue.global(qos: .utility)
+        )
+        source.setEventHandler(handler: onChange)
+        source.setCancelHandler { [fileDescriptor] in
+            Darwin.close(fileDescriptor)
+        }
+        source.resume()
+    }
+
+    deinit {
+        source.cancel()
     }
 }
 

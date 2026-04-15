@@ -125,7 +125,7 @@ private struct ExplorerHeaderView: View {
             // Folder name row
             HStack(spacing: 6) {
                 Text(title.uppercased())
-                    .font(theme.typography.captionFont)
+                    .font(.system(size: appState.sidebarCaptionFontSize, weight: .semibold))
                     .fontWeight(.semibold)
                     .foregroundStyle(.secondary)
                     .lineLimit(1)
@@ -205,8 +205,7 @@ private struct ExplorerToolbar: View {
             Spacer()
 
             toolbarButton(icon: "xmark", help: "Close Folder") {
-                fileService.rootURL = nil
-                fileService.rootItems = []
+                fileService.closeFolder()
             }
             .foregroundStyle(.secondary)
         }
@@ -216,7 +215,7 @@ private struct ExplorerToolbar: View {
                 placeholder: "filename.txt",
                 directory: fileService.rootURL ?? URL(fileURLWithPath: NSHomeDirectory())
             ) { name in
-                try fileService.createFile(named: name, in: fileService.rootURL!)
+                _ = try fileService.createFile(named: name, in: fileService.rootURL!)
                 fileService.reload()
             }
         }
@@ -226,7 +225,7 @@ private struct ExplorerToolbar: View {
                 placeholder: "folder-name",
                 directory: fileService.rootURL ?? URL(fileURLWithPath: NSHomeDirectory())
             ) { name in
-                try fileService.createFolder(named: name, in: fileService.rootURL!)
+                _ = try fileService.createFolder(named: name, in: fileService.rootURL!)
                 fileService.reload()
             }
         }
@@ -323,6 +322,7 @@ private struct ExplorerToolbar: View {
 
 private struct ExplorerEmptyState: View {
     @ObservedObject var fileService: FileService
+    @EnvironmentObject private var appState: AppState
     @Environment(\.appTheme) private var theme
 
     var body: some View {
@@ -332,7 +332,7 @@ private struct ExplorerEmptyState: View {
                 .foregroundStyle(.tertiary)
 
             Text("Open a Folder")
-                .font(theme.typography.labelFont)
+                .font(.system(size: appState.sidebarLabelFontSize, weight: .regular))
                 .foregroundStyle(.secondary)
 
             Button("Choose…") {

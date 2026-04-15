@@ -7,7 +7,7 @@ import UniformTypeIdentifiers
 // MARK: - File Item
 
 final class FileItem: Identifiable, ObservableObject, Hashable, @unchecked Sendable {
-    let id: UUID
+    let id: URL
     let url: URL
     let isDirectory: Bool
     let name: String
@@ -19,8 +19,8 @@ final class FileItem: Identifiable, ObservableObject, Hashable, @unchecked Senda
     var isLoaded: Bool = false
 
     init(url: URL, isDirectory: Bool) {
-        self.id = UUID()
-        self.url = url
+        self.id = url.standardizedFileURL
+        self.url = url.standardizedFileURL
         self.isDirectory = isDirectory
         self.name = url.lastPathComponent
         self.fileExtension = isDirectory ? nil : url.pathExtension.lowercased().nonEmpty
@@ -46,11 +46,11 @@ final class FileItem: Identifiable, ObservableObject, Hashable, @unchecked Senda
     // MARK: - Hashable / Equatable
 
     static func == (lhs: FileItem, rhs: FileItem) -> Bool {
-        lhs.id == rhs.id
+        lhs.url == rhs.url
     }
 
     func hash(into hasher: inout Hasher) {
-        hasher.combine(id)
+        hasher.combine(url)
     }
 }
 
