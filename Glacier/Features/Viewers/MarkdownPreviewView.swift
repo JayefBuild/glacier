@@ -8,6 +8,7 @@ import Combine
 struct MarkdownEditorView: View {
     @Binding var text: String
     let url: URL
+    let pane: EditorPane
     var fontSize: CGFloat = 16
     let fileService: FileService
 
@@ -15,6 +16,7 @@ struct MarkdownEditorView: View {
 
     @State private var mode: MarkdownEditorMode = .rich
     @State private var saveCancellable: AnyCancellable?
+    @State private var saveRequestCount = 0
 
     private var lineCount: Int {
         guard !text.isEmpty else { return 1 }
@@ -37,6 +39,7 @@ struct MarkdownEditorView: View {
                     MarkdownLiveEditorWebView(
                         text: $text,
                         url: url,
+                        saveRequestCount: saveRequestCount,
                         fontSize: fontSize,
                         document: MarkdownRichDocument(markdown: text)
                     )
@@ -67,6 +70,20 @@ struct MarkdownEditorView: View {
         .onDisappear {
             saveCancellable?.cancel()
         }
+        .onReceive(NotificationCenter.default.publisher(for: .glacierSaveDocument)) { notification in
+            guard let request = notification.object as? EditorSaveRequest,
+                  request.pane == pane,
+                  request.url == url else {
+                return
+            }
+
+            switch mode {
+            case .rich:
+                saveRequestCount += 1
+            case .source:
+                saveNow(text: text)
+            }
+        }
     }
 
     private func scheduleSave(text: String) {
@@ -74,10 +91,15 @@ struct MarkdownEditorView: View {
         saveCancellable = Just(text)
             .delay(for: .milliseconds(500), scheduler: DispatchQueue.main)
             .sink { value in
-                Task { @MainActor in
-                    try? fileService.writeFile(text: value, to: url)
-                }
+                saveNow(text: value)
             }
+    }
+
+    private func saveNow(text: String) {
+        saveCancellable?.cancel()
+        Task { @MainActor in
+            try? fileService.writeFile(text: text, to: url)
+        }
     }
 
     private var statusBar: some View {
@@ -132,6 +154,7 @@ private enum MarkdownEditorMode: String, CaseIterable, Identifiable {
 private struct MarkdownLiveEditorWebView: NSViewRepresentable {
     @Binding var text: String
     let url: URL
+    let saveRequestCount: Int
     let fontSize: CGFloat
     let document: MarkdownRichDocument
 
@@ -163,6 +186,11 @@ private struct MarkdownLiveEditorWebView: NSViewRepresentable {
     func updateNSView(_ webView: WKWebView, context: Context) {
         let script = "window.glacierSetFontSize && window.glacierSetFontSize(\(fontSize));"
         webView.evaluateJavaScript(script, completionHandler: nil)
+
+        if context.coordinator.lastSaveRequestCount != saveRequestCount {
+            context.coordinator.lastSaveRequestCount = saveRequestCount
+            webView.evaluateJavaScript("window.glacierForceSave && window.glacierForceSave();", completionHandler: nil)
+        }
     }
 
     private func buildHTML(
@@ -449,6 +477,9 @@ private struct MarkdownLiveEditorWebView: NSViewRepresentable {
             window.glacierSetFontSize = function(size) {
               ROOT.style.setProperty('--editor-font-size', size + 'px');
             };
+            window.glacierForceSave = function() {
+              syncMarkdownToSwift();
+            };
 
             function renderFrontmatter() {
               const container = document.getElementById('frontmatter');
@@ -539,6 +570,7 @@ private struct MarkdownLiveEditorWebView: NSViewRepresentable {
         let url: URL
         let frontmatterPrefix: String?
         weak var webView: WKWebView?
+        var lastSaveRequestCount = 0
 
         init(text: Binding<String>, url: URL, frontmatterPrefix: String?) {
             _text = text

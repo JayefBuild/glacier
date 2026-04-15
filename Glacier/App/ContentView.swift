@@ -11,6 +11,13 @@ struct ContentView: View {
         appState.fileService.rootURL?.lastPathComponent ?? "Glacier"
     }
 
+    private var trashConfirmationTitle: String {
+        guard let item = appState.pendingTrashItem else {
+            return "Move to Trash?"
+        }
+        return "Move \"\(item.name)\" to Trash?"
+    }
+
     var body: some View {
         NavigationSplitView {
             ExplorerView()
@@ -26,6 +33,25 @@ struct ContentView: View {
         .environmentObject(appState)
         .focusedValue(\.appState, appState)
         .toolbar(removing: .sidebarToggle)
+        .confirmationDialog(
+            trashConfirmationTitle,
+            isPresented: Binding(
+                get: { appState.pendingTrashItem != nil },
+                set: { isPresented in
+                    if !isPresented {
+                        appState.cancelTrashConfirmation()
+                    }
+                }
+            ),
+            titleVisibility: .visible
+        ) {
+            Button("Move to Trash", role: .destructive) {
+                appState.confirmPendingTrash()
+            }
+            Button("Cancel", role: .cancel) {
+                appState.cancelTrashConfirmation()
+            }
+        }
         .background {
             ZStack {
                 Rectangle()

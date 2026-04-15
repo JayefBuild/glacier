@@ -91,6 +91,15 @@ extension UTType {
     static let glacierTabReference = UTType(exportedAs: "com.glacier.tabreference")
 }
 
+struct EditorSaveRequest {
+    let pane: EditorPane
+    let url: URL
+}
+
+extension Notification.Name {
+    static let glacierSaveDocument = Notification.Name("GlacierSaveDocument")
+}
+
 // MARK: - Tab
 
 struct Tab: Identifiable, Equatable {
@@ -173,6 +182,7 @@ final class AppState: ObservableObject {
     @Published private(set) var selectedFileURLs: Set<URL> = []
     @Published private var primaryPreviewFileItem: FileItem?
     @Published private var secondaryPreviewFileItem: FileItem?
+    @Published private(set) var pendingTrashItem: FileItem?
     private var explorerSelectionAnchorURL: URL?
 
     // MARK: - Font Size
@@ -209,6 +219,18 @@ final class AppState: ObservableObject {
         isSplitViewVisible || tabs.count > 1
     }
 
+    var canSaveFocusedDocument: Bool {
+        visibleFileItem(in: focusedPane) != nil
+    }
+
+    var canTrashSelectedExplorerItem: Bool {
+        selectedExplorerTargetURL != nil
+    }
+
+    var focusedVisibleFileURL: URL? {
+        visibleFileItem(in: focusedPane)?.url
+    }
+
     // MARK: - Open File
 
     func openFile(_ item: FileItem) {
@@ -234,7 +256,25 @@ final class AppState: ObservableObject {
     // MARK: - Explorer Selection
 
     func isExplorerItemSelected(_ item: FileItem) -> Bool {
-        selectedFileURLs.contains(item.url)
+        if selectedFileURLs.count > 1 {
+            return selectedFileURLs.contains(item.url)
+        }
+
+        guard let selectedURL = selectedExplorerTargetURL else {
+            return false
+        }
+
+        if selectedURL == item.url {
+            return true
+        }
+
+        guard item.isDirectory, !item.isExpanded else {
+            return false
+        }
+
+        let folderPath = item.url.standardizedFileURL.path
+        let selectedPath = selectedURL.standardizedFileURL.path
+        return selectedPath.hasPrefix(folderPath + "/")
     }
 
     func selectExplorerItem(_ item: FileItem, extendingRange: Bool = false) {
@@ -246,6 +286,24 @@ final class AppState: ObservableObject {
         selectedFileItem = item
         selectedFileURLs = [item.url]
         explorerSelectionAnchorURL = item.url
+    }
+
+    func shouldPreserveVisibleFileSelectionWhenTogglingFolder(_ item: FileItem) -> Bool {
+        guard item.isDirectory else {
+            return false
+        }
+
+        guard selectedFileURLs.count <= 1,
+              let selectedURL = selectedExplorerTargetURL,
+              let visibleURL = focusedVisibleFileURL,
+              selectedURL == visibleURL,
+              selectedURL != item.url else {
+            return false
+        }
+
+        let folderPath = item.url.standardizedFileURL.path
+        let selectedPath = selectedURL.standardizedFileURL.path
+        return selectedPath.hasPrefix(folderPath + "/")
     }
 
     func clearExplorerSelection() {
@@ -294,6 +352,34 @@ final class AppState: ObservableObject {
 
     func hasPreview(in pane: EditorPane) -> Bool {
         previewedFileItem(in: pane) != nil
+    }
+
+    func requestSaveForFocusedPane() {
+        guard let item = visibleFileItem(in: focusedPane) else { return }
+        NotificationCenter.default.post(
+            name: .glacierSaveDocument,
+            object: EditorSaveRequest(pane: focusedPane, url: item.url)
+        )
+    }
+
+    func moveSelectedExplorerItemToTrash() {
+        guard let item = selectedExplorerTargetItem() else { return }
+        requestTrashConfirmation(for: item)
+    }
+
+    func requestTrashConfirmation(for item: FileItem) {
+        pendingTrashItem = item
+    }
+
+    func cancelTrashConfirmation() {
+        pendingTrashItem = nil
+    }
+
+    func confirmPendingTrash() {
+        guard let pendingTrashItem else { return }
+        try? fileService.trash(item: pendingTrashItem)
+        clearExplorerSelection()
+        self.pendingTrashItem = nil
     }
 
     // MARK: - Open Terminal
@@ -437,6 +523,7 @@ final class AppState: ObservableObject {
         }
         focusedPane = pane
         activeTabID = tabID(for: pane) ?? primaryTabID
+        syncExplorerSelectionToVisibleFile(in: pane)
         restoreTerminalFocusForVisibleTab(in: pane)
     }
 
@@ -642,6 +729,8 @@ final class AppState: ObservableObject {
         } else {
             activeTabID = tabID(for: focusedPane) ?? primaryTabID
         }
+
+        syncExplorerSelectionToVisibleFile(in: focusedPane)
     }
 
     private func tabID(for pane: EditorPane) -> UUID? {
@@ -655,6 +744,55 @@ final class AppState: ObservableObject {
         guard let tab = tab(with: tabID(for: pane)) else { return nil }
         guard case .terminal(let terminal) = tab.kind else { return nil }
         return terminal
+    }
+
+    private func visibleFileItem(in pane: EditorPane) -> FileItem? {
+        if let previewItem = previewedFileItem(in: pane) {
+            return previewItem
+        }
+
+        guard let tab = tab(with: tabID(for: pane)) else { return nil }
+        guard case .file(let item) = tab.kind else { return nil }
+        return item
+    }
+
+    private func syncExplorerSelectionToVisibleFile(in pane: EditorPane) {
+        guard let item = visibleFileItem(in: pane) else { return }
+        selectExplorerItem(item)
+    }
+
+    private var selectedExplorerTargetURL: URL? {
+        selectedFileItem?.url ?? selectedFileURLs.first
+    }
+
+    private func selectedExplorerTargetItem() -> FileItem? {
+        guard let url = selectedExplorerTargetURL else {
+            return nil
+        }
+
+        if let selectedFileItem, selectedFileItem.url == url {
+            return selectedFileItem
+        }
+
+        return fileItem(at: url) ?? FileItem(url: url, isDirectory: isDirectory(url))
+    }
+
+    private func fileItem(at url: URL) -> FileItem? {
+        func search(_ items: [FileItem]) -> FileItem? {
+            for item in items {
+                if item.url == url {
+                    return item
+                }
+
+                if let children = item.children, let match = search(children) {
+                    return match
+                }
+            }
+
+            return nil
+        }
+
+        return search(fileService.rootItems)
     }
 
     private func restoreTerminalFocusForVisibleTab(in pane: EditorPane) {

@@ -44,7 +44,6 @@ struct FileRowView: View {
     @State private var showRenameSheet = false
     @State private var showNewFileSheet = false
     @State private var showNewFolderSheet = false
-    @State private var showDeleteConfirm = false
     @State private var isDropTarget = false
 
     private var isSelected: Bool {
@@ -111,16 +110,6 @@ struct FileRowView: View {
                 try appState.fileService.createFolder(named: name, in: dir)
                 appState.fileService.reload()
             }
-        }
-        .confirmationDialog(
-            "Move \"\(item.name)\" to Trash?",
-            isPresented: $showDeleteConfirm,
-            titleVisibility: .visible
-        ) {
-            Button("Move to Trash", role: .destructive) {
-                try? appState.fileService.trash(item: item)
-            }
-            Button("Cancel", role: .cancel) {}
         }
     }
 
@@ -227,7 +216,7 @@ struct FileRowView: View {
         Divider()
 
         Button(role: .destructive) {
-            showDeleteConfirm = true
+            appState.requestTrashConfirmation(for: item)
         } label: {
             Label("Move to Trash", systemImage: "trash")
         }
@@ -242,12 +231,15 @@ struct FileRowView: View {
             return
         }
 
-        appState.selectExplorerItem(item)
         if item.isDirectory {
+            if !appState.shouldPreserveVisibleFileSelectionWhenTogglingFolder(item) {
+                appState.selectExplorerItem(item)
+            }
             withAnimation(GlacierTheme().animation.fast) {
                 appState.fileService.toggleExpansion(of: item)
             }
         } else {
+            appState.selectExplorerItem(item)
             appState.previewFile(item)
         }
     }

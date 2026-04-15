@@ -8,11 +8,26 @@ import WebKit
 struct ExcalidrawViewer: View {
     @Binding var text: String
     let url: URL
+    let pane: EditorPane
     let fileService: FileService
+    @State private var saveRequestCount = 0
 
     var body: some View {
-        ExcalidrawWebView(text: $text, url: url, fileService: fileService)
+        ExcalidrawWebView(
+            text: $text,
+            url: url,
+            saveRequestCount: saveRequestCount,
+            fileService: fileService
+        )
             .frame(maxWidth: .infinity, maxHeight: .infinity)
+            .onReceive(NotificationCenter.default.publisher(for: .glacierSaveDocument)) { notification in
+                guard let request = notification.object as? EditorSaveRequest,
+                      request.pane == pane,
+                      request.url == url else {
+                    return
+                }
+                saveRequestCount += 1
+            }
     }
 }
 
@@ -21,6 +36,7 @@ struct ExcalidrawViewer: View {
 struct ExcalidrawWebView: NSViewRepresentable {
     @Binding var text: String
     let url: URL
+    let saveRequestCount: Int
     let fileService: FileService
 
     func makeCoordinator() -> Coordinator {
@@ -41,7 +57,12 @@ struct ExcalidrawWebView: NSViewRepresentable {
         return webView
     }
 
-    func updateNSView(_ webView: WKWebView, context: Context) { }
+    func updateNSView(_ webView: WKWebView, context: Context) {
+        if context.coordinator.lastSaveRequestCount != saveRequestCount {
+            context.coordinator.lastSaveRequestCount = saveRequestCount
+            webView.evaluateJavaScript("window.glacierForceSave && window.glacierForceSave();", completionHandler: nil)
+        }
+    }
 
     private func loadPage(in webView: WKWebView) {
         guard let htmlURL = Bundle.main.url(forResource: "excalidraw", withExtension: "html") else {
@@ -59,6 +80,7 @@ struct ExcalidrawWebView: NSViewRepresentable {
         let fileService: FileService
         weak var webView: WKWebView?
         var didLoadInitialData = false
+        var lastSaveRequestCount = 0
 
         init(text: Binding<String>, url: URL, fileService: FileService) {
             _text = text

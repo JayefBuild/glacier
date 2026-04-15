@@ -14,6 +14,7 @@ struct FileViewerRouter: View {
         if let previewItem {
             FileContentView(
                 item: previewItem,
+                pane: pane,
                 editorFontSize: appState.editorFontSize,
                 fileService: appState.fileService
             )
@@ -22,6 +23,7 @@ struct FileViewerRouter: View {
             case .file(let item):
                 FileContentView(
                     item: item,
+                    pane: pane,
                     editorFontSize: appState.editorFontSize,
                     fileService: appState.fileService
                 )
@@ -49,6 +51,7 @@ struct FileViewerRouter: View {
 
 private struct FileContentView: View {
     let item: FileItem
+    let pane: EditorPane
     let editorFontSize: CGFloat
     let fileService: FileService
 
@@ -99,6 +102,7 @@ private struct FileContentView: View {
                 MarkdownEditorView(
                     text: $editableText,
                     url: item.url,
+                    pane: pane,
                     fontSize: editorFontSize,
                     fileService: fileService
                 )
@@ -107,6 +111,7 @@ private struct FileContentView: View {
                     text: $editableText,
                     fileExtension: ext,
                     url: item.url,
+                    pane: pane,
                     fontSize: editorFontSize,
                     fileService: fileService
                 )
@@ -115,11 +120,12 @@ private struct FileContentView: View {
             MarkwhenViewer(
                 text: $editableText,
                 url: url,
+                pane: pane,
                 fontSize: editorFontSize,
                 fileService: fileService
             )
         case .excalidraw(_, let url):
-            ExcalidrawViewer(text: $editableExcalidraw, url: url, fileService: fileService)
+            ExcalidrawViewer(text: $editableExcalidraw, url: url, pane: pane, fileService: fileService)
         case .image(let url):
             ImageViewerView(url: url)
         case .video(let url):

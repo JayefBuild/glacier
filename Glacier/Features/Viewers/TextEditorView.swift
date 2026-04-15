@@ -8,6 +8,7 @@ struct TextEditorView: View {
     @Binding var text: String
     let fileExtension: String
     let url: URL
+    let pane: EditorPane
     var fontSize: CGFloat = 15
     let fileService: FileService
 
@@ -46,6 +47,14 @@ struct TextEditorView: View {
         .onChange(of: text) { _, newValue in
             scheduleSave(text: newValue)
         }
+        .onReceive(NotificationCenter.default.publisher(for: .glacierSaveDocument)) { notification in
+            guard let request = notification.object as? EditorSaveRequest,
+                  request.pane == pane,
+                  request.url == url else {
+                return
+            }
+            saveNow(text: text)
+        }
     }
 
     // MARK: - Save
@@ -55,10 +64,15 @@ struct TextEditorView: View {
         saveCancellable = Just(text)
             .delay(for: .milliseconds(500), scheduler: DispatchQueue.main)
             .sink { value in
-                Task { @MainActor in
-                    try? fileService.writeFile(text: value, to: url)
-                }
+                saveNow(text: value)
             }
+    }
+
+    private func saveNow(text: String) {
+        saveCancellable?.cancel()
+        Task { @MainActor in
+            try? fileService.writeFile(text: text, to: url)
+        }
     }
 
     // MARK: - Status Bar

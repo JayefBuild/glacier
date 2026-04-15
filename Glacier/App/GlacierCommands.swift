@@ -30,6 +30,20 @@ struct GlacierCommands: Commands {
                 }
             }
             .keyboardShortcut("w", modifiers: [.command])
+
+            Button("Move Selected Item to Trash") {
+                appState?.moveSelectedExplorerItemToTrash()
+            }
+            .keyboardShortcut(.delete, modifiers: [.command])
+            .disabled(!(appState?.canTrashSelectedExplorerItem ?? false))
+        }
+
+        CommandGroup(replacing: .saveItem) {
+            Button("Save") {
+                appState?.requestSaveForFocusedPane()
+            }
+            .keyboardShortcut("s", modifiers: [.command])
+            .disabled(!(appState?.canSaveFocusedDocument ?? false))
         }
 
         CommandGroup(after: .windowArrangement) {
