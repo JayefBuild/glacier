@@ -34,7 +34,12 @@ struct MarkdownEditorView: View {
             Group {
                 switch mode {
                 case .rich:
-                    MarkdownLiveEditorWebView(text: $text, url: url, fontSize: fontSize)
+                    MarkdownLiveEditorWebView(
+                        text: $text,
+                        url: url,
+                        fontSize: fontSize,
+                        document: MarkdownRichDocument(markdown: text)
+                    )
                 case .source:
                     SyntaxTextView(
                         text: $text,
@@ -128,9 +133,10 @@ private struct MarkdownLiveEditorWebView: NSViewRepresentable {
     @Binding var text: String
     let url: URL
     let fontSize: CGFloat
+    let document: MarkdownRichDocument
 
     func makeCoordinator() -> Coordinator {
-        Coordinator(text: $text, url: url)
+        Coordinator(text: $text, url: url, frontmatterPrefix: document.frontmatterPrefix)
     }
 
     func makeNSView(context: Context) -> WKWebView {
@@ -143,7 +149,14 @@ private struct MarkdownLiveEditorWebView: NSViewRepresentable {
         webView.navigationDelegate = context.coordinator
         webView.setValue(false, forKey: "drawsBackground")
         context.coordinator.webView = webView
-        webView.loadHTMLString(buildHTML(markdown: text, fontSize: fontSize), baseURL: nil)
+        webView.loadHTMLString(
+            buildHTML(
+                bodyMarkdown: document.bodyMarkdown,
+                frontmatter: document.properties,
+                fontSize: fontSize
+            ),
+            baseURL: nil
+        )
         return webView
     }
 
@@ -152,7 +165,11 @@ private struct MarkdownLiveEditorWebView: NSViewRepresentable {
         webView.evaluateJavaScript(script, completionHandler: nil)
     }
 
-    private func buildHTML(markdown: String, fontSize: CGFloat) -> String {
+    private func buildHTML(
+        bodyMarkdown: String,
+        frontmatter: [MarkdownFrontmatterProperty],
+        fontSize: CGFloat
+    ) -> String {
         let isDark = NSApp.effectiveAppearance.bestMatch(from: [.darkAqua, .aqua]) == .darkAqua
 
         let fg = isDark ? "#e8e8ed" : "#1c1c1e"
@@ -212,9 +229,73 @@ private struct MarkdownLiveEditorWebView: NSViewRepresentable {
             display: none;
             height: 100%;
             background: var(--editor-bg);
+            flex-direction: column;
+          }
+          #frontmatter {
+            display: none;
+            max-width: 820px;
+            width: 100%;
+            margin: 0 auto;
+            padding: 24px 36px 10px;
+          }
+          #frontmatter.has-properties {
+            display: block;
+          }
+          .glacier-frontmatter-header {
+            display: flex;
+            align-items: center;
+            gap: 8px;
+            margin-bottom: 10px;
+            color: var(--editor-muted);
+            font-size: 12px;
+            font-weight: 700;
+            letter-spacing: 0.08em;
+            text-transform: uppercase;
+          }
+          .glacier-frontmatter-header::before {
+            content: '';
+            width: 14px;
+            height: 14px;
+            border-radius: 4px;
+            background:
+              linear-gradient(var(--editor-muted), var(--editor-muted)) 3px 3px / 8px 1.5px no-repeat,
+              linear-gradient(var(--editor-muted), var(--editor-muted)) 3px 6.3px / 8px 1.5px no-repeat,
+              linear-gradient(var(--editor-muted), var(--editor-muted)) 3px 9.6px / 8px 1.5px no-repeat,
+              color-mix(in srgb, var(--editor-panel) 80%, transparent);
+            border: 1px solid color-mix(in srgb, var(--editor-border) 92%, transparent);
+          }
+          .glacier-frontmatter-list {
+            display: flex;
+            flex-direction: column;
+          }
+          .glacier-frontmatter-row {
+            display: grid;
+            grid-template-columns: minmax(120px, 180px) minmax(0, 1fr);
+            gap: 14px;
+            align-items: start;
+            padding: 10px 0;
+            border-bottom: 1px solid color-mix(in srgb, var(--editor-border) 88%, transparent);
+          }
+          .glacier-frontmatter-row:first-child {
+            border-top: 1px solid color-mix(in srgb, var(--editor-border) 88%, transparent);
+          }
+          .glacier-frontmatter-name {
+            color: var(--editor-muted);
+            font-size: 13px;
+            font-weight: 600;
+            line-height: 1.45;
+          }
+          .glacier-frontmatter-value {
+            color: var(--editor-fg);
+            font-size: 14px;
+            line-height: 1.55;
+            white-space: pre-wrap;
+            word-break: break-word;
           }
           #editor {
             height: 100%;
+            min-height: 0;
+            flex: 1;
           }
           .toastui-editor-defaultUI {
             border: 0 !important;
@@ -336,12 +417,14 @@ private struct MarkdownLiveEditorWebView: NSViewRepresentable {
         <body>
           <div id="loading">Loading rich markdown editor…</div>
           <div id="editor-shell">
+            <div id="frontmatter"></div>
             <div id="editor"></div>
           </div>
 
           <script src="https://uicdn.toast.com/editor/3.2.2/toastui-editor-all.min.js"></script>
           <script>
-            const INITIAL_MARKDOWN = \(javaScriptStringLiteral(markdown));
+            const INITIAL_MARKDOWN = \(javaScriptStringLiteral(bodyMarkdown));
+            const FRONTMATTER_PROPERTIES = \(javaScriptJSONLiteral(frontmatter));
             const ROOT = document.documentElement;
             let editor = null;
 
@@ -367,7 +450,48 @@ private struct MarkdownLiveEditorWebView: NSViewRepresentable {
               ROOT.style.setProperty('--editor-font-size', size + 'px');
             };
 
+            function renderFrontmatter() {
+              const container = document.getElementById('frontmatter');
+              container.innerHTML = '';
+
+              if (!FRONTMATTER_PROPERTIES.length) {
+                container.classList.remove('has-properties');
+                return;
+              }
+
+              container.classList.add('has-properties');
+
+              const header = document.createElement('div');
+              header.className = 'glacier-frontmatter-header';
+              header.textContent = 'Properties';
+              container.appendChild(header);
+
+              const list = document.createElement('div');
+              list.className = 'glacier-frontmatter-list';
+
+              FRONTMATTER_PROPERTIES.forEach((item) => {
+                const row = document.createElement('div');
+                row.className = 'glacier-frontmatter-row';
+
+                const name = document.createElement('div');
+                name.className = 'glacier-frontmatter-name';
+                name.textContent = item.name;
+
+                const value = document.createElement('div');
+                value.className = 'glacier-frontmatter-value';
+                value.textContent = item.value;
+
+                row.appendChild(name);
+                row.appendChild(value);
+                list.appendChild(row);
+              });
+
+              container.appendChild(list);
+            }
+
             try {
+              renderFrontmatter();
+
               editor = new toastui.Editor({
                 el: document.querySelector('#editor'),
                 height: '100%',
@@ -382,7 +506,7 @@ private struct MarkdownLiveEditorWebView: NSViewRepresentable {
               editor.on('change', debounce(syncMarkdownToSwift, 450));
               window.glacierSetFontSize(\(fontSize));
               document.getElementById('loading').style.display = 'none';
-              document.getElementById('editor-shell').style.display = 'block';
+              document.getElementById('editor-shell').style.display = 'flex';
               window.webkit.messageHandlers.glacierReady.postMessage('ready');
             } catch (error) {
               showError('The rich Markdown view uses pinned Toast UI assets. Switch to Source mode if loading fails.');
@@ -402,14 +526,24 @@ private struct MarkdownLiveEditorWebView: NSViewRepresentable {
         return encoded
     }
 
+    private func javaScriptJSONLiteral<T: Encodable>(_ value: T) -> String {
+        guard let data = try? JSONEncoder().encode(value),
+              let encoded = String(data: data, encoding: .utf8) else {
+            return "[]"
+        }
+        return encoded
+    }
+
     final class Coordinator: NSObject, WKNavigationDelegate, WKScriptMessageHandler {
         @Binding var text: String
         let url: URL
+        let frontmatterPrefix: String?
         weak var webView: WKWebView?
 
-        init(text: Binding<String>, url: URL) {
+        init(text: Binding<String>, url: URL, frontmatterPrefix: String?) {
             _text = text
             self.url = url
+            self.frontmatterPrefix = frontmatterPrefix
         }
 
         func userContentController(_ userContentController: WKUserContentController, didReceive message: WKScriptMessage) {
@@ -418,8 +552,9 @@ private struct MarkdownLiveEditorWebView: NSViewRepresentable {
                 guard let markdown = message.body as? String else { return }
                 DispatchQueue.main.async { [weak self] in
                     guard let self else { return }
-                    self.text = markdown
-                    try? markdown.write(to: self.url, atomically: true, encoding: .utf8)
+                    let fullMarkdown = (self.frontmatterPrefix ?? "") + markdown
+                    self.text = fullMarkdown
+                    try? fullMarkdown.write(to: self.url, atomically: true, encoding: .utf8)
                 }
             case "glacierReady":
                 break
@@ -444,4 +579,239 @@ private struct MarkdownLiveEditorWebView: NSViewRepresentable {
             }
         }
     }
+}
+
+private struct MarkdownRichDocument {
+    let frontmatterPrefix: String?
+    let bodyMarkdown: String
+    let properties: [MarkdownFrontmatterProperty]
+
+    init(markdown: String) {
+        guard let frontmatter = Self.extractFrontmatter(from: markdown) else {
+            frontmatterPrefix = nil
+            bodyMarkdown = markdown
+            properties = []
+            return
+        }
+
+        frontmatterPrefix = frontmatter.prefix
+        bodyMarkdown = frontmatter.body
+        properties = Self.parseProperties(from: frontmatter.content)
+    }
+
+    private static func extractFrontmatter(
+        from markdown: String
+    ) -> (prefix: String, content: String, body: String)? {
+        let hasBOM = markdown.hasPrefix("\u{FEFF}")
+        let candidate = hasBOM ? String(markdown.dropFirst()) : markdown
+        let pattern = #"(?s)\A---[ \t]*\r?\n(.*?)\r?\n(?:---|\.\.\.)[ \t]*(?:\r?\n|$)"#
+
+        guard let regex = try? NSRegularExpression(pattern: pattern),
+              let match = regex.firstMatch(
+                  in: candidate,
+                  range: NSRange(candidate.startIndex..., in: candidate)
+              ),
+              let fullRange = Range(match.range(at: 0), in: candidate),
+              let contentRange = Range(match.range(at: 1), in: candidate) else {
+            return nil
+        }
+
+        let prefix = (hasBOM ? "\u{FEFF}" : "") + String(candidate[fullRange])
+        let content = String(candidate[contentRange])
+        let body = String(candidate[fullRange.upperBound...])
+        return (prefix, content, body)
+    }
+
+    private static func parseProperties(from frontmatter: String) -> [MarkdownFrontmatterProperty] {
+        let normalized = frontmatter.replacingOccurrences(of: "\r\n", with: "\n")
+        let lines = normalized.split(separator: "\n", omittingEmptySubsequences: false).map(String.init)
+
+        var properties: [MarkdownFrontmatterProperty] = []
+        var currentName: String?
+        var currentInlineValue = ""
+        var currentNestedLines: [String] = []
+
+        func flushCurrentProperty() {
+            guard let propertyName = currentName else { return }
+
+            let renderedValue = renderValue(
+                inlineValue: currentInlineValue,
+                nestedLines: currentNestedLines
+            )
+
+            properties.append(
+                MarkdownFrontmatterProperty(
+                    name: propertyName,
+                    value: renderedValue.isEmpty ? " " : renderedValue
+                )
+            )
+
+            currentName = nil
+            currentInlineValue = ""
+            currentNestedLines.removeAll(keepingCapacity: true)
+        }
+
+        for line in lines {
+            let trimmed = line.trimmingCharacters(in: .whitespaces)
+
+            if currentName == nil {
+                guard !trimmed.isEmpty,
+                      !trimmed.hasPrefix("#"),
+                      let property = splitTopLevelPropertyLine(line) else {
+                    continue
+                }
+
+                currentName = property.name
+                currentInlineValue = property.value
+                continue
+            }
+
+            if !trimmed.isEmpty,
+               !trimmed.hasPrefix("#"),
+               let property = splitTopLevelPropertyLine(line) {
+                flushCurrentProperty()
+                currentName = property.name
+                currentInlineValue = property.value
+            } else {
+                currentNestedLines.append(line)
+            }
+        }
+
+        flushCurrentProperty()
+        return properties
+    }
+
+    private static func splitTopLevelPropertyLine(_ line: String) -> (name: String, value: String)? {
+        guard line.first.map({ $0 != " " && $0 != "\t" }) == true else {
+            return nil
+        }
+
+        var isInsideSingleQuotes = false
+        var isInsideDoubleQuotes = false
+
+        for index in line.indices {
+            let character = line[index]
+
+            switch character {
+            case "'" where !isInsideDoubleQuotes:
+                isInsideSingleQuotes.toggle()
+            case "\"" where !isInsideSingleQuotes:
+                isInsideDoubleQuotes.toggle()
+            case ":" where !isInsideSingleQuotes && !isInsideDoubleQuotes:
+                let rawName = line[..<index].trimmingCharacters(in: .whitespaces)
+                guard !rawName.isEmpty, rawName != "-" else { return nil }
+
+                let valueStart = line.index(after: index)
+                let rawValue = line[valueStart...].trimmingCharacters(in: .whitespaces)
+                let cleanedName = trimmedQuotes(in: String(rawName))
+                return (cleanedName, rawValue)
+            default:
+                continue
+            }
+        }
+
+        return nil
+    }
+
+    private static func renderValue(inlineValue: String, nestedLines: [String]) -> String {
+        let trimmedInlineValue = inlineValue.trimmingCharacters(in: .whitespacesAndNewlines)
+        let meaningfulNestedLines = nestedLines.filter {
+            !$0.trimmingCharacters(in: .whitespacesAndNewlines).isEmpty &&
+            !$0.trimmingCharacters(in: .whitespaces).hasPrefix("#")
+        }
+
+        if meaningfulNestedLines.isEmpty {
+            return renderInlineValue(trimmedInlineValue)
+        }
+
+        if trimmedInlineValue == "|" || trimmedInlineValue == ">" {
+            return removeSharedIndentation(from: meaningfulNestedLines).joined(separator: "\n")
+        }
+
+        if !trimmedInlineValue.isEmpty {
+            let nestedText = renderNestedValue(from: meaningfulNestedLines)
+            return nestedText.isEmpty
+                ? renderInlineValue(trimmedInlineValue)
+                : renderInlineValue(trimmedInlineValue) + "\n" + nestedText
+        }
+
+        return renderNestedValue(from: meaningfulNestedLines)
+    }
+
+    private static func renderInlineValue(_ value: String) -> String {
+        let trimmed = trimmedQuotes(in: value)
+
+        guard !trimmed.isEmpty else { return "" }
+
+        if trimmed.hasPrefix("[") && trimmed.hasSuffix("]") {
+            let inner = trimmed.dropFirst().dropLast()
+            return inner
+                .split(separator: ",")
+                .map { trimmedQuotes(in: String($0).trimmingCharacters(in: .whitespacesAndNewlines)) }
+                .joined(separator: ", ")
+        }
+
+        if trimmed.hasPrefix("{") && trimmed.hasSuffix("}") {
+            let inner = trimmed.dropFirst().dropLast()
+            return inner
+                .split(separator: ",")
+                .map { String($0).trimmingCharacters(in: .whitespacesAndNewlines) }
+                .joined(separator: "\n")
+        }
+
+        return trimmed
+    }
+
+    private static func renderNestedValue(from lines: [String]) -> String {
+        let unindented = removeSharedIndentation(from: lines)
+        let trimmed = unindented.map { $0.trimmingCharacters(in: .whitespacesAndNewlines) }
+
+        if trimmed.allSatisfy({ $0.hasPrefix("- ") }) {
+            return trimmed
+                .map { String($0.dropFirst(2)).trimmingCharacters(in: .whitespacesAndNewlines) }
+                .map(renderInlineValue)
+                .joined(separator: ", ")
+        }
+
+        return unindented
+            .map { line in
+                let cleanLine = line.trimmingCharacters(in: .whitespacesAndNewlines)
+                return cleanLine.hasPrefix("- ")
+                    ? String(cleanLine.dropFirst(2)).trimmingCharacters(in: .whitespacesAndNewlines)
+                    : cleanLine
+            }
+            .joined(separator: "\n")
+    }
+
+    private static func removeSharedIndentation(from lines: [String]) -> [String] {
+        let indentationWidths = lines.compactMap { line -> Int? in
+            guard !line.trimmingCharacters(in: .whitespacesAndNewlines).isEmpty else { return nil }
+            return line.prefix { $0 == " " || $0 == "\t" }.count
+        }
+
+        guard let sharedIndentation = indentationWidths.min(), sharedIndentation > 0 else {
+            return lines
+        }
+
+        return lines.map { line in
+            guard line.count >= sharedIndentation else { return line }
+            return String(line.dropFirst(sharedIndentation))
+        }
+    }
+
+    private static func trimmedQuotes(in value: String) -> String {
+        guard value.count >= 2 else { return value }
+
+        if (value.hasPrefix("\"") && value.hasSuffix("\"")) ||
+            (value.hasPrefix("'") && value.hasSuffix("'")) {
+            return String(value.dropFirst().dropLast())
+        }
+
+        return value
+    }
+}
+
+private struct MarkdownFrontmatterProperty: Encodable {
+    let name: String
+    let value: String
 }
