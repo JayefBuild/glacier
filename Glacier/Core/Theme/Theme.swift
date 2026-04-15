@@ -115,7 +115,7 @@ struct GlacierTheme: AppTheme {
             windowBackground: Color(nsColor: .windowBackgroundColor).opacity(0.8),
             sidebarBackground: Color(nsColor: .controlBackgroundColor).opacity(0.32),
             editorBackground: Color(nsColor: .textBackgroundColor).opacity(0.72),
-            terminalBackground: Color(red: 0.05, green: 0.07, blue: 0.10).opacity(0.84),
+            terminalBackground: Color(red: 0.09, green: 0.14, blue: 0.22).opacity(0.82),
             glassTint: Color(nsColor: .controlBackgroundColor).opacity(0.24),
             glassHighlight: Color(nsColor: .quaternaryLabelColor).opacity(0.18),
 

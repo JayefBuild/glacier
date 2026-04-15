@@ -79,6 +79,8 @@ private struct TerminalPaneView: View {
     @Environment(\.appTheme) private var theme
 
     var body: some View {
+        let panelShape = RoundedRectangle(cornerRadius: 10, style: .continuous)
+
         TerminalView(
             session: session,
             isFocused: isFocused,
@@ -86,9 +88,54 @@ private struct TerminalPaneView: View {
             onCommand: onCommand
         )
         .frame(maxWidth: .infinity, maxHeight: .infinity)
-        .background(theme.colors.terminalBackground.opacity(0.28))
+        .background {
+            panelShape
+                .fill(
+                    LinearGradient(
+                        colors: [
+                            Color(red: 0.13, green: 0.17, blue: 0.27).opacity(isFocused ? 0.92 : 0.88),
+                            Color(red: 0.08, green: 0.11, blue: 0.18).opacity(isFocused ? 0.9 : 0.84),
+                            Color(red: 0.05, green: 0.07, blue: 0.11).opacity(0.82)
+                        ],
+                        startPoint: .topLeading,
+                        endPoint: .bottomTrailing
+                    )
+                )
+                .overlay {
+                    panelShape
+                        .fill(.ultraThinMaterial)
+                        .opacity(0.18)
+                }
+                .overlay {
+                    panelShape.fill(
+                        RadialGradient(
+                            colors: [
+                                Color(red: 0.42, green: 0.60, blue: 0.92).opacity(isFocused ? 0.18 : 0.1),
+                                Color(red: 0.18, green: 0.31, blue: 0.55).opacity(isFocused ? 0.14 : 0.06),
+                                .clear
+                            ],
+                            center: .topTrailing,
+                            startRadius: 8,
+                            endRadius: 220
+                        )
+                    )
+                }
+                .overlay {
+                    panelShape.fill(
+                        LinearGradient(
+                            colors: [
+                                Color.white.opacity(0.08),
+                                Color.clear,
+                                Color.black.opacity(0.08)
+                            ],
+                            startPoint: .top,
+                            endPoint: .bottom
+                        )
+                    )
+                }
+        }
         .overlay {
-            RoundedRectangle(cornerRadius: 10, style: .continuous)
+            panelShape
                 .strokeBorder(
                     isFocused
                         ? theme.colors.glassBorder.opacity(0.9)
@@ -96,7 +143,12 @@ private struct TerminalPaneView: View {
                     lineWidth: isFocused ? 1 : 0.5
                 )
         }
-        .clipShape(RoundedRectangle(cornerRadius: 10, style: .continuous))
+        .clipShape(panelShape)
+        .shadow(
+            color: Color.black.opacity(isFocused ? 0.22 : 0.12),
+            radius: isFocused ? 16 : 10,
+            y: isFocused ? 10 : 6
+        )
     }
 }
 
@@ -313,13 +365,14 @@ struct SwiftTermRepresentable: NSViewRepresentable {
 
     private func applyAppearance(to terminalView: GuardedTerminalView, fontSize: CGFloat) {
         let appearance = TerminalAppearance.current
+        let backgroundColor = resolvedBackgroundColor(appearance: appearance)
         terminalView.wantsLayer = true
         terminalView.layer?.backgroundColor = NSColor.clear.cgColor
         terminalView.font = resolvedFont(size: fontSize, appearance: appearance)
         terminalView.useBrightColors = appearance.useBrightColors
-        terminalView.nativeBackgroundColor = appearance.backgroundColor.withAlphaComponent(0.88)
-        terminalView.nativeForegroundColor = appearance.foregroundColor
-        terminalView.selectedTextBackgroundColor = appearance.selectionColor
+        terminalView.nativeBackgroundColor = backgroundColor
+        terminalView.nativeForegroundColor = resolvedForegroundColor(appearance: appearance)
+        terminalView.selectedTextBackgroundColor = resolvedSelectionColor(appearance: appearance)
         terminalView.caretColor = appearance.cursorColor
         terminalView.caretTextColor = appearance.cursorTextColor
         terminalView.getTerminal().ansi256PaletteStrategy = .xterm
@@ -334,6 +387,30 @@ struct SwiftTermRepresentable: NSViewRepresentable {
 
         return NSFont(name: theme.typography.terminalFontName, size: size)
             ?? NSFont.monospacedSystemFont(ofSize: size, weight: .regular)
+    }
+
+    private func resolvedBackgroundColor(appearance: TerminalAppearance) -> NSColor {
+        let themeTerminal = NSColor(theme.colors.terminalBackground)
+        let deepNavy = NSColor(hexRed: 0x14, green: 0x1C, blue: 0x2D)
+        let nearBlack = NSColor(hexRed: 0x0A, green: 0x0E, blue: 0x16)
+        let tintedBackground = appearance.backgroundColor
+            .blended(withFraction: 0.72, of: deepNavy) ?? deepNavy
+        let glassBackground = tintedBackground
+            .blended(withFraction: 0.28, of: themeTerminal) ?? tintedBackground
+        let anchoredBackground = glassBackground
+            .blended(withFraction: 0.18, of: nearBlack) ?? glassBackground
+        return anchoredBackground.withAlphaComponent(0.84)
+    }
+
+    private func resolvedForegroundColor(appearance: TerminalAppearance) -> NSColor {
+        let target = NSColor.white
+        return appearance.foregroundColor.blended(withFraction: 0.28, of: target) ?? appearance.foregroundColor
+    }
+
+    private func resolvedSelectionColor(appearance: TerminalAppearance) -> NSColor {
+        let accent = NSColor(theme.colors.accentSecondary)
+        let selection = appearance.selectionColor.blended(withFraction: 0.34, of: accent) ?? appearance.selectionColor
+        return selection.withAlphaComponent(0.5)
     }
 
     private func buildEnvironment(cwd: String) -> [String] {
