@@ -17,28 +17,15 @@ struct FileViewerRouter: View {
                 editorFontSize: appState.editorFontSize,
                 fileService: appState.fileService
             )
-        case .terminal(let session):
-            TerminalView(
-                session: session,
+        case .terminal(let terminal):
+            TerminalTabView(
+                terminal: terminal,
                 isFocused: isFocused,
-                onInteraction: { appState.focusPane(pane) },
-                onCommand: { command in
-                    appState.focusPane(pane)
-
-                    switch command {
-                    case .newTerminalTab:
-                        appState.openNewTerminal()
-                    case .closeTab:
-                        if let tab = appState.activeTab {
-                            appState.closeTab(tab)
-                        }
-                    case .splitRight:
-                        appState.splitFocusedPaneRight()
-                    case .splitDown:
-                        appState.splitFocusedPaneDown()
-                    case .closeSplit:
-                        appState.closeSplit()
-                    }
+                onSessionInteraction: { sessionID in
+                    appState.focusTerminalSession(sessionID, in: pane)
+                },
+                onSessionCommand: { sessionID, command in
+                    appState.handleTerminalCommand(command, sessionID: sessionID, in: pane)
                 }
             )
         case .gitGraph:

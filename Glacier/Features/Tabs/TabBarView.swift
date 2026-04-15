@@ -78,12 +78,12 @@ struct TabItemView: View {
                 .font(.system(size: 11))
                 .foregroundStyle(tab.iconColor)
 
-            if isRenaming, case .terminal(let session) = tab.kind {
+            if isRenaming, case .terminal(let terminal) = tab.kind {
                 TextField("", text: $renameText)
                     .font(theme.typography.tabFont)
                     .textFieldStyle(.plain)
                     .frame(minWidth: 60, maxWidth: 140)
-                    .onSubmit { commitRename(session: session) }
+                    .onSubmit { commitRename(terminal: terminal) }
                     .onExitCommand { isRenaming = false }
                     .onChange(of: isActive) { _, active in
                         if !active { isRenaming = false }
@@ -173,8 +173,8 @@ struct TabItemView: View {
         isRenaming = true
     }
 
-    private func commitRename(session: TerminalSession) {
-        appState.renameTerminal(session, to: renameText)
+    private func commitRename(terminal: TerminalTabState) {
+        appState.renameTerminal(terminal, to: renameText)
         isRenaming = false
     }
 }

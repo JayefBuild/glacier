@@ -5,12 +5,232 @@ import SwiftUI
 import AppKit
 import SwiftTerm
 
-enum TerminalShortcutCommand {
+enum TerminalShortcutCommand: Equatable {
     case newTerminalTab
-    case closeTab
-    case splitRight
-    case splitDown
-    case closeSplit
+    case closeTerminal
+    case splitTerminalVertical
+    case splitTerminalHorizontal
+    case splitEditorRight
+    case splitEditorDown
+    case closeEditorSplit
+}
+
+struct TerminalTabView: View {
+    @ObservedObject var terminal: TerminalTabState
+    let isFocused: Bool
+    let onSessionInteraction: (UUID) -> Void
+    let onSessionCommand: (UUID, TerminalShortcutCommand) -> Void
+
+    var body: some View {
+        TerminalSplitNodeView(
+            terminal: terminal,
+            node: terminal.root,
+            isTabFocused: isFocused,
+            onSessionInteraction: onSessionInteraction,
+            onSessionCommand: onSessionCommand
+        )
+        .frame(maxWidth: .infinity, maxHeight: .infinity)
+    }
+}
+
+private struct TerminalSplitNodeView: View {
+    @ObservedObject var terminal: TerminalTabState
+    let node: TerminalSplitNode
+    let isTabFocused: Bool
+    let onSessionInteraction: (UUID) -> Void
+    let onSessionCommand: (UUID, TerminalShortcutCommand) -> Void
+
+    var body: some View {
+        switch node {
+        case .leaf(let sessionID):
+            if let session = terminal.session(for: sessionID) {
+                TerminalPaneView(
+                    session: session,
+                    isFocused: isTabFocused && terminal.focusedSessionID == sessionID,
+                    onInteraction: { onSessionInteraction(sessionID) },
+                    onCommand: { command in
+                        onSessionCommand(sessionID, command)
+                    }
+                )
+            } else {
+                Color.clear
+            }
+        case .split(let splitID, let orientation, let fraction, let first, let second):
+            TerminalSplitContainerView(
+                terminal: terminal,
+                splitID: splitID,
+                orientation: orientation,
+                fraction: fraction,
+                first: first,
+                second: second,
+                isTabFocused: isTabFocused,
+                onSessionInteraction: onSessionInteraction,
+                onSessionCommand: onSessionCommand
+            )
+        }
+    }
+}
+
+private struct TerminalPaneView: View {
+    @ObservedObject var session: TerminalSession
+    let isFocused: Bool
+    let onInteraction: () -> Void
+    let onCommand: (TerminalShortcutCommand) -> Void
+    @Environment(\.appTheme) private var theme
+
+    var body: some View {
+        TerminalView(
+            session: session,
+            isFocused: isFocused,
+            onInteraction: onInteraction,
+            onCommand: onCommand
+        )
+        .frame(maxWidth: .infinity, maxHeight: .infinity)
+        .background(theme.colors.terminalBackground.opacity(0.28))
+        .overlay {
+            RoundedRectangle(cornerRadius: 10, style: .continuous)
+                .strokeBorder(
+                    isFocused
+                        ? theme.colors.glassBorder.opacity(0.9)
+                        : theme.colors.glassBorder.opacity(0.18),
+                    lineWidth: isFocused ? 1 : 0.5
+                )
+        }
+        .clipShape(RoundedRectangle(cornerRadius: 10, style: .continuous))
+    }
+}
+
+private struct TerminalSplitContainerView: View {
+    @ObservedObject var terminal: TerminalTabState
+    let splitID: UUID
+    let orientation: TerminalTabSplitOrientation
+    let fraction: CGFloat
+    let first: TerminalSplitNode
+    let second: TerminalSplitNode
+    let isTabFocused: Bool
+    let onSessionInteraction: (UUID) -> Void
+    let onSessionCommand: (UUID, TerminalShortcutCommand) -> Void
+    @Environment(\.appTheme) private var theme
+    @State private var dragStartFraction: CGFloat?
+
+    var body: some View {
+        GeometryReader { geometry in
+            let layout = resolvedLayout(in: geometry.size)
+
+            Group {
+                switch orientation {
+                case .vertical:
+                    HStack(spacing: 0) {
+                        childView(for: first)
+                            .frame(width: layout.firstLength, height: geometry.size.height)
+
+                        divider
+                            .frame(width: TerminalSplitLayout.dividerThickness, height: geometry.size.height)
+                            .gesture(dragGesture(in: geometry.size, startFraction: layout.fraction))
+
+                        childView(for: second)
+                            .frame(width: layout.secondLength, height: geometry.size.height)
+                    }
+                case .horizontal:
+                    VStack(spacing: 0) {
+                        childView(for: first)
+                            .frame(width: geometry.size.width, height: layout.firstLength)
+
+                        divider
+                            .frame(width: geometry.size.width, height: TerminalSplitLayout.dividerThickness)
+                            .gesture(dragGesture(in: geometry.size, startFraction: layout.fraction))
+
+                        childView(for: second)
+                            .frame(width: geometry.size.width, height: layout.secondLength)
+                    }
+                }
+            }
+            .frame(width: geometry.size.width, height: geometry.size.height)
+        }
+    }
+
+    private var divider: some View {
+        ZStack {
+            Rectangle()
+                .fill(.clear)
+
+            RoundedRectangle(cornerRadius: 999, style: .continuous)
+                .fill(theme.colors.glassBorder.opacity(0.5))
+                .frame(
+                    width: orientation == .vertical ? 2 : nil,
+                    height: orientation == .horizontal ? 2 : nil
+                )
+        }
+        .contentShape(Rectangle())
+    }
+
+    private func childView(for node: TerminalSplitNode) -> some View {
+        TerminalSplitNodeView(
+            terminal: terminal,
+            node: node,
+            isTabFocused: isTabFocused,
+            onSessionInteraction: onSessionInteraction,
+            onSessionCommand: onSessionCommand
+        )
+    }
+
+    private func dragGesture(in size: CGSize, startFraction: CGFloat) -> some Gesture {
+        DragGesture(minimumDistance: 0)
+            .onChanged { value in
+                if dragStartFraction == nil {
+                    dragStartFraction = startFraction
+                }
+
+                let baseFraction = dragStartFraction ?? startFraction
+                let delta = orientation == .vertical ? value.translation.width : value.translation.height
+                let axisLength = max(1, (orientation == .vertical ? size.width : size.height) - TerminalSplitLayout.dividerThickness)
+                let proposedFraction = baseFraction + (delta / axisLength)
+                terminal.updateSplitFraction(splitID, to: clampedFraction(proposedFraction, in: size))
+            }
+            .onEnded { _ in
+                dragStartFraction = nil
+            }
+    }
+
+    private func resolvedLayout(in size: CGSize) -> TerminalSplitResolvedLayout {
+        let axisLength = orientation == .vertical ? size.width : size.height
+        let usableLength = max(0, axisLength - TerminalSplitLayout.dividerThickness)
+        let clamped = clampedFraction(fraction, in: size)
+        let firstLength = usableLength * clamped
+        return TerminalSplitResolvedLayout(
+            fraction: clamped,
+            firstLength: firstLength,
+            secondLength: max(0, usableLength - firstLength)
+        )
+    }
+
+    private func clampedFraction(_ proposedFraction: CGFloat, in size: CGSize) -> CGFloat {
+        let usableLength = max(0, (orientation == .vertical ? size.width : size.height) - TerminalSplitLayout.dividerThickness)
+        guard usableLength > 0 else { return 0.5 }
+
+        let firstMinimumSize = first.minimumSize()
+        let secondMinimumSize = second.minimumSize()
+        let firstMinimumLength = orientation == .vertical ? firstMinimumSize.width : firstMinimumSize.height
+        let secondMinimumLength = orientation == .vertical ? secondMinimumSize.width : secondMinimumSize.height
+        let minimumFraction = min(1, firstMinimumLength / usableLength)
+        let maximumFraction = max(0, 1 - (secondMinimumLength / usableLength))
+
+        if minimumFraction <= maximumFraction {
+            return min(max(proposedFraction, minimumFraction), maximumFraction)
+        }
+
+        return min(max(proposedFraction, 0.2), 0.8)
+    }
+}
+
+private struct TerminalSplitResolvedLayout {
+    let fraction: CGFloat
+    let firstLength: CGFloat
+    let secondLength: CGFloat
+}
+
+private enum TerminalSplitLayout {
+    static let dividerThickness: CGFloat = 8
 }
 
 struct TerminalView: View {

@@ -156,14 +156,17 @@ final class GuardedTerminalView: LocalProcessTerminalView {
         let hasCommand = modifiers.contains(.command)
         let hasOption = modifiers.contains(.option)
         let hasControl = modifiers.contains(.control)
+        let hasShift = modifiers.contains(.shift)
 
         if hasCommand && !hasOption && !hasControl,
            let characters = event.charactersIgnoringModifiers?.lowercased() {
             switch characters {
             case "t":
-                return .newTerminalTab
+                return hasShift ? nil : .newTerminalTab
             case "w":
-                return .closeTab
+                return hasShift ? nil : .closeTerminal
+            case "d":
+                return hasShift ? .splitTerminalHorizontal : .splitTerminalVertical
             default:
                 break
             }
@@ -172,9 +175,9 @@ final class GuardedTerminalView: LocalProcessTerminalView {
         if hasCommand && hasOption {
             switch event.keyCode {
             case 124:
-                return .splitRight
+                return .splitEditorRight
             case 125:
-                return .splitDown
+                return .splitEditorDown
             default:
                 break
             }
@@ -182,16 +185,16 @@ final class GuardedTerminalView: LocalProcessTerminalView {
             if let specialKey = event.specialKey {
                 switch specialKey {
                 case .rightArrow:
-                    return .splitRight
+                    return .splitEditorRight
                 case .downArrow:
-                    return .splitDown
+                    return .splitEditorDown
                 default:
                     break
                 }
             }
 
             if event.charactersIgnoringModifiers == "\\" {
-                return .closeSplit
+                return .closeEditorSplit
             }
         }
 

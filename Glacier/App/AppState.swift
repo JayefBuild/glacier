@@ -31,7 +31,7 @@ func focusDebugLog(_ message: String) {
 
 enum TabKind: Equatable {
     case file(FileItem)
-    case terminal(TerminalSession)
+    case terminal(TerminalTabState)
     case gitGraph
 
     static func == (lhs: TabKind, rhs: TabKind) -> Bool {
@@ -103,7 +103,7 @@ struct Tab: Identifiable, Equatable {
         self.kind = .file(file)
     }
 
-    init(terminal: TerminalSession) {
+    init(terminal: TerminalTabState) {
         self.id = UUID()
         self.kind = .terminal(terminal)
     }
@@ -113,10 +113,11 @@ struct Tab: Identifiable, Equatable {
         self.kind = .gitGraph
     }
 
+    @MainActor
     var title: String {
         switch kind {
         case .file(let item): return item.name
-        case .terminal(let session): return session.title
+        case .terminal(let terminal): return terminal.title
         case .gitGraph: return "Git Graph"
         }
     }
@@ -228,8 +229,8 @@ final class AppState: ObservableObject {
 
     func openNewTerminal(workingDirectory: URL? = nil) {
         let dir = workingDirectory ?? fileService.rootURL ?? URL(fileURLWithPath: NSHomeDirectory())
-        let session = TerminalSession(workingDirectory: dir, fontSize: defaultTerminalFontSize)
-        let tab = Tab(terminal: session)
+        let terminal = TerminalTabState(workingDirectory: dir, fontSize: defaultTerminalFontSize)
+        let tab = Tab(terminal: terminal)
         tabs.append(tab)
         showTab(id: tab.id, in: focusedPane)
     }
@@ -259,8 +260,10 @@ final class AppState: ObservableObject {
         let wasPrimary = primaryTabID == tab.id
         let wasSecondary = secondaryTabID == tab.id
 
-        if case .terminal(let session) = tab.kind {
-            TerminalViewCache.shared.remove(session.id)
+        if case .terminal(let terminal) = tab.kind {
+            for sessionID in terminal.allSessionIDs {
+                TerminalViewCache.shared.remove(sessionID)
+            }
         }
 
         tabs.remove(at: idx)
@@ -310,6 +313,49 @@ final class AppState: ObservableObject {
         }
 
         tabsToClose.forEach { closeTab($0) }
+    }
+
+    func focusTerminalSession(_ sessionID: UUID, in pane: EditorPane) {
+        guard let terminal = visibleTerminalTab(in: pane) else {
+            focusPane(pane)
+            return
+        }
+
+        terminal.focusSession(sessionID)
+        focusPane(pane)
+    }
+
+    func handleTerminalCommand(_ command: TerminalShortcutCommand, sessionID: UUID, in pane: EditorPane) {
+        guard let terminal = visibleTerminalTab(in: pane) else {
+            if command == .newTerminalTab {
+                openNewTerminal()
+            }
+            return
+        }
+
+        terminal.focusSession(sessionID)
+
+        switch command {
+        case .newTerminalTab:
+            focusPane(pane)
+            let workingDirectory = terminal.session(for: sessionID)?.workingDirectory
+            openNewTerminal(workingDirectory: workingDirectory)
+        case .closeTerminal:
+            closeTerminalSession(sessionID, in: pane)
+        case .splitTerminalVertical:
+            splitTerminalSession(sessionID, in: pane, orientation: .vertical)
+        case .splitTerminalHorizontal:
+            splitTerminalSession(sessionID, in: pane, orientation: .horizontal)
+        case .splitEditorRight:
+            focusPane(pane)
+            splitFocusedPaneRight()
+        case .splitEditorDown:
+            focusPane(pane)
+            splitFocusedPaneDown()
+        case .closeEditorSplit:
+            focusPane(pane)
+            closeSplit()
+        }
     }
 
     func focusPane(_ pane: EditorPane) {
@@ -397,8 +443,8 @@ final class AppState: ObservableObject {
     func adjustFontSize(by delta: CGFloat) {
         guard let tab = activeTab else { return }
         switch tab.kind {
-        case .terminal(let session):
-            session.fontSize = max(8, min(36, session.fontSize + delta))
+        case .terminal(let terminal):
+            terminal.adjustFontSize(by: delta)
         case .file:
             editorFontSize = max(8, min(36, editorFontSize + delta))
         case .gitGraph:
@@ -409,8 +455,8 @@ final class AppState: ObservableObject {
     func resetFontSize() {
         guard let tab = activeTab else { return }
         switch tab.kind {
-        case .terminal(let session):
-            session.fontSize = defaultTerminalFontSize
+        case .terminal(let terminal):
+            terminal.resetFontSize(to: defaultTerminalFontSize)
         case .file:
             editorFontSize = defaultEditorFontSize
         case .gitGraph:
@@ -420,10 +466,11 @@ final class AppState: ObservableObject {
 
     // MARK: - Rename Terminal
 
-    func renameTerminal(_ session: TerminalSession, to title: String) {
+    func renameTerminal(_ terminal: TerminalTabState, to title: String) {
         let trimmed = title.trimmingCharacters(in: .whitespaces)
         guard !trimmed.isEmpty else { return }
-        session.title = trimmed
+        objectWillChange.send()
+        terminal.title = trimmed
     }
 
     func isTabVisible(_ id: UUID) -> Bool {
@@ -523,13 +570,18 @@ final class AppState: ObservableObject {
         }
     }
 
+    private func visibleTerminalTab(in pane: EditorPane) -> TerminalTabState? {
+        guard let tab = tab(with: tabID(for: pane)) else { return nil }
+        guard case .terminal(let terminal) = tab.kind else { return nil }
+        return terminal
+    }
+
     private func restoreTerminalFocusForVisibleTab(in pane: EditorPane) {
-        guard let tab = tab(with: tabID(for: pane)) else { return }
-        guard case .terminal(let session) = tab.kind else { return }
+        guard let terminal = visibleTerminalTab(in: pane) else { return }
         if focusDebugLoggingEnabled {
-            focusDebugLog("GlacierFocus restore pane=\(pane.rawValue) session=\(session.id.uuidString)")
+            focusDebugLog("GlacierFocus restore pane=\(pane.rawValue) session=\(terminal.focusedSessionID.uuidString)")
         }
-        TerminalViewCache.shared.focus(session.id)
+        TerminalViewCache.shared.focus(terminal.focusedSessionID)
     }
 
     private func syncVisibleTabPaneAffinities() {
@@ -575,6 +627,36 @@ final class AppState: ObservableObject {
     private func nextTabIDForSplit(excluding anchorID: UUID) -> UUID? {
         let candidateIDs = tabs.map(\.id).filter { $0 != anchorID }
         return candidateIDs.first(where: { pane(for: $0) == nil }) ?? candidateIDs.first
+    }
+
+    private func splitTerminalSession(
+        _ sessionID: UUID,
+        in pane: EditorPane,
+        orientation: TerminalTabSplitOrientation
+    ) {
+        guard let terminal = visibleTerminalTab(in: pane) else { return }
+        terminal.focusSession(sessionID)
+        guard terminal.splitFocusedSession(orientation) != nil else { return }
+        focusPane(pane)
+    }
+
+    private func closeTerminalSession(_ sessionID: UUID, in pane: EditorPane) {
+        guard let tab = tab(with: tabID(for: pane)),
+              case .terminal(let terminal) = tab.kind else {
+            return
+        }
+
+        terminal.focusSession(sessionID)
+        guard let closeResult = terminal.closeFocusedSession() else { return }
+
+        TerminalViewCache.shared.remove(closeResult.removedSessionID)
+
+        if closeResult.shouldCloseTab {
+            closeTab(tab)
+            return
+        }
+
+        focusPane(pane)
     }
 
     private func isDirectory(_ url: URL) -> Bool {
