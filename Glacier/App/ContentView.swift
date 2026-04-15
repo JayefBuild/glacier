@@ -26,11 +26,27 @@ struct ContentView: View {
         .environmentObject(appState)
         .focusedValue(\.appState, appState)
         .toolbar(removing: .sidebarToggle)
-        .background(
-            WindowConfigurator(title: windowTitle, appState: appState)
-                .frame(width: 0, height: 0)
-                .allowsHitTesting(false)
-        )
+        .background {
+            ZStack {
+                Rectangle()
+                    .fill(.thinMaterial)
+
+                LinearGradient(
+                    colors: [
+                        theme.colors.windowBackground.opacity(0.96),
+                        theme.colors.editorBackground.opacity(0.88),
+                        theme.colors.windowBackground.opacity(0.78)
+                    ],
+                    startPoint: .topLeading,
+                    endPoint: .bottomTrailing
+                )
+
+                WindowConfigurator(title: windowTitle, appState: appState)
+                    .frame(width: 0, height: 0)
+                    .allowsHitTesting(false)
+            }
+            .ignoresSafeArea()
+        }
         .onAppear {
             // If a workspace was queued for a new tab, open it now
             if let url = WorkspaceStore.shared.pendingOpenURL {

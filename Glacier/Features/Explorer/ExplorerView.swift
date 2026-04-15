@@ -33,18 +33,26 @@ struct ExplorerView: View {
 private struct TitlebarControlStrip: View {
     let onNewTerminal: () -> Void
     let onToggleSidebar: () -> Void
+    @Environment(\.appTheme) private var theme
 
     var body: some View {
         HStack(spacing: 0) {
             stripButton(symbolName: "apple.terminal", help: "New Terminal Tab", action: onNewTerminal)
 
             Rectangle()
-                .fill(.quaternary)
+                .fill(theme.colors.glassBorder.opacity(0.5))
                 .frame(width: 1, height: 18)
 
             stripButton(symbolName: "sidebar.left", help: "Toggle Sidebar", action: onToggleSidebar)
         }
-        .frame(height: 32)
+        .padding(3)
+        .frame(height: 34)
+        .glacierGlassSurface(
+            theme: theme,
+            cornerRadius: 14,
+            shadowRadius: 8,
+            shadowY: 4
+        )
     }
 
     private func stripButton(symbolName: String, help: String, action: @escaping () -> Void) -> some View {
@@ -63,6 +71,7 @@ private struct TitlebarControlStrip: View {
 
 private struct ExplorerContent: View {
     @ObservedObject var fileService: FileService
+    @Environment(\.appTheme) private var theme
 
     var body: some View {
         VStack(spacing: 0) {
@@ -78,7 +87,25 @@ private struct ExplorerContent: View {
             WorkspaceSwitcherView(fileService: fileService)
         }
         .frame(maxWidth: .infinity, maxHeight: .infinity, alignment: .topLeading)
-        .background(.ultraThinMaterial)
+        .background {
+            Rectangle()
+                .fill(.ultraThinMaterial)
+                .overlay {
+                    LinearGradient(
+                        colors: [
+                            theme.colors.sidebarBackground.opacity(0.96),
+                            theme.colors.windowBackground.opacity(0.7)
+                        ],
+                        startPoint: .topLeading,
+                        endPoint: .bottomTrailing
+                    )
+                }
+        }
+        .overlay(alignment: .trailing) {
+            Rectangle()
+                .fill(theme.colors.glassBorder.opacity(0.38))
+                .frame(width: 1)
+        }
     }
 }
 

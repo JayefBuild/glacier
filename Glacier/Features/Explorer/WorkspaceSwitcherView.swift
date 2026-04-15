@@ -42,6 +42,13 @@ struct WorkspaceSwitcherView: View {
             .contentShape(Rectangle())
         }
         .buttonStyle(.plain)
+        .glacierGlassSurface(
+            theme: theme,
+            cornerRadius: theme.radius.medium,
+            shadowRadius: 10,
+            shadowY: 4
+        )
+        .padding(8)
         .popover(isPresented: $showPopover, arrowEdge: .top) {
             WorkspacePickerPopover(fileService: fileService, store: store, isPresented: $showPopover)
         }
@@ -117,7 +124,20 @@ private struct WorkspacePickerPopover: View {
             .padding(.vertical, 10)
         }
         .frame(width: 260)
-        .background(.ultraThinMaterial)
+        .background {
+            Rectangle()
+                .fill(.ultraThinMaterial)
+                .overlay {
+                    LinearGradient(
+                        colors: [
+                            theme.colors.sidebarBackground.opacity(0.94),
+                            theme.colors.windowBackground.opacity(0.72)
+                        ],
+                        startPoint: .topLeading,
+                        endPoint: .bottomTrailing
+                    )
+                }
+        }
     }
 
     // Opens a workspace URL as a new tab in the current window
@@ -202,7 +222,11 @@ private struct WorkspaceRow: View {
         .padding(.vertical, 7)
         .background(
             Group {
-                if isHovered { Color.primary.opacity(0.06) }
+                if isCurrent {
+                    theme.colors.selectionBackground.opacity(0.92)
+                } else if isHovered {
+                    theme.colors.hoverBackground.opacity(0.9)
+                }
             }
         )
         .contentShape(Rectangle())

@@ -31,6 +31,12 @@ struct WindowConfigurator: NSViewRepresentable {
         window.title = title
         window.tab.title = title
         window.tabbingMode = .preferred
+        window.isOpaque = false
+        window.backgroundColor = .clear
+        window.titlebarAppearsTransparent = true
+        window.isMovableByWindowBackground = true
+        window.toolbarStyle = .unified
+        window.toolbar?.showsBaselineSeparator = false
 
         let tabCount = window.tabbedWindows?.count ?? 1
         let barVisible = window.tabGroup?.isTabBarVisible ?? false

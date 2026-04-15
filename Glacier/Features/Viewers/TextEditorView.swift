@@ -237,7 +237,7 @@ final class GlacierScrollView: NSScrollView {
         rulersVisible = showLineNumbers
 
         lineNumberView.wantsLayer = true
-        lineNumberView.layer?.backgroundColor = NSColor.controlBackgroundColor.withAlphaComponent(0.6).cgColor
+        lineNumberView.layer?.backgroundColor = NSColor.controlBackgroundColor.withAlphaComponent(0.32).cgColor
     }
 
     func setShowLineNumbers(_ show: Bool) {

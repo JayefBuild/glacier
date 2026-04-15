@@ -31,10 +31,12 @@ struct TabBarView: View {
             .padding(.vertical, 4)
         }
         .frame(height: theme.spacing.tabBarHeight)
-        .background(.ultraThinMaterial)
-        .overlay(alignment: .bottom) {
-            Divider()
-        }
+        .glacierGlassSurface(
+            theme: theme,
+            cornerRadius: theme.radius.large,
+            shadowRadius: 12,
+            shadowY: 6
+        )
     }
 }
 
@@ -117,15 +119,23 @@ struct TabItemView: View {
         .background(
             Group {
                 if isActive {
-                    RoundedRectangle(cornerRadius: theme.radius.small)
-                        .fill(.ultraThinMaterial)
-                        .shadow(color: .black.opacity(0.08), radius: 2, y: 1)
+                    RoundedRectangle(cornerRadius: theme.radius.medium, style: .continuous)
+                        .fill(.thinMaterial)
+                        .overlay {
+                            RoundedRectangle(cornerRadius: theme.radius.medium, style: .continuous)
+                                .fill(theme.colors.selectionBackground.opacity(0.78))
+                        }
+                        .overlay {
+                            RoundedRectangle(cornerRadius: theme.radius.medium, style: .continuous)
+                                .strokeBorder(theme.colors.glassBorder.opacity(0.72), lineWidth: 1)
+                        }
+                        .shadow(color: theme.colors.glassShadow.opacity(0.4), radius: 8, y: 4)
                 } else if belongsToPane {
-                    RoundedRectangle(cornerRadius: theme.radius.small)
-                        .fill(theme.colors.hoverBackground.opacity(0.75))
+                    RoundedRectangle(cornerRadius: theme.radius.medium, style: .continuous)
+                        .fill(theme.colors.hoverBackground.opacity(0.92))
                 } else if isHovered {
-                    RoundedRectangle(cornerRadius: theme.radius.small)
-                        .fill(theme.colors.hoverBackground)
+                    RoundedRectangle(cornerRadius: theme.radius.medium, style: .continuous)
+                        .fill(theme.colors.hoverBackground.opacity(0.8))
                 }
             }
         )
@@ -187,12 +197,11 @@ private struct TabDragPreview: View {
         }
         .padding(.horizontal, 10)
         .padding(.vertical, 6)
-        .background(.ultraThinMaterial)
-        .clipShape(RoundedRectangle(cornerRadius: theme.radius.small))
-        .overlay {
-            RoundedRectangle(cornerRadius: theme.radius.small)
-                .strokeBorder(theme.colors.borderSubtle, lineWidth: 1)
-        }
-        .shadow(color: .black.opacity(0.12), radius: 8, y: 4)
+        .glacierGlassSurface(
+            theme: theme,
+            cornerRadius: theme.radius.medium,
+            shadowRadius: 10,
+            shadowY: 5
+        )
     }
 }

@@ -228,7 +228,7 @@ final class AppState: ObservableObject {
 
     func openNewTerminal(workingDirectory: URL? = nil) {
         let dir = workingDirectory ?? fileService.rootURL ?? URL(fileURLWithPath: NSHomeDirectory())
-        let session = TerminalSession(workingDirectory: dir)
+        let session = TerminalSession(workingDirectory: dir, fontSize: defaultTerminalFontSize)
         let tab = Tab(terminal: session)
         tabs.append(tab)
         showTab(id: tab.id, in: focusedPane)
@@ -389,7 +389,10 @@ final class AppState: ObservableObject {
 
     // MARK: - Terminal Font Size
 
-    private let defaultFontSize: CGFloat = 15
+    private let defaultEditorFontSize: CGFloat = 15
+    private var defaultTerminalFontSize: CGFloat {
+        TerminalAppearance.current.defaultFontSize ?? defaultEditorFontSize
+    }
 
     func adjustFontSize(by delta: CGFloat) {
         guard let tab = activeTab else { return }
@@ -407,9 +410,9 @@ final class AppState: ObservableObject {
         guard let tab = activeTab else { return }
         switch tab.kind {
         case .terminal(let session):
-            session.fontSize = defaultFontSize
+            session.fontSize = defaultTerminalFontSize
         case .file:
-            editorFontSize = defaultFontSize
+            editorFontSize = defaultEditorFontSize
         case .gitGraph:
             break
         }

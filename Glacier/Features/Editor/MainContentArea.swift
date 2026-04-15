@@ -13,10 +13,13 @@ struct MainContentArea: View {
         VStack(spacing: 0) {
             if !appState.tabs.isEmpty && !appState.isSplitViewVisible {
                 TabBarView()
+                    .padding(.horizontal, 10)
+                    .padding(.top, 10)
+                    .padding(.bottom, 8)
                     .transition(.move(edge: .top).combined(with: .opacity))
             }
 
-            GeometryReader { proxy in
+            GeometryReader { _ in
                 ZStack {
                     if let primaryTab = appState.primaryTab {
                         editorContent(primaryTab: primaryTab)
@@ -39,6 +42,9 @@ struct MainContentArea: View {
                     }
                 }
                 .frame(maxWidth: .infinity, maxHeight: .infinity)
+                .padding(.horizontal, 10)
+                .padding(.bottom, 10)
+                .padding(.top, appState.tabs.isEmpty || appState.isSplitViewVisible ? 10 : 0)
                 .animation(theme.animation.standard, value: appState.activeTabID)
                 .animation(theme.animation.standard, value: appState.secondaryTabID)
                 .animation(theme.animation.fast, value: activeSplitEdge)
@@ -46,7 +52,20 @@ struct MainContentArea: View {
                 .onChange(of: appState.secondaryTabID) { activeSplitEdge = nil }
             }
         }
-        .background(theme.colors.editorBackground)
+        .background {
+            Rectangle()
+                .fill(.thinMaterial)
+                .overlay {
+                    LinearGradient(
+                        colors: [
+                            theme.colors.windowBackground.opacity(0.9),
+                            theme.colors.editorBackground.opacity(0.84)
+                        ],
+                        startPoint: .topLeading,
+                        endPoint: .bottomTrailing
+                    )
+                }
+        }
     }
 
     @ViewBuilder
@@ -82,21 +101,42 @@ private struct EditorPaneView: View {
     }
 
     var body: some View {
+        let panelShape = RoundedRectangle(cornerRadius: theme.radius.panel + 2, style: .continuous)
+
         VStack(spacing: 0) {
             if appState.isSplitViewVisible {
                 TabBarView(pane: pane)
+                    .padding(.horizontal, 12)
+                    .padding(.top, 12)
+                    .padding(.bottom, 8)
             }
 
             FileViewerRouter(tab: tab, pane: pane, isFocused: isFocused)
                 .frame(maxWidth: .infinity, maxHeight: .infinity)
                 .id(tab.id)
         }
-        .background(theme.colors.editorBackground)
+        .background {
+            panelShape
+                .fill(.ultraThinMaterial)
+                .overlay {
+                    panelShape.fill(
+                        LinearGradient(
+                            colors: [
+                                theme.colors.editorBackground.opacity(isFocused ? 0.96 : 0.82),
+                                theme.colors.windowBackground.opacity(0.74)
+                            ],
+                            startPoint: .topLeading,
+                            endPoint: .bottomTrailing
+                        )
+                    )
+                }
+        }
         .background(
             PaneInteractionMonitor {
                 appState.focusPane(pane)
             }
         )
+        .clipShape(panelShape)
         .contentShape(Rectangle())
         .simultaneousGesture(
             TapGesture().onEnded {
@@ -104,12 +144,17 @@ private struct EditorPaneView: View {
             }
         )
         .overlay {
-            RoundedRectangle(cornerRadius: 0)
+            panelShape
                 .strokeBorder(
-                    isFocused ? theme.colors.accent.opacity(0.45) : theme.colors.borderSubtle,
+                    isFocused ? theme.colors.accent.opacity(0.55) : theme.colors.glassBorder.opacity(0.42),
                     lineWidth: isFocused ? 2 : 1
                 )
         }
+        .shadow(
+            color: theme.colors.glassShadow.opacity(isFocused ? 0.9 : 0.55),
+            radius: isFocused ? 24 : 18,
+            y: isFocused ? 14 : 10
+        )
         .accessibilityIdentifier("editor-pane-\(pane.rawValue)")
     }
 }
@@ -398,8 +443,18 @@ private struct WelcomeView: View {
                 .buttonStyle(.glass)
             }
         }
+        .padding(.horizontal, 36)
+        .padding(.vertical, 32)
+        .frame(maxWidth: 360)
+        .glacierGlassSurface(
+            theme: theme,
+            cornerRadius: theme.radius.panel + 8,
+            shadowRadius: 24,
+            shadowY: 14
+        )
+        .padding(24)
         .frame(maxWidth: .infinity, maxHeight: .infinity)
-        .background(theme.colors.editorBackground)
+        .background(Color.clear)
     }
 
     private func openFolder() {

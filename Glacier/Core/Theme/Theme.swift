@@ -23,6 +23,8 @@ struct ThemeColors {
     let sidebarBackground: Color
     let editorBackground: Color
     let terminalBackground: Color
+    let glassTint: Color
+    let glassHighlight: Color
 
     // Text
     let primaryText: Color
@@ -47,6 +49,8 @@ struct ThemeColors {
     // Borders & separators
     let separator: Color
     let borderSubtle: Color
+    let glassBorder: Color
+    let glassShadow: Color
 
     // Status
     let success: Color
@@ -108,10 +112,12 @@ struct GlacierTheme: AppTheme {
 
     var colors: ThemeColors {
         ThemeColors(
-            windowBackground: Color(nsColor: .windowBackgroundColor),
-            sidebarBackground: Color(nsColor: .controlBackgroundColor).opacity(0.6),
-            editorBackground: Color(nsColor: .textBackgroundColor),
-            terminalBackground: Color(red: 0.05, green: 0.05, blue: 0.07),
+            windowBackground: Color(nsColor: .windowBackgroundColor).opacity(0.8),
+            sidebarBackground: Color(nsColor: .controlBackgroundColor).opacity(0.32),
+            editorBackground: Color(nsColor: .textBackgroundColor).opacity(0.72),
+            terminalBackground: Color(red: 0.05, green: 0.07, blue: 0.10).opacity(0.84),
+            glassTint: Color(nsColor: .controlBackgroundColor).opacity(0.24),
+            glassHighlight: Color(nsColor: .quaternaryLabelColor).opacity(0.18),
 
             primaryText: Color(nsColor: .labelColor),
             secondaryText: Color(nsColor: .secondaryLabelColor),
@@ -130,8 +136,10 @@ struct GlacierTheme: AppTheme {
             syntaxFunction: Color(red: 0.53, green: 0.78, blue: 0.92),
             syntaxType: Color(red: 0.68, green: 0.87, blue: 0.73),
 
-            separator: Color(nsColor: .separatorColor),
-            borderSubtle: Color(nsColor: .separatorColor).opacity(0.5),
+            separator: Color(nsColor: .separatorColor).opacity(0.68),
+            borderSubtle: Color(nsColor: .separatorColor).opacity(0.36),
+            glassBorder: Color.white.opacity(0.18),
+            glassShadow: Color.black.opacity(0.2),
 
             success: .green,
             warning: .orange,
@@ -190,12 +198,74 @@ struct GlacierTheme: AppTheme {
 // MARK: - Theme Environment Key
 
 private struct ThemeKey: EnvironmentKey {
-    nonisolated(unsafe) static let defaultValue: any AppTheme = GlacierTheme()
+    static let defaultValue: any AppTheme = GlacierTheme()
 }
 
 extension EnvironmentValues {
     var appTheme: any AppTheme {
         get { self[ThemeKey.self] }
         set { self[ThemeKey.self] = newValue }
+    }
+}
+
+private struct GlacierGlassSurfaceModifier: ViewModifier {
+    let tint: Color
+    let highlight: Color
+    let border: Color
+    let shadow: Color
+    let cornerRadius: CGFloat
+    let shadowRadius: CGFloat
+    let shadowY: CGFloat
+
+    func body(content: Content) -> some View {
+        let shape = RoundedRectangle(cornerRadius: cornerRadius, style: .continuous)
+
+        content
+            .background {
+                shape
+                    .fill(.ultraThinMaterial)
+                    .overlay {
+                        shape.fill(
+                            LinearGradient(
+                                colors: [highlight, tint],
+                                startPoint: .topLeading,
+                                endPoint: .bottomTrailing
+                            )
+                        )
+                    }
+            }
+            .overlay {
+                shape.strokeBorder(
+                    LinearGradient(
+                        colors: [border.opacity(0.95), border.opacity(0.32)],
+                        startPoint: .topLeading,
+                        endPoint: .bottomTrailing
+                    ),
+                    lineWidth: 1
+                )
+            }
+            .clipShape(shape)
+            .shadow(color: shadow, radius: shadowRadius, y: shadowY)
+    }
+}
+
+extension View {
+    func glacierGlassSurface(
+        theme: any AppTheme,
+        cornerRadius: CGFloat? = nil,
+        shadowRadius: CGFloat = 18,
+        shadowY: CGFloat = 10
+    ) -> some View {
+        modifier(
+            GlacierGlassSurfaceModifier(
+                tint: theme.colors.glassTint,
+                highlight: theme.colors.glassHighlight,
+                border: theme.colors.glassBorder,
+                shadow: theme.colors.glassShadow,
+                cornerRadius: cornerRadius ?? theme.radius.panel,
+                shadowRadius: shadowRadius,
+                shadowY: shadowY
+            )
+        )
     }
 }
