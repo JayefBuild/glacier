@@ -53,7 +53,15 @@ struct TabItemView: View {
     @State private var isRenaming = false
     @State private var renameText = ""
 
+    private var isPreviewVisibleInBar: Bool {
+        if let pane {
+            return appState.hasPreview(in: pane)
+        }
+        return !appState.isSplitViewVisible && appState.hasPreview(in: .primary)
+    }
+
     private var isActive: Bool {
+        guard !isPreviewVisibleInBar else { return false }
         if let pane {
             return appState.visibleTabID(for: pane) == tab.id
         }

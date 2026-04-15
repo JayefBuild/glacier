@@ -170,6 +170,10 @@ final class AppState: ObservableObject {
 
     @Published var isSidebarVisible: Bool = true
     @Published var selectedFileItem: FileItem?
+    @Published private(set) var selectedFileURLs: Set<URL> = []
+    @Published private var primaryPreviewFileItem: FileItem?
+    @Published private var secondaryPreviewFileItem: FileItem?
+    private var explorerSelectionAnchorURL: URL?
 
     // MARK: - Font Size
 
@@ -208,6 +212,8 @@ final class AppState: ObservableObject {
     // MARK: - Open File
 
     func openFile(_ item: FileItem) {
+        clearPreview(in: focusedPane)
+
         // If already open, just activate
         if let existing = tabs.first(where: {
             if case .file(let f) = $0.kind { return f.url == item.url }
@@ -223,6 +229,71 @@ final class AppState: ObservableObject {
         let tab = Tab(file: item)
         tabs.append(tab)
         showTab(id: tab.id, in: focusedPane)
+    }
+
+    // MARK: - Explorer Selection
+
+    func isExplorerItemSelected(_ item: FileItem) -> Bool {
+        selectedFileURLs.contains(item.url)
+    }
+
+    func selectExplorerItem(_ item: FileItem, extendingRange: Bool = false) {
+        if extendingRange {
+            selectExplorerRange(to: item)
+            return
+        }
+
+        selectedFileItem = item
+        selectedFileURLs = [item.url]
+        explorerSelectionAnchorURL = item.url
+    }
+
+    func clearExplorerSelection() {
+        selectedFileItem = nil
+        selectedFileURLs = []
+        explorerSelectionAnchorURL = nil
+    }
+
+    private func selectExplorerRange(to item: FileItem) {
+        let visibleItems = fileService.visibleItems()
+        let anchorURL = explorerSelectionAnchorURL ?? selectedFileItem?.url ?? item.url
+
+        guard let anchorIndex = visibleItems.firstIndex(where: { $0.url == anchorURL }),
+              let targetIndex = visibleItems.firstIndex(where: { $0.url == item.url }) else {
+            selectExplorerItem(item)
+            return
+        }
+
+        let lowerBound = min(anchorIndex, targetIndex)
+        let upperBound = max(anchorIndex, targetIndex)
+
+        selectedFileItem = item
+        selectedFileURLs = Set(visibleItems[lowerBound...upperBound].map(\.url))
+        if explorerSelectionAnchorURL == nil {
+            explorerSelectionAnchorURL = anchorURL
+        }
+    }
+
+    func previewedFileItem(in pane: EditorPane) -> FileItem? {
+        switch pane {
+        case .primary:
+            return primaryPreviewFileItem
+        case .secondary:
+            return secondaryPreviewFileItem
+        }
+    }
+
+    func previewFile(_ item: FileItem, in pane: EditorPane? = nil) {
+        let targetPane = pane ?? focusedPane
+        setPreviewFileItem(item, in: targetPane)
+    }
+
+    func clearPreview(in pane: EditorPane) {
+        setPreviewFileItem(nil, in: pane)
+    }
+
+    func hasPreview(in pane: EditorPane) -> Bool {
+        previewedFileItem(in: pane) != nil
     }
 
     // MARK: - Open Terminal
@@ -290,6 +361,7 @@ final class AppState: ObservableObject {
 
     func activateTab(id: UUID) {
         if let pane = pane(for: id) {
+            clearPreview(in: pane)
             focusPane(pane)
         } else {
             showTab(id: id, in: focusedPane)
@@ -298,6 +370,7 @@ final class AppState: ObservableObject {
 
     func activateTab(id: UUID, in pane: EditorPane) {
         if tabID(for: pane) == id {
+            clearPreview(in: pane)
             focusPane(pane)
         } else {
             showTab(id: id, in: pane)
@@ -381,9 +454,11 @@ final class AppState: ObservableObject {
         switch focusedPane {
         case .primary:
             secondaryTabID = nil
+            clearPreview(in: .secondary)
         case .secondary:
             primaryTabID = secondaryTabID
             secondaryTabID = nil
+            clearPreview(in: .secondary)
         }
 
         normalizePaneAssignments()
@@ -503,6 +578,8 @@ final class AppState: ObservableObject {
     // MARK: - Pane State
 
     private func showTab(id: UUID, in pane: EditorPane) {
+        clearPreview(in: pane)
+
         switch pane {
         case .primary:
             if secondaryTabID == id {
@@ -554,6 +631,10 @@ final class AppState: ObservableObject {
 
         if secondaryTabID == nil, focusedPane == .secondary {
             focusedPane = .primary
+        }
+
+        if secondaryTabID == nil {
+            clearPreview(in: .secondary)
         }
 
         if let activeTabID, let pane = pane(for: activeTabID) {
@@ -663,6 +744,15 @@ final class AppState: ObservableObject {
         var isDirectory: ObjCBool = false
         FileManager.default.fileExists(atPath: url.path, isDirectory: &isDirectory)
         return isDirectory.boolValue
+    }
+
+    private func setPreviewFileItem(_ item: FileItem?, in pane: EditorPane) {
+        switch pane {
+        case .primary:
+            primaryPreviewFileItem = item
+        case .secondary:
+            secondaryPreviewFileItem = item
+        }
     }
 
     private func tab(with id: UUID?) -> Tab? {

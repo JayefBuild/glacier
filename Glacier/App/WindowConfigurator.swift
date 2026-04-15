@@ -34,7 +34,8 @@ struct WindowConfigurator: NSViewRepresentable {
         window.isOpaque = false
         window.backgroundColor = .clear
         window.titlebarAppearsTransparent = true
-        window.isMovableByWindowBackground = true
+        // Keep drag-and-drop working inside the app; the titlebar/toolbar remains draggable.
+        window.isMovableByWindowBackground = false
         window.toolbarStyle = .unified
         window.toolbar?.showsBaselineSeparator = false
 

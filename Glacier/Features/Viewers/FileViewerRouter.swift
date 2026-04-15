@@ -4,32 +4,43 @@
 import SwiftUI
 
 struct FileViewerRouter: View {
-    let tab: Tab
+    let tab: Tab?
+    let previewItem: FileItem?
     let pane: EditorPane
     let isFocused: Bool
     @EnvironmentObject private var appState: AppState
 
     var body: some View {
-        switch tab.kind {
-        case .file(let item):
+        if let previewItem {
             FileContentView(
-                item: item,
+                item: previewItem,
                 editorFontSize: appState.editorFontSize,
                 fileService: appState.fileService
             )
-        case .terminal(let terminal):
-            TerminalTabView(
-                terminal: terminal,
-                isFocused: isFocused,
-                onSessionInteraction: { sessionID in
-                    appState.focusTerminalSession(sessionID, in: pane)
-                },
-                onSessionCommand: { sessionID, command in
-                    appState.handleTerminalCommand(command, sessionID: sessionID, in: pane)
-                }
-            )
-        case .gitGraph:
-            GitGraphView(fileService: appState.fileService)
+        } else if let tab {
+            switch tab.kind {
+            case .file(let item):
+                FileContentView(
+                    item: item,
+                    editorFontSize: appState.editorFontSize,
+                    fileService: appState.fileService
+                )
+            case .terminal(let terminal):
+                TerminalTabView(
+                    terminal: terminal,
+                    isFocused: isFocused,
+                    onSessionInteraction: { sessionID in
+                        appState.focusTerminalSession(sessionID, in: pane)
+                    },
+                    onSessionCommand: { sessionID, command in
+                        appState.handleTerminalCommand(command, sessionID: sessionID, in: pane)
+                    }
+                )
+            case .gitGraph:
+                GitGraphView(fileService: appState.fileService)
+            }
+        } else {
+            EmptyView()
         }
     }
 }

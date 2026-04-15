@@ -313,7 +313,7 @@ private struct ExplorerToolbar: View {
     private func revealActiveFile() {
         guard let tab = appState.activeTab,
               case .file(let item) = tab.kind else { return }
-        appState.selectedFileItem = item
+        appState.selectExplorerItem(item)
         // Expand parents if needed — simple: just reload selection highlight
         // Full path reveal would require parent tracking; this highlights the item
     }

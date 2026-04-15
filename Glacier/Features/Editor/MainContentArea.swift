@@ -21,8 +21,8 @@ struct MainContentArea: View {
 
             GeometryReader { _ in
                 ZStack {
-                    if let primaryTab = appState.primaryTab {
-                        editorContent(primaryTab: primaryTab)
+                    if appState.primaryTab != nil || appState.previewedFileItem(in: .primary) != nil {
+                        editorContent
                             .transition(.opacity)
                     } else {
                         WelcomeView()
@@ -69,35 +69,57 @@ struct MainContentArea: View {
     }
 
     @ViewBuilder
-    private func editorContent(primaryTab: Tab) -> some View {
-        if let secondaryTab = appState.secondaryTab {
+    private var editorContent: some View {
+        if appState.secondaryTab != nil {
             switch appState.splitOrientation {
             case .sideBySide:
                 HSplitView {
-                    EditorPaneView(pane: .primary, tab: primaryTab)
-                    EditorPaneView(pane: .secondary, tab: secondaryTab)
+                    EditorPaneView(pane: .primary)
+                    EditorPaneView(pane: .secondary)
                 }
             case .topBottom:
                 VSplitView {
-                    EditorPaneView(pane: .primary, tab: primaryTab)
-                    EditorPaneView(pane: .secondary, tab: secondaryTab)
+                    EditorPaneView(pane: .primary)
+                    EditorPaneView(pane: .secondary)
                 }
             }
         } else {
-            EditorPaneView(pane: .primary, tab: primaryTab)
+            EditorPaneView(pane: .primary)
         }
     }
 }
 
 private struct EditorPaneView: View {
     let pane: EditorPane
-    let tab: Tab
 
     @EnvironmentObject private var appState: AppState
     @Environment(\.appTheme) private var theme
 
     private var isFocused: Bool {
         appState.focusedPane == pane
+    }
+
+    private var visibleTab: Tab? {
+        switch pane {
+        case .primary:
+            return appState.primaryTab
+        case .secondary:
+            return appState.secondaryTab
+        }
+    }
+
+    private var previewItem: FileItem? {
+        appState.previewedFileItem(in: pane)
+    }
+
+    private var contentIdentity: String {
+        if let previewItem {
+            return "preview:\(previewItem.url.path)"
+        }
+        if let visibleTab {
+            return "tab:\(visibleTab.id.uuidString)"
+        }
+        return "empty:\(pane.rawValue)"
     }
 
     var body: some View {
@@ -111,9 +133,9 @@ private struct EditorPaneView: View {
                     .padding(.bottom, 8)
             }
 
-            FileViewerRouter(tab: tab, pane: pane, isFocused: isFocused)
+            FileViewerRouter(tab: visibleTab, previewItem: previewItem, pane: pane, isFocused: isFocused)
                 .frame(maxWidth: .infinity, maxHeight: .infinity)
-                .id(tab.id)
+                .id(contentIdentity)
         }
         .background {
             panelShape

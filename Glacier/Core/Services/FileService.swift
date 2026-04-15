@@ -142,6 +142,24 @@ final class FileService: ObservableObject {
         if let rootURL { openFolder(at: rootURL) }
     }
 
+    // MARK: - Visible Items
+
+    func visibleItems() -> [FileItem] {
+        var items: [FileItem] = []
+
+        func appendVisibleItems(from nodes: [FileItem]) {
+            for node in nodes {
+                items.append(node)
+                if node.isExpanded, let children = node.children {
+                    appendVisibleItems(from: children)
+                }
+            }
+        }
+
+        appendVisibleItems(from: rootItems)
+        return items
+    }
+
     // MARK: - Write File
 
     func writeFile(text: String, to url: URL) throws {

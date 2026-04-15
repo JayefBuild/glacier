@@ -23,7 +23,9 @@ struct GlacierCommands: Commands {
             .keyboardShortcut("t", modifiers: [.command])
 
             Button("Close Tab") {
-                if let tab = appState?.activeTab {
+                if let appState, appState.hasPreview(in: appState.focusedPane) {
+                    appState.clearPreview(in: appState.focusedPane)
+                } else if let tab = appState?.activeTab {
                     appState?.closeTab(tab)
                 }
             }

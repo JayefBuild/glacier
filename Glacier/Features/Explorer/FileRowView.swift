@@ -4,6 +4,7 @@
 
 import SwiftUI
 import UniformTypeIdentifiers
+import AppKit
 
 // MARK: - Draggable file URL
 
@@ -47,16 +48,15 @@ struct FileRowView: View {
     @State private var isDropTarget = false
 
     private var isSelected: Bool {
-        appState.selectedFileItem?.id == item.id
+        appState.isExplorerItemSelected(item)
     }
 
     var body: some View {
         VStack(alignment: .leading, spacing: 0) {
             rowContent
                 .contentShape(Rectangle())
-                .simultaneousGesture(
-                    TapGesture(count: 1).onEnded { handleTap() }
-                )
+                .onTapGesture(count: 2) { handleDoubleClick() }
+                .onTapGesture { handleSingleClick() }
                 .background(rowBackground)
                 .padding(.horizontal, 4)
                 .accessibilityElement(children: .combine)
@@ -235,14 +235,29 @@ struct FileRowView: View {
 
     // MARK: - Tap
 
-    private func handleTap() {
-        appState.selectedFileItem = item
+    private func handleSingleClick() {
+        let modifierFlags = NSEvent.modifierFlags.intersection(.deviceIndependentFlagsMask)
+        if modifierFlags.contains(.shift) {
+            appState.selectExplorerItem(item, extendingRange: true)
+            return
+        }
+
+        appState.selectExplorerItem(item)
         if item.isDirectory {
             withAnimation(GlacierTheme().animation.fast) {
                 appState.fileService.toggleExpansion(of: item)
             }
         } else {
-            appState.openFile(item)
+            appState.previewFile(item)
         }
+    }
+
+    private func handleDoubleClick() {
+        appState.selectExplorerItem(item)
+        guard !item.isDirectory else {
+            return
+        }
+
+        appState.openFile(item)
     }
 }
