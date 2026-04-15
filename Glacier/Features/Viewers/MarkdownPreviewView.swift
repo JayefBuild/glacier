@@ -4,6 +4,7 @@
 import SwiftUI
 import WebKit
 import Combine
+import MarkdownEditor
 
 struct MarkdownEditorView: View {
     @Binding var text: String
@@ -16,7 +17,6 @@ struct MarkdownEditorView: View {
 
     @State private var mode: MarkdownEditorMode = .rich
     @State private var saveCancellable: AnyCancellable?
-    @State private var saveRequestCount = 0
 
     private var lineCount: Int {
         guard !text.isEmpty else { return 1 }
@@ -25,6 +25,31 @@ struct MarkdownEditorView: View {
                 count += 1
             }
         }
+    }
+
+    private var richDocument: MarkdownRichDocument {
+        MarkdownRichDocument(markdown: text)
+    }
+
+    private var richBodyText: Binding<String> {
+        Binding(
+            get: { richDocument.bodyMarkdown },
+            set: { newBody in
+                text = (richDocument.frontmatterPrefix ?? "") + newBody
+            }
+        )
+    }
+
+    private var richEditorConfiguration: EditorConfiguration {
+        EditorConfiguration(
+            fontSize: fontSize,
+            showLineNumbers: false,
+            wrapLines: true,
+            renderMermaid: true,
+            renderMath: true,
+            renderImages: true,
+            hideSyntax: true
+        )
     }
 
     var body: some View {
@@ -36,13 +61,7 @@ struct MarkdownEditorView: View {
             Group {
                 switch mode {
                 case .rich:
-                    MarkdownLiveEditorWebView(
-                        text: $text,
-                        url: url,
-                        saveRequestCount: saveRequestCount,
-                        fontSize: fontSize,
-                        document: MarkdownRichDocument(markdown: text)
-                    )
+                    richEditor
                 case .source:
                     SyntaxTextView(
                         text: $text,
@@ -56,16 +75,7 @@ struct MarkdownEditorView: View {
         }
         .background(theme.colors.editorBackground)
         .onChange(of: text) { _, newValue in
-            guard mode == .source else { return }
             scheduleSave(text: newValue)
-        }
-        .onChange(of: mode) { _, newMode in
-            if newMode == .rich {
-                saveCancellable?.cancel()
-                Task { @MainActor in
-                    try? fileService.writeFile(text: text, to: url)
-                }
-            }
         }
         .onDisappear {
             saveCancellable?.cancel()
@@ -76,13 +86,7 @@ struct MarkdownEditorView: View {
                   request.url == url else {
                 return
             }
-
-            switch mode {
-            case .rich:
-                saveRequestCount += 1
-            case .source:
-                saveNow(text: text)
-            }
+            saveNow(text: text)
         }
     }
 
@@ -135,6 +139,22 @@ struct MarkdownEditorView: View {
         .frame(height: 32)
         .background(theme.colors.editorBackground)
     }
+
+    @ViewBuilder
+    private var richEditor: some View {
+        VStack(spacing: 0) {
+            if !richDocument.properties.isEmpty {
+                MarkdownFrontmatterPanel(properties: richDocument.properties)
+                Divider()
+            }
+
+            EditorWebView(
+                text: richBodyText,
+                configuration: richEditorConfiguration
+            )
+            .background(theme.colors.editorBackground)
+        }
+    }
 }
 
 private enum MarkdownEditorMode: String, CaseIterable, Identifiable {
@@ -148,6 +168,41 @@ private enum MarkdownEditorMode: String, CaseIterable, Identifiable {
         case .rich: return "Rich"
         case .source: return "Source"
         }
+    }
+}
+
+private struct MarkdownFrontmatterPanel: View {
+    let properties: [MarkdownFrontmatterProperty]
+
+    @Environment(\.appTheme) private var theme
+
+    var body: some View {
+        VStack(alignment: .leading, spacing: 12) {
+            Text("Properties")
+                .font(theme.typography.captionFont.weight(.semibold))
+                .foregroundStyle(.secondary)
+
+            VStack(alignment: .leading, spacing: 8) {
+                ForEach(Array(properties.enumerated()), id: \.offset) { _, property in
+                    HStack(alignment: .top, spacing: 12) {
+                        Text(property.name)
+                            .font(theme.typography.captionFont.weight(.semibold))
+                            .foregroundStyle(.secondary)
+                            .frame(width: 140, alignment: .leading)
+
+                        Text(property.value)
+                            .font(theme.typography.captionFont)
+                            .foregroundStyle(theme.colors.primaryText)
+                            .textSelection(.enabled)
+
+                        Spacer(minLength: 0)
+                    }
+                }
+            }
+        }
+        .padding(.horizontal, 16)
+        .padding(.vertical, 14)
+        .background(theme.colors.editorBackground.opacity(0.82))
     }
 }
 
@@ -595,9 +650,10 @@ private struct MarkdownLiveEditorWebView: NSViewRepresentable {
             }
         }
 
+        @MainActor
         func webView(_ webView: WKWebView,
                      decidePolicyFor navigationAction: WKNavigationAction,
-                     decisionHandler: @escaping (WKNavigationActionPolicy) -> Void) {
+                     decisionHandler: @escaping @MainActor @Sendable (WKNavigationActionPolicy) -> Void) {
             guard let url = navigationAction.request.url else {
                 decisionHandler(.allow)
                 return

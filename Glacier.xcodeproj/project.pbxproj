@@ -38,6 +38,7 @@
 		ADF46CC7F5D9737058772A88 /* markwhen.html in Resources */ = {isa = PBXBuildFile; fileRef = 05B63625B790B145C2A415C4 /* markwhen.html */; };
 		AF7865A52A536343A2C2059E /* WorkspaceStore.swift in Sources */ = {isa = PBXBuildFile; fileRef = DADED67C8C1FA96929228E8E /* WorkspaceStore.swift */; };
 		BBBF864E4057B1D41C4ADE5D /* ExplorerView.swift in Sources */ = {isa = PBXBuildFile; fileRef = 623249D019FA8412880434CB /* ExplorerView.swift */; };
+		C32BDFB0AFEB2BFF1B35B299 /* MarkdownEditor in Frameworks */ = {isa = PBXBuildFile; productRef = 11B4DDFDE6DA19E65DD5D99B /* MarkdownEditor */; };
 		C59B9232DF4E8D540E520215 /* TabBarView.swift in Sources */ = {isa = PBXBuildFile; fileRef = 9832885CCE672DFC64559C23 /* TabBarView.swift */; };
 		CAE03A9BF58603515DC4C5E1 /* react.min.js in Resources */ = {isa = PBXBuildFile; fileRef = 4AB76542D0D42359BD5CB051 /* react.min.js */; };
 		D4A2C2AD9B128971DEFAE880 /* FileViewerRouter.swift in Sources */ = {isa = PBXBuildFile; fileRef = E9FC3C49D5662DFF52FB6D2D /* FileViewerRouter.swift */; };
@@ -61,6 +62,7 @@
 		01ED4B70F8C1994C7F03C137 /* Theme.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = Theme.swift; sourceTree = "<group>"; };
 		05B63625B790B145C2A415C4 /* markwhen.html */ = {isa = PBXFileReference; lastKnownFileType = text.html; path = markwhen.html; sourceTree = "<group>"; };
 		08B57A35779CE554895583FD /* MarkwhenViewer.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = MarkwhenViewer.swift; sourceTree = "<group>"; };
+		1A17D79AB8D032901E5BCB73 /* MarkdownEditor */ = {isa = PBXFileReference; lastKnownFileType = folder; name = MarkdownEditor; path = Packages/MarkdownEditor; sourceTree = SOURCE_ROOT; };
 		1D18FBC0FF11123033274329 /* SyntaxHighlighter.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = SyntaxHighlighter.swift; sourceTree = "<group>"; };
 		1E97B9A4AC248E009726AB21 /* VideoViewerView.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = VideoViewerView.swift; sourceTree = "<group>"; };
 		214D16911A5FB7FC000483E8 /* GlacierUITests.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = GlacierUITests.swift; sourceTree = "<group>"; };
@@ -108,6 +110,7 @@
 			buildActionMask = 2147483647;
 			files = (
 				4A7E90682365AA3E9308567F /* SwiftTerm in Frameworks */,
+				C32BDFB0AFEB2BFF1B35B299 /* MarkdownEditor in Frameworks */,
 			);
 			runOnlyForDeploymentPostprocessing = 0;
 		};
@@ -157,6 +160,14 @@
 			path = Features;
 			sourceTree = "<group>";
 		};
+		370EFBB59500F603A347E19E /* Packages */ = {
+			isa = PBXGroup;
+			children = (
+				1A17D79AB8D032901E5BCB73 /* MarkdownEditor */,
+			);
+			path = Packages;
+			sourceTree = "<group>";
+		};
 		61CDB4CCCF2551D49415E631 /* Viewers */ = {
 			isa = PBXGroup;
 			children = (
@@ -177,6 +188,7 @@
 			children = (
 				91DCC4CB73D553623F07A1BA /* Glacier */,
 				14DA57EC1E89113B7CCF655E /* GlacierUITests */,
+				370EFBB59500F603A347E19E /* Packages */,
 				BDB96C959EBD3A62FA792C3F /* Products */,
 			);
 			sourceTree = "<group>";
@@ -318,6 +330,7 @@
 			name = Glacier;
 			packageProductDependencies = (
 				7613E683B9B6635224D3B6A3 /* SwiftTerm */,
+				11B4DDFDE6DA19E65DD5D99B /* MarkdownEditor */,
 			);
 			productName = Glacier;
 			productReference = 8D84D6DA96169DD668395E25 /* Glacier.app */;
@@ -355,6 +368,7 @@
 			minimizedProjectReferenceProxies = 1;
 			packageReferences = (
 				09FEC232195B97195C29C32B /* XCRemoteSwiftPackageReference "SwiftTerm" */,
+				D3B16B259E0277B86AD18AC9 /* XCLocalSwiftPackageReference "Packages/MarkdownEditor" */,
 			);
 			preferredProjectObjectVersion = 54;
 			projectDirPath = "";
@@ -680,6 +694,13 @@
 		};
 /* End XCConfigurationList section */
 
+/* Begin XCLocalSwiftPackageReference section */
+		D3B16B259E0277B86AD18AC9 /* XCLocalSwiftPackageReference "Packages/MarkdownEditor" */ = {
+			isa = XCLocalSwiftPackageReference;
+			relativePath = Packages/MarkdownEditor;
+		};
+/* End XCLocalSwiftPackageReference section */
+
 /* Begin XCRemoteSwiftPackageReference section */
 		09FEC232195B97195C29C32B /* XCRemoteSwiftPackageReference "SwiftTerm" */ = {
 			isa = XCRemoteSwiftPackageReference;
@@ -692,6 +713,10 @@
 /* End XCRemoteSwiftPackageReference section */
 
 /* Begin XCSwiftPackageProductDependency section */
+		11B4DDFDE6DA19E65DD5D99B /* MarkdownEditor */ = {
+			isa = XCSwiftPackageProductDependency;
+			productName = MarkdownEditor;
+		};
 		7613E683B9B6635224D3B6A3 /* SwiftTerm */ = {
 			isa = XCSwiftPackageProductDependency;
 			package = 09FEC232195B97195C29C32B /* XCRemoteSwiftPackageReference "SwiftTerm" */;

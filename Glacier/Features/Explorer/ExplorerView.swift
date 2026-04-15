@@ -212,11 +212,20 @@ private struct ExplorerToolbar: View {
         .sheet(isPresented: $showNewFileSheet) {
             CreateItemSheet(
                 title: "New File",
-                placeholder: "filename.txt",
+                placeholder: "note.md",
+                helperText: "Leave off the extension to create a Markdown note.",
                 directory: fileService.rootURL ?? URL(fileURLWithPath: NSHomeDirectory())
             ) { name in
-                _ = try fileService.createFile(named: name, in: fileService.rootURL!)
+                let url = try fileService.createFile(
+                    named: name,
+                    in: fileService.rootURL!,
+                    defaultExtension: "md"
+                )
                 fileService.reload()
+                DispatchQueue.main.asyncAfter(deadline: .now() + 0.15) {
+                    let item = FileItem(url: url, isDirectory: false)
+                    appState.openFile(item)
+                }
             }
         }
         .sheet(isPresented: $showNewFolderSheet) {
@@ -394,6 +403,7 @@ private struct ExplorerTreeView: View {
 struct CreateItemSheet: View {
     let title: String
     let placeholder: String
+    let helperText: String?
     let directory: URL
     let onCreate: (String) throws -> Void
 
@@ -402,6 +412,20 @@ struct CreateItemSheet: View {
     @State private var name: String = ""
     @State private var errorMessage: String?
     @FocusState private var isFocused: Bool
+
+    init(
+        title: String,
+        placeholder: String,
+        helperText: String? = nil,
+        directory: URL,
+        onCreate: @escaping (String) throws -> Void
+    ) {
+        self.title = title
+        self.placeholder = placeholder
+        self.helperText = helperText
+        self.directory = directory
+        self.onCreate = onCreate
+    }
 
     var body: some View {
         VStack(alignment: .leading, spacing: 16) {
@@ -417,6 +441,12 @@ struct CreateItemSheet: View {
                 .textFieldStyle(.roundedBorder)
                 .focused($isFocused)
                 .onSubmit { commit() }
+
+            if let helperText {
+                Text(helperText)
+                    .font(theme.typography.captionFont)
+                    .foregroundStyle(.secondary)
+            }
 
             if let error = errorMessage {
                 Text(error)

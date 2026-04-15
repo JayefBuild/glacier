@@ -25,6 +25,8 @@ packages:
   SwiftTerm:
     url: https://github.com/migueldeicaza/SwiftTerm
     from: 1.2.0
+  MarkdownEditor:
+    path: Packages/MarkdownEditor
 
 targets:
   Glacier:
@@ -46,6 +48,8 @@ targets:
     dependencies:
       - package: SwiftTerm
         product: SwiftTerm
+      - package: MarkdownEditor
+        product: MarkdownEditor
 
   GlacierUITests:
     type: bundle.ui-testing

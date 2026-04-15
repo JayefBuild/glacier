@@ -123,13 +123,40 @@ final class FileService: ObservableObject {
 
     // MARK: - Create File
 
-    func createFile(named name: String, in directory: URL) throws -> URL {
-        let dest = directory.appendingPathComponent(name)
+    func createFile(
+        named name: String,
+        in directory: URL,
+        defaultExtension: String? = nil
+    ) throws -> URL {
+        let normalizedName = normalizedCreatedFileName(name, defaultExtension: defaultExtension)
+        let dest = directory.appendingPathComponent(normalizedName)
         guard !FileManager.default.fileExists(atPath: dest.path) else {
             throw CocoaError(.fileWriteFileExists)
         }
         FileManager.default.createFile(atPath: dest.path, contents: nil)
         return dest
+    }
+
+    private func normalizedCreatedFileName(_ name: String, defaultExtension: String?) -> String {
+        let trimmed = name.trimmingCharacters(in: .whitespacesAndNewlines)
+        guard
+            let defaultExtension,
+            !defaultExtension.isEmpty,
+            !trimmed.isEmpty
+        else {
+            return trimmed
+        }
+
+        let lastPathComponent = URL(fileURLWithPath: trimmed).lastPathComponent
+        if lastPathComponent.hasPrefix(".") {
+            return trimmed
+        }
+
+        if URL(fileURLWithPath: trimmed).pathExtension.isEmpty {
+            return "\(trimmed).\(defaultExtension)"
+        }
+
+        return trimmed
     }
 
     // MARK: - Create Folder

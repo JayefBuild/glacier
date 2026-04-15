@@ -92,12 +92,21 @@ struct FileRowView: View {
         .sheet(isPresented: $showNewFileSheet) {
             CreateItemSheet(
                 title: "New File",
-                placeholder: "filename.txt",
+                placeholder: "note.md",
+                helperText: "Leave off the extension to create a Markdown note.",
                 directory: item.isDirectory ? item.url : item.url.deletingLastPathComponent()
             ) { name in
                 let dir = item.isDirectory ? item.url : item.url.deletingLastPathComponent()
-                _ = try appState.fileService.createFile(named: name, in: dir)
+                let url = try appState.fileService.createFile(
+                    named: name,
+                    in: dir,
+                    defaultExtension: "md"
+                )
                 appState.fileService.reload()
+                DispatchQueue.main.asyncAfter(deadline: .now() + 0.15) {
+                    let createdItem = FileItem(url: url, isDirectory: false)
+                    appState.openFile(createdItem)
+                }
             }
         }
         .sheet(isPresented: $showNewFolderSheet) {
