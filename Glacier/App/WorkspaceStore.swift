@@ -31,6 +31,7 @@ final class WorkspaceStore: ObservableObject {
 
     private let recentsKey = "glacier.recentWorkspaces"
     private let activeWorkspacesKey = "glacier.activeWorkspaces"
+    private let restoreOpenWorkspacesEnabledKey = "glacier.restoreOpenWorkspacesOnLaunch"
     private let maxRecents = 10
 
     private init() {
@@ -81,6 +82,7 @@ final class WorkspaceStore: ObservableObject {
     func restoreOpenWorkspacesIfNeeded(using appState: AppState) {
         guard !didRestoreOpenWorkspacesOnLaunch else { return }
         didRestoreOpenWorkspacesOnLaunch = true
+        guard shouldRestoreOpenWorkspacesOnLaunch else { return }
 
         let environment = ProcessInfo.processInfo.environment
         guard environment["GLACIER_OPEN_FILE"] == nil,
@@ -152,6 +154,22 @@ final class WorkspaceStore: ObservableObject {
         return paths
             .map { URL(fileURLWithPath: $0).standardizedFileURL }
             .filter { FileManager.default.fileExists(atPath: $0.path) }
+    }
+
+    private var shouldRestoreOpenWorkspacesOnLaunch: Bool {
+        let environment = ProcessInfo.processInfo.environment
+        if let override = environment["GLACIER_RESTORE_OPEN_WORKSPACES"] {
+            switch override {
+            case "1", "true", "TRUE", "yes", "YES":
+                return true
+            case "0", "false", "FALSE", "no", "NO":
+                return false
+            default:
+                break
+            }
+        }
+
+        return UserDefaults.standard.bool(forKey: restoreOpenWorkspacesEnabledKey)
     }
 
     private func restoreRemainingWorkspacesAsTabs(_ urls: [URL], attempt: Int = 0) {

@@ -170,6 +170,10 @@ final class AppState: ObservableObject {
 
         // Test hooks: allow UI tests to boot straight into a workspace or file.
         let environment = ProcessInfo.processInfo.environment
+        guard shouldHonorLaunchEnvironment(environment) else {
+            return
+        }
+
         if let path = environment["GLACIER_OPEN_FILE"] {
             let fileURL = URL(fileURLWithPath: path)
             Task { @MainActor in
@@ -181,6 +185,14 @@ final class AppState: ObservableObject {
                 self.fileService.openFolder(at: URL(fileURLWithPath: path))
             }
         }
+    }
+
+    private func shouldHonorLaunchEnvironment(_ environment: [String: String]) -> Bool {
+        if environment["GLACIER_ENABLE_TEST_HOOKS"] == "1" {
+            return true
+        }
+
+        return environment["XCTestConfigurationFilePath"] != nil
     }
 
     // MARK: - Explorer State
