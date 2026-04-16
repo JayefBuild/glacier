@@ -179,12 +179,15 @@ extension ProjectNavigatorMenu {
     @objc
     func trash() {
         do {
-            try selectedItems().forEach { item in
+            let items = selectedItems()
+            let removedURLs = items.map(\.url)
+            try items.forEach { item in
                 guard FileManager.default.fileExists(atPath: item.url.path) else {
                     return
                 }
                 try host?.fileManager?.trash(file: item)
             }
+            host?.onFilesRemoved?(removedURLs)
             reloadData()
         } catch {
             let alert = NSAlert(error: error)
@@ -198,6 +201,7 @@ extension ProjectNavigatorMenu {
     func delete() {
         do {
             let selectedItems = selectedItems()
+            let removedURLs = selectedItems.map(\.url)
             if selectedItems.count == 1 {
                 try selectedItems.forEach { item in
                     try host?.fileManager?.delete(file: item)
@@ -205,6 +209,7 @@ extension ProjectNavigatorMenu {
             } else {
                 try host?.fileManager?.batchDelete(files: selectedItems)
             }
+            host?.onFilesRemoved?(removedURLs)
             reloadData()
         } catch {
             let alert = NSAlert(error: error)

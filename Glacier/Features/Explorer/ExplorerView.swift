@@ -77,7 +77,7 @@ private struct ExplorerContent: View {
 
     var body: some View {
         VStack(spacing: 0) {
-            ExplorerHeaderView(fileService: fileService)
+            ExplorerHeaderView(fileService: fileService, sidebarHost: sidebarHost)
             Divider()
             if fileService.rootURL == nil {
                 ExplorerEmptyState(fileService: fileService)
@@ -140,6 +140,23 @@ private struct ExplorerContent: View {
                 appState.openFile(item)
             }
         }
+        sidebarHost.onFilesRemoved = { removedURLs in
+            Task { @MainActor in
+                // For each open file tab, close it if its URL is among the removed
+                // ones OR sits under a removed folder.
+                let normalized = removedURLs.map { $0.standardizedFileURL.path }
+                for tab in appState.tabs {
+                    guard case .file(let fileItem) = tab.kind else { continue }
+                    let tabPath = fileItem.url.standardizedFileURL.path
+                    let match = normalized.contains { removed in
+                        tabPath == removed || tabPath.hasPrefix(removed + "/")
+                    }
+                    if match {
+                        appState.closeTab(tab, bypassingConfirmation: true)
+                    }
+                }
+            }
+        }
     }
 }
 
@@ -147,6 +164,7 @@ private struct ExplorerContent: View {
 
 private struct ExplorerHeaderView: View {
     @ObservedObject var fileService: FileService
+    @ObservedObject var sidebarHost: SidebarHost
     @EnvironmentObject private var appState: AppState
     @Environment(\.appTheme) private var theme
 
@@ -185,7 +203,7 @@ private struct ExplorerHeaderView: View {
 
             // Toolbar
             if fileService.rootURL != nil {
-                ExplorerToolbar(fileService: fileService)
+                ExplorerToolbar(fileService: fileService, sidebarHost: sidebarHost)
                     .padding(.horizontal, 8)
                     .padding(.bottom, 6)
             }
@@ -231,6 +249,7 @@ private func runGitBranch(in url: URL) -> String? {
 
 private struct ExplorerToolbar: View {
     @ObservedObject var fileService: FileService
+    @ObservedObject var sidebarHost: SidebarHost
     @EnvironmentObject private var appState: AppState
     @Environment(\.appTheme) private var theme
 
@@ -404,8 +423,8 @@ private struct ExplorerToolbar: View {
         guard let tab = appState.activeTab,
               case .file(let item) = tab.kind else { return }
         appState.selectExplorerItem(item)
-        // Expand parents if needed — simple: just reload selection highlight
-        // Full path reveal would require parent tracking; this highlights the item
+        // Drive the NSOutlineView sidebar to scroll + select + expand parents.
+        sidebarHost.reveal(item.url)
     }
 }
 
@@ -459,242 +478,6 @@ func openFolderPanel(completion: @MainActor @escaping (URL) -> Void) {
         panel.begin { response in
             if response == .OK, let url = panel.url { completion(url) }
         }
-    }
-}
-
-// MARK: - Tree
-
-private struct ExplorerTreeView: View {
-    @ObservedObject var fileService: FileService
-    @Environment(\.appTheme) private var theme
-
-    var body: some View {
-        ScrollView {
-            LazyVStack(alignment: .leading, spacing: 0) {
-                ForEach(fileService.rootItems) { item in
-                    FileRowView(item: item, depth: 0)
-                        .id(ObjectIdentifier(item))
-                }
-            }
-            .padding(.vertical, 4)
-        }
-    }
-}
-
-private struct ExplorerKeyboardMonitor: NSViewRepresentable {
-    @EnvironmentObject private var appState: AppState
-
-    let onSidebarInteraction: () -> Void
-    let onMoveUp: () -> Void
-    let onMoveDown: () -> Void
-    let onCollapse: () -> Void
-    let onExpand: () -> Void
-
-    func makeNSView(context: Context) -> ExplorerKeyboardHostingView {
-        let view = ExplorerKeyboardHostingView()
-        updateNSView(view, context: context)
-        return view
-    }
-
-    func updateNSView(_ nsView: ExplorerKeyboardHostingView, context: Context) {
-        nsView.appState = appState
-        nsView.onSidebarInteraction = onSidebarInteraction
-        nsView.onMoveUp = onMoveUp
-        nsView.onMoveDown = onMoveDown
-        nsView.onCollapse = onCollapse
-        nsView.onExpand = onExpand
-    }
-}
-
-private final class ExplorerKeyboardHostingView: NSView {
-    weak var appState: AppState?
-
-    var onSidebarInteraction: (() -> Void)?
-    var onMoveUp: (() -> Void)?
-    var onMoveDown: (() -> Void)?
-    var onCollapse: (() -> Void)?
-    var onExpand: (() -> Void)?
-
-    private var clickMonitor: ExplorerEventMonitor?
-    private var keyMonitor: ExplorerEventMonitor?
-
-    override var acceptsFirstResponder: Bool {
-        true
-    }
-
-    override init(frame frameRect: NSRect) {
-        super.init(frame: frameRect)
-        NotificationCenter.default.addObserver(
-            self,
-            selector: #selector(handleFocusRequest),
-            name: .glacierFocusExplorerResponder,
-            object: nil
-        )
-        installMonitorsIfNeeded()
-    }
-
-    @available(*, unavailable)
-    required init?(coder: NSCoder) {
-        fatalError()
-    }
-
-    deinit {
-        NotificationCenter.default.removeObserver(self)
-    }
-
-    override func hitTest(_ point: NSPoint) -> NSView? {
-        nil
-    }
-
-    @objc
-    private func handleFocusRequest() {
-        DispatchQueue.main.async { [weak self] in
-            self?.promoteToFirstResponder(attempt: 0, reason: "focusRequest")
-        }
-    }
-
-    override func keyDown(with event: NSEvent) {
-        if focusDebugLoggingEnabled {
-            focusDebugLog(
-                "GlacierFocus explorerKeyDown keyCode=\(event.keyCode) modifiers=\(event.modifierFlags.rawValue)"
-            )
-        }
-        let modifiers = normalizedArrowModifiers(for: event)
-        guard modifiers.isEmpty else {
-            super.keyDown(with: event)
-            return
-        }
-
-        switch event.keyCode {
-        case 123:
-            onCollapse?()
-        case 124:
-            onExpand?()
-        case 125:
-            onMoveDown?()
-        case 126:
-            onMoveUp?()
-        default:
-            super.keyDown(with: event)
-        }
-    }
-
-    private func installMonitorsIfNeeded() {
-        guard clickMonitor == nil, keyMonitor == nil else {
-            return
-        }
-
-        if let token = NSEvent.addLocalMonitorForEvents(matching: [.leftMouseDown], handler: { [weak self] event in
-            self?.handleMouseDown(event) ?? event
-        }) {
-            clickMonitor = ExplorerEventMonitor(token: token)
-        }
-
-        if let token = NSEvent.addLocalMonitorForEvents(matching: [.keyDown], handler: { [weak self] event in
-            self?.handleMonitoredKeyDown(event) ?? event
-        }) {
-            keyMonitor = ExplorerEventMonitor(token: token)
-        }
-    }
-
-    private func handleMouseDown(_ event: NSEvent) -> NSEvent? {
-        guard let window,
-              event.window === window else {
-            return event
-        }
-
-        let location = convert(event.locationInWindow, from: nil)
-        guard bounds.contains(location) else {
-            return event
-        }
-
-        onSidebarInteraction?()
-        DispatchQueue.main.async { [weak self] in
-            self?.promoteToFirstResponder(attempt: 0, reason: "mouseDown")
-        }
-        return event
-    }
-
-    private func handleMonitoredKeyDown(_ event: NSEvent) -> NSEvent? {
-        guard let appState,
-              appState.isExplorerFocused,
-              let window,
-              window.isKeyWindow,
-              window.attachedSheet == nil else {
-            return event
-        }
-
-        let modifiers = normalizedArrowModifiers(for: event)
-        guard modifiers.isEmpty else {
-            return event
-        }
-
-        if focusDebugLoggingEnabled {
-            focusDebugLog(
-                "GlacierFocus explorerMonitorKeyDown keyCode=\(event.keyCode) modifiers=\(event.modifierFlags.rawValue)"
-            )
-        }
-
-        switch event.keyCode {
-        case 123:
-            onCollapse?()
-            return nil
-        case 124:
-            onExpand?()
-            return nil
-        case 125:
-            onMoveDown?()
-            return nil
-        case 126:
-            onMoveUp?()
-            return nil
-        default:
-            return event
-        }
-    }
-
-    private func promoteToFirstResponder(attempt: Int, reason: String) {
-        guard let window else {
-            return
-        }
-
-        let didBecomeResponder = window.makeFirstResponder(self)
-        let isFirstResponder = window.firstResponder === self
-        if focusDebugLoggingEnabled {
-            let responderName = window.firstResponder.map { NSStringFromClass(type(of: $0)) } ?? "nil"
-            focusDebugLog(
-                "GlacierFocus explorerPromote reason=\(reason) attempt=\(attempt) success=\(didBecomeResponder) isFirstResponder=\(isFirstResponder) responder=\(responderName)"
-            )
-        }
-
-        guard !isFirstResponder, attempt < 4 else {
-            if isFirstResponder {
-                NSAccessibility.post(element: self, notification: .focusedUIElementChanged)
-            }
-            return
-        }
-
-        DispatchQueue.main.asyncAfter(deadline: .now() + 0.01) { [weak self] in
-            self?.promoteToFirstResponder(attempt: attempt + 1, reason: reason)
-        }
-    }
-
-    private func normalizedArrowModifiers(for event: NSEvent) -> NSEvent.ModifierFlags {
-        event.modifierFlags
-            .intersection(.deviceIndependentFlagsMask)
-            .subtracting([.numericPad, .function])
-    }
-}
-
-private final class ExplorerEventMonitor {
-    private let token: Any
-
-    init(token: Any) {
-        self.token = token
-    }
-
-    deinit {
-        NSEvent.removeMonitor(token)
     }
 }
 

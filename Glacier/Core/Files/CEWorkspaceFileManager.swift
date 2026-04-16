@@ -36,7 +36,7 @@ protocol CEWorkspaceFileManagerObserver: AnyObject {
 /// ``CEWorkspaceFileManager/addFolder(folderName:toFile:)``, ``CEWorkspaceFileManager/delete(file:)``,
 /// ``CEWorkspaceFileManager/copy(file:to:)``, and ``CEWorkspaceFileManager/duplicate(file:)``.
 ///
-/// To listen for updates, the ``CEWorkspaceFileManager`` uses a ``CEDirectoryEventStream`` to listen to updates for any
+/// To listen for updates, the ``CEWorkspaceFileManager`` uses a ``DirectoryEventStream`` to listen to updates for any
 /// files under the ``CEWorkspaceFileManager/folderUrl`` url. Those can be passed on to listeners that conform to the
 /// ``CEWorkspaceFileManagerObserver`` protocol. Use the ``CEWorkspaceFileManager/addObserver(_:)``
 /// and ``CEWorkspaceFileManager/removeObserver(_:)`` to add or remove observers. Observers are kept as weak references.
@@ -48,7 +48,7 @@ final class CEWorkspaceFileManager: @unchecked Sendable {
     var flattenedFileItems: [String: CEWorkspaceFile]
     /// Maps all directories to it's children's paths.
     var childrenMap: [String: [String]] = [:]
-    var fsEventStream: CEDirectoryEventStream?
+    var fsEventStream: DirectoryEventStream?
     var observers: NSHashTable<AnyObject> = .weakObjects()
 
     let folderUrl: URL
@@ -73,7 +73,7 @@ final class CEWorkspaceFileManager: @unchecked Sendable {
 
         self.loadChildrenForFile(self.workspaceItem)
 
-        fsEventStream = CEDirectoryEventStream(directory: self.folderUrl.path) { [weak self] events in
+        fsEventStream = DirectoryEventStream(directory: self.folderUrl.path) { [weak self] events in
             self?.fileSystemEventReceived(events: events)
         }
     }

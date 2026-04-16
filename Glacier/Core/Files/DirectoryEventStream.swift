@@ -6,9 +6,8 @@
 //
 //  Created by Khan Winter on 6/26/23.
 //
-//  Note: the underlying CodeEdit class is named `DirectoryEventStream`. It is renamed
-//  here to `CEDirectoryEventStream` to avoid a symbol collision with Glacier's existing
-//  `DirectoryEventStream` (in Glacier/Core/Services/) while both coexist during the port.
+//  Retains CodeEdit's original class name `DirectoryEventStream`. The legacy Glacier
+//  watcher that previously held this symbol has been retired; see `to-remove/`.
 
 import Foundation
 
@@ -38,7 +37,7 @@ enum FSEvent: String {
 /// The `callback` function will be called with all events that happened since the last event notification,
 /// effectively batching all notifications every `debounceDuration`. This callback may not be called on a
 /// predictable dispatch queue.
-class CEDirectoryEventStream {
+class DirectoryEventStream {
     typealias EventCallback = ([Event]) -> Void
 
     private var streamRef: FSEventStreamRef?
@@ -56,8 +55,8 @@ class CEDirectoryEventStream {
     ///   directory is modified or moved.
     ///   - debounceDuration: The duration to delay notifications for to let the FS events API accumulates events.
     ///                       defaults to 0.1s.
-    ///   - callback: A callback provided that the ``CEDirectoryEventStream`` will send events to. See
-    ///               ``CEDirectoryEventStream``'s documentation for detailed information.
+    ///   - callback: A callback provided that the ``DirectoryEventStream`` will send events to. See
+    ///               ``DirectoryEventStream``'s documentation for detailed information.
     init(directory: String, debounceDuration: TimeInterval = 0.1, callback: @escaping EventCallback) {
         self.debounceDuration = debounceDuration
         self.callback = callback
@@ -80,7 +79,7 @@ class CEDirectoryEventStream {
             // swiflint:ignore:next opening_brace
             { streamRef, clientCallBackInfo, numEvents, eventPaths, eventFlags, eventIds in
                 guard let clientCallBackInfo else { return }
-                Unmanaged<CEDirectoryEventStream>
+                Unmanaged<DirectoryEventStream>
                     .fromOpaque(clientCallBackInfo)
                     .takeUnretainedValue()
                     .eventStreamHandler(streamRef, numEvents, eventPaths, eventFlags, eventIds)

@@ -27,6 +27,12 @@ final class SidebarHost: ObservableObject {
     /// the "Open in Tab" context menu). Glacier wires this to `AppState.openFile(...)`.
     var onOpenFileInTab: ((URL) -> Void)?
 
+    /// Called by the outline view after files/folders are trashed or deleted. Glacier
+    /// wires this to close any tabs open for those URLs (including files inside a
+    /// removed folder). Passed URLs are the items the user actioned — the callback
+    /// is responsible for expanding folders to individual tabs.
+    var onFilesRemoved: (([URL]) -> Void)?
+
     /// Published hint that the outline view should reveal + select the given URL. A nil
     /// value means "no pending reveal". Consumers reset to nil after handling.
     @Published var revealRequest: URL?

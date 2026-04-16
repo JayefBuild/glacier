@@ -437,36 +437,38 @@ final class FileService: ObservableObject {
 
         // Rebuild the stream only when the root changes; otherwise keep the existing one.
         if rootEventStream == nil {
-            rootEventStream = DirectoryEventStream(rootURL: rootURL) { [weak self] events in
+            let rootPath = rootURL.path
+            rootEventStream = DirectoryEventStream(directory: rootPath) { [weak self] events in
                 // FSEvents delivers on our background queue. Hop to main to touch state.
                 Task { @MainActor in
-                    self?.handleDirectoryEvents(events)
+                    self?.handleDirectoryEvents(events, rootPath: rootPath)
                 }
             }
         }
     }
 
-    private func handleDirectoryEvents(_ events: [DirectoryEvent]) {
+    private func handleDirectoryEvents(_ events: [DirectoryEventStream.Event], rootPath: String) {
         guard let rootURL else { return }
 
         for event in events {
-            switch event.kind {
-            case .rootDeleted:
-                // Workspace folder was deleted — treat as close.
-                closeFolder()
-                return
-
-            case .rootRenamed:
-                // Root was renamed/moved by something outside our control.
-                // FSEvents doesn't reliably report the new path, so reload what we have.
-                scheduleRefresh(for: rootURL)
-
-            case .changeInDirectory:
-                // The event path is the file or directory that changed. We re-diff
-                // its parent folder (which is what actually matters for the tree).
-                let parent = event.url.deletingLastPathComponent().standardizedFileURL
-                scheduleRefresh(for: parent)
+            if event.eventType == .rootChanged {
+                if FileManager.default.fileExists(atPath: rootPath) {
+                    // Root was renamed/moved by something outside our control.
+                    // FSEvents doesn't reliably report the new path, so reload what we have.
+                    scheduleRefresh(for: rootURL)
+                } else {
+                    // Workspace folder was deleted — treat as close.
+                    closeFolder()
+                    return
+                }
+                continue
             }
+
+            // The event path is the file or directory that changed. We re-diff
+            // its parent folder (which is what actually matters for the tree).
+            let url = URL(fileURLWithPath: event.path).standardizedFileURL
+            let parent = url.deletingLastPathComponent().standardizedFileURL
+            scheduleRefresh(for: parent)
         }
     }
 

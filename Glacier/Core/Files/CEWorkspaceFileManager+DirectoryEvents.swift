@@ -16,7 +16,7 @@ extension CEWorkspaceFileManager {
     /// This method may be called on a background thread, but all work done by this function will be queued on the main
     /// thread.
     /// - Parameter events: An array of events that occurred.
-    func fileSystemEventReceived(events: [CEDirectoryEventStream.Event]) {
+    func fileSystemEventReceived(events: [DirectoryEventStream.Event]) {
         DispatchQueue.main.async {
             var files: Set<CEWorkspaceFile> = []
             for event in events {

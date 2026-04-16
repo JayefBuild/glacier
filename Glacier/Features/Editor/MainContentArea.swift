@@ -4,6 +4,40 @@
 import SwiftUI
 import UniformTypeIdentifiers
 
+// MARK: - Dragged file URL
+//
+// Used by editor-split drop handling to decode file-drag payloads from the
+// legacy SwiftUI sidebar. The current NSOutlineView sidebar uses NSURL on the
+// pasteboard instead, so this branch is currently dormant — kept for forward
+// compat until the drag-to-split flow is rewired against the new sidebar.
+struct DraggedFileURL: Transferable, Codable {
+    let url: URL
+
+    static var transferRepresentation: some TransferRepresentation {
+        CodableRepresentation(contentType: .glacierFileURL)
+    }
+
+    enum CodingKeys: String, CodingKey { case path }
+
+    init(url: URL) {
+        self.url = url
+    }
+
+    init(from decoder: Decoder) throws {
+        let c = try decoder.container(keyedBy: CodingKeys.self)
+        url = URL(fileURLWithPath: try c.decode(String.self, forKey: .path))
+    }
+
+    func encode(to encoder: Encoder) throws {
+        var c = encoder.container(keyedBy: CodingKeys.self)
+        try c.encode(url.path, forKey: .path)
+    }
+}
+
+extension UTType {
+    static let glacierFileURL = UTType(exportedAs: "com.glacier.fileurl")
+}
+
 struct MainContentArea: View {
     @EnvironmentObject private var appState: AppState
     @Environment(\.appTheme) private var theme
