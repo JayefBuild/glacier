@@ -24,7 +24,15 @@
 		609281CF16DD8030B821F72B /* TerminalViewCache.swift in Sources */ = {isa = PBXBuildFile; fileRef = 27E564E480C4BD29A5AD46CC /* TerminalViewCache.swift */; };
 		652D9030B6C14091D48D31A9 /* react-dom.min.js in Resources */ = {isa = PBXBuildFile; fileRef = 9473C6D8C1A5E7EBD9E4230D /* react-dom.min.js */; };
 		66E686EFCC52B01B5152BFE0 /* FileService.swift in Sources */ = {isa = PBXBuildFile; fileRef = 4576EACAE58F9517F77555F0 /* FileService.swift */; };
-		A1B2C3D4E5F60718293A4B5C /* DirectoryEventStream.swift in Sources */ = {isa = PBXBuildFile; fileRef = A1B2C3D4E5F60718293A4B5D /* DirectoryEventStream.swift */; };
+		A1B2C3D4E5F60718293A4B5C /* LegacyDirectoryEventStream.swift in Sources */ = {isa = PBXBuildFile; fileRef = A1B2C3D4E5F60718293A4B5D /* LegacyDirectoryEventStream.swift */; };
+		CE00000000000000000000B1 /* CEWorkspaceFile.swift in Sources */ = {isa = PBXBuildFile; fileRef = CE00000000000000000000F1 /* CEWorkspaceFile.swift */; };
+		CE00000000000000000000B2 /* CEWorkspaceFile+Recursion.swift in Sources */ = {isa = PBXBuildFile; fileRef = CE00000000000000000000F2 /* CEWorkspaceFile+Recursion.swift */; };
+		CE00000000000000000000B3 /* CEWorkspaceFileIcon.swift in Sources */ = {isa = PBXBuildFile; fileRef = CE00000000000000000000F3 /* CEWorkspaceFileIcon.swift */; };
+		CE00000000000000000000B4 /* CEWorkspaceFileManager.swift in Sources */ = {isa = PBXBuildFile; fileRef = CE00000000000000000000F4 /* CEWorkspaceFileManager.swift */; };
+		CE00000000000000000000B5 /* CEWorkspaceFileManager+DirectoryEvents.swift in Sources */ = {isa = PBXBuildFile; fileRef = CE00000000000000000000F5 /* CEWorkspaceFileManager+DirectoryEvents.swift */; };
+		CE00000000000000000000B6 /* CEWorkspaceFileManager+Error.swift in Sources */ = {isa = PBXBuildFile; fileRef = CE00000000000000000000F6 /* CEWorkspaceFileManager+Error.swift */; };
+		CE00000000000000000000B7 /* CEWorkspaceFileManager+FileManagement.swift in Sources */ = {isa = PBXBuildFile; fileRef = CE00000000000000000000F7 /* CEWorkspaceFileManager+FileManagement.swift */; };
+		CE00000000000000000000B8 /* DirectoryEventStream.swift in Sources */ = {isa = PBXBuildFile; fileRef = CE00000000000000000000F8 /* DirectoryEventStream.swift */; };
 		71A63D9F94BC4DE15D639984 /* FocusedAppState.swift in Sources */ = {isa = PBXBuildFile; fileRef = EC85B918140EBDA7A4BAFD8D /* FocusedAppState.swift */; };
 		779EBCEE08533E2847A2A7FC /* GlacierCommands.swift in Sources */ = {isa = PBXBuildFile; fileRef = E12F526BF85595F4F2377633 /* GlacierCommands.swift */; };
 		7F3295DBCA75CFB816671B56 /* DebugUITest.swift in Sources */ = {isa = PBXBuildFile; fileRef = F80AC125D3152A7106A12278 /* DebugUITest.swift */; };
@@ -73,7 +81,15 @@
 		27E564E480C4BD29A5AD46CC /* TerminalViewCache.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = TerminalViewCache.swift; sourceTree = "<group>"; };
 		29A928CAF4BF8420D26624D4 /* Info.plist */ = {isa = PBXFileReference; lastKnownFileType = text.plist; path = Info.plist; sourceTree = "<group>"; };
 		4576EACAE58F9517F77555F0 /* FileService.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = FileService.swift; sourceTree = "<group>"; };
-		A1B2C3D4E5F60718293A4B5D /* DirectoryEventStream.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = DirectoryEventStream.swift; sourceTree = "<group>"; };
+		A1B2C3D4E5F60718293A4B5D /* LegacyDirectoryEventStream.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = LegacyDirectoryEventStream.swift; sourceTree = "<group>"; };
+		CE00000000000000000000F1 /* CEWorkspaceFile.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = CEWorkspaceFile.swift; sourceTree = "<group>"; };
+		CE00000000000000000000F2 /* CEWorkspaceFile+Recursion.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = "CEWorkspaceFile+Recursion.swift"; sourceTree = "<group>"; };
+		CE00000000000000000000F3 /* CEWorkspaceFileIcon.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = CEWorkspaceFileIcon.swift; sourceTree = "<group>"; };
+		CE00000000000000000000F4 /* CEWorkspaceFileManager.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = CEWorkspaceFileManager.swift; sourceTree = "<group>"; };
+		CE00000000000000000000F5 /* CEWorkspaceFileManager+DirectoryEvents.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = "CEWorkspaceFileManager+DirectoryEvents.swift"; sourceTree = "<group>"; };
+		CE00000000000000000000F6 /* CEWorkspaceFileManager+Error.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = "CEWorkspaceFileManager+Error.swift"; sourceTree = "<group>"; };
+		CE00000000000000000000F7 /* CEWorkspaceFileManager+FileManagement.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = "CEWorkspaceFileManager+FileManagement.swift"; sourceTree = "<group>"; };
+		CE00000000000000000000F8 /* DirectoryEventStream.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = DirectoryEventStream.swift; sourceTree = "<group>"; };
 		4AB76542D0D42359BD5CB051 /* react.min.js */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.javascript; path = react.min.js; sourceTree = "<group>"; };
 		514C6B81CB9C5AA52346DB3E /* ImageViewerView.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = ImageViewerView.swift; sourceTree = "<group>"; };
 		525B6E4CCA234E9F6D2D7EE2 /* Glacier.entitlements */ = {isa = PBXFileReference; lastKnownFileType = text.plist.entitlements; path = Glacier.entitlements; sourceTree = "<group>"; };
@@ -269,7 +285,7 @@
 			isa = PBXGroup;
 			children = (
 				4576EACAE58F9517F77555F0 /* FileService.swift */,
-				A1B2C3D4E5F60718293A4B5D /* DirectoryEventStream.swift */,
+				A1B2C3D4E5F60718293A4B5D /* LegacyDirectoryEventStream.swift */,
 				1D18FBC0FF11123033274329 /* SyntaxHighlighter.swift */,
 			);
 			path = Services;
@@ -296,11 +312,27 @@
 		FE196AB1784B8959A491B306 /* Core */ = {
 			isa = PBXGroup;
 			children = (
+				CE00000000000000000000A0 /* Files */,
 				2869AE08A908168CF17E9C49 /* Models */,
 				E11A3D81B42656F350321176 /* Services */,
 				9482FF661724D73D296F7047 /* Theme */,
 			);
 			path = Core;
+			sourceTree = "<group>";
+		};
+		CE00000000000000000000A0 /* Files */ = {
+			isa = PBXGroup;
+			children = (
+				CE00000000000000000000F1 /* CEWorkspaceFile.swift */,
+				CE00000000000000000000F2 /* CEWorkspaceFile+Recursion.swift */,
+				CE00000000000000000000F3 /* CEWorkspaceFileIcon.swift */,
+				CE00000000000000000000F4 /* CEWorkspaceFileManager.swift */,
+				CE00000000000000000000F5 /* CEWorkspaceFileManager+DirectoryEvents.swift */,
+				CE00000000000000000000F6 /* CEWorkspaceFileManager+Error.swift */,
+				CE00000000000000000000F7 /* CEWorkspaceFileManager+FileManagement.swift */,
+				CE00000000000000000000F8 /* DirectoryEventStream.swift */,
+			);
+			path = Files;
 			sourceTree = "<group>";
 		};
 /* End PBXGroup section */
@@ -418,7 +450,15 @@
 				9EE4F8D1E4C6B1FCAE4EE521 /* FileItem.swift in Sources */,
 				446CB83237B38B6DD2451699 /* FileRowView.swift in Sources */,
 				66E686EFCC52B01B5152BFE0 /* FileService.swift in Sources */,
-				A1B2C3D4E5F60718293A4B5C /* DirectoryEventStream.swift in Sources */,
+				A1B2C3D4E5F60718293A4B5C /* LegacyDirectoryEventStream.swift in Sources */,
+				CE00000000000000000000B1 /* CEWorkspaceFile.swift in Sources */,
+				CE00000000000000000000B2 /* CEWorkspaceFile+Recursion.swift in Sources */,
+				CE00000000000000000000B3 /* CEWorkspaceFileIcon.swift in Sources */,
+				CE00000000000000000000B4 /* CEWorkspaceFileManager.swift in Sources */,
+				CE00000000000000000000B5 /* CEWorkspaceFileManager+DirectoryEvents.swift in Sources */,
+				CE00000000000000000000B6 /* CEWorkspaceFileManager+Error.swift in Sources */,
+				CE00000000000000000000B7 /* CEWorkspaceFileManager+FileManagement.swift in Sources */,
+				CE00000000000000000000B8 /* DirectoryEventStream.swift in Sources */,
 				9CCCE74E801685099345E041 /* FileTypeRegistry.swift in Sources */,
 				D4A2C2AD9B128971DEFAE880 /* FileViewerRouter.swift in Sources */,
 				71A63D9F94BC4DE15D639984 /* FocusedAppState.swift in Sources */,
