@@ -10,6 +10,7 @@ import AppKit
 @MainActor
 final class GuardedTerminalView: LocalProcessTerminalView {
     private let focusDebugLoggingEnabled = ProcessInfo.processInfo.environment["GLACIER_DEBUG_FOCUS"] == "1"
+    private static let returnKeyCodes: Set<UInt16> = [36, 76]
     var debugName = ""
     var onInteraction: (() -> Void)?
     var onCommand: ((TerminalShortcutCommand) -> Void)?
@@ -103,6 +104,10 @@ final class GuardedTerminalView: LocalProcessTerminalView {
                   event.window === window,
                   window.firstResponder === self else {
                 return event
+            }
+
+            if self.handleLineFeedOverrideIfNeeded(event) {
+                return nil
             }
 
             return self.handleShortcutIfNeeded(event) ? nil : event
@@ -199,6 +204,27 @@ final class GuardedTerminalView: LocalProcessTerminalView {
         }
 
         return nil
+    }
+
+    private func shouldSendLineFeedForShiftReturn(_ event: NSEvent) -> Bool {
+        guard Self.returnKeyCodes.contains(event.keyCode) else { return false }
+
+        let modifiers = event.modifierFlags.intersection(.deviceIndependentFlagsMask)
+        guard modifiers.contains(.shift) else { return false }
+        guard !modifiers.contains(.command),
+              !modifiers.contains(.control),
+              !modifiers.contains(.option),
+              !modifiers.contains(.function) else {
+            return false
+        }
+
+        return true
+    }
+
+    private func handleLineFeedOverrideIfNeeded(_ event: NSEvent) -> Bool {
+        guard shouldSendLineFeedForShiftReturn(event) else { return false }
+        send(EscapeSequences.cmdNewLine)
+        return true
     }
 
     private func logUnhandledShortcut(_ event: NSEvent) {
