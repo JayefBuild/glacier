@@ -181,11 +181,22 @@ extension ProjectNavigatorMenu {
         do {
             let items = selectedItems()
             let removedURLs = items.map(\.url)
+            var affectedParents: Set<CEWorkspaceFile> = []
             try items.forEach { item in
                 guard FileManager.default.fileExists(atPath: item.url.path) else {
                     return
                 }
                 try host?.fileManager?.trash(file: item)
+                if let parent = item.parent {
+                    affectedParents.insert(parent)
+                }
+            }
+            // CEWorkspaceFileManager.trash only touches disk — it does NOT rebuild the
+            // in-memory childrenMap. FSEvents will eventually fire and reconcile, but
+            // until then the sidebar shows the trashed item. Force a rebuild now so the
+            // row disappears immediately.
+            for parent in affectedParents {
+                try? host?.fileManager?.rebuildFiles(fromItem: parent)
             }
             host?.onFilesRemoved?(removedURLs)
             reloadData()
@@ -202,12 +213,18 @@ extension ProjectNavigatorMenu {
         do {
             let selectedItems = selectedItems()
             let removedURLs = selectedItems.map(\.url)
+            let affectedParents: Set<CEWorkspaceFile> = Set(selectedItems.compactMap { $0.parent })
             if selectedItems.count == 1 {
                 try selectedItems.forEach { item in
                     try host?.fileManager?.delete(file: item)
                 }
             } else {
                 try host?.fileManager?.batchDelete(files: selectedItems)
+            }
+            // Force-rebuild children for every parent of a deleted item — see trash()
+            // for why this is necessary (disk write doesn't update the cache).
+            for parent in affectedParents {
+                try? host?.fileManager?.rebuildFiles(fromItem: parent)
             }
             host?.onFilesRemoved?(removedURLs)
             reloadData()

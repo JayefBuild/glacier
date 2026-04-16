@@ -140,6 +140,36 @@ private struct ExplorerContent: View {
                 appState.openFile(item)
             }
         }
+        sidebarHost.onFileRenamed = { oldURL, newURL in
+            Task { @MainActor in
+                let oldPath = oldURL.standardizedFileURL.path
+                let newPath = newURL.standardizedFileURL.path
+                for tab in appState.tabs {
+                    guard case .file(let fileItem) = tab.kind else { continue }
+                    let tabPath = fileItem.url.standardizedFileURL.path
+                    if tabPath == oldPath || tabPath.hasPrefix(oldPath + "/") {
+                        // Close the stale tab. If the rename was a file, open the renamed one.
+                        appState.closeTab(tab, bypassingConfirmation: true)
+                        if tabPath == oldPath {
+                            let newItem = FileItem(
+                                url: newURL,
+                                isDirectory: (try? newURL.resourceValues(forKeys: [.isDirectoryKey]).isDirectory) ?? false
+                            )
+                            appState.openFile(newItem)
+                        } else {
+                            // Tab was inside a renamed folder — translate the path.
+                            let suffix = String(tabPath.dropFirst(oldPath.count))
+                            let translated = URL(fileURLWithPath: newPath + suffix)
+                            let newItem = FileItem(
+                                url: translated,
+                                isDirectory: (try? translated.resourceValues(forKeys: [.isDirectoryKey]).isDirectory) ?? false
+                            )
+                            appState.openFile(newItem)
+                        }
+                    }
+                }
+            }
+        }
         sidebarHost.onFilesRemoved = { removedURLs in
             Task { @MainActor in
                 // For each open file tab, close it if its URL is among the removed

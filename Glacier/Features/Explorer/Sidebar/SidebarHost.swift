@@ -33,6 +33,11 @@ final class SidebarHost: ObservableObject {
     /// is responsible for expanding folders to individual tabs.
     var onFilesRemoved: (([URL]) -> Void)?
 
+    /// Called by the outline view after a file/folder is renamed (moved on disk).
+    /// Glacier wires this so open tabs retarget from the old URL to the new one.
+    /// First arg is old URL, second is new URL.
+    var onFileRenamed: ((URL, URL) -> Void)?
+
     /// Published hint that the outline view should reveal + select the given URL. A nil
     /// value means "no pending reveal". Consumers reset to nil after handling.
     @Published var revealRequest: URL?

@@ -15,14 +15,18 @@ import AppKit
 extension ProjectNavigatorViewController: OutlineTableViewCellDelegate {
     func moveFile(file: CEWorkspaceFile, to destination: URL) {
         do {
-            guard let newFile = try host?.fileManager?.move(file: file, to: destination),
-                  !newFile.isFolder else {
-                return
-            }
+            // move(...) returns nil when the destination parent isn't currently indexed —
+            // the move STILL happened on disk. The original bug: bailing on nil here left
+            // the sidebar showing a stale node for the pre-move file while the post-move
+            // file appeared via FSEvents reconciliation, producing the "rename creates a
+            // copy" symptom. Always reload the parent regardless of the return value.
+            let newFile = try host?.fileManager?.move(file: file, to: destination)
             outlineView.reloadItem(file.parent, reloadChildren: true)
-            if !file.isFolder {
+            if let newFile, !newFile.isFolder {
                 host?.onOpenFileInTab?(newFile.url)
             }
+            // Notify AppState so any open tab for the old URL retargets to the new one.
+            host?.onFileRenamed?(file.url, destination)
         } catch {
             let alert = NSAlert(error: error)
             alert.addButton(withTitle: "Dismiss")

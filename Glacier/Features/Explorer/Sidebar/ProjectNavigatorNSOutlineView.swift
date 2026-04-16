@@ -34,6 +34,9 @@ final class ProjectNavigatorNSOutlineView: NSOutlineView, NSMenuItemValidation {
         if menuItem.action == #selector(ProjectNavigatorMenu.newFileFromClipboard) {
             return !selectedRowIndexes.isEmpty
         }
-        return false
+        // CRITICAL: returning `false` for unknown menu items disables them when this
+        // outline view is in the responder chain — including Cmd+Q (NSApp.terminate).
+        // Return `true` so AppKit walks the chain to the proper validator/target.
+        return true
     }
 }
