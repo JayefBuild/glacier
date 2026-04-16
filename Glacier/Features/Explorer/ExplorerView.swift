@@ -72,6 +72,7 @@ private struct TitlebarControlStrip: View {
 private struct ExplorerContent: View {
     @ObservedObject var fileService: FileService
     @EnvironmentObject private var appState: AppState
+    @StateObject private var sidebarHost = SidebarHost()
     @Environment(\.appTheme) private var theme
 
     var body: some View {
@@ -81,7 +82,7 @@ private struct ExplorerContent: View {
             if fileService.rootURL == nil {
                 ExplorerEmptyState(fileService: fileService)
             } else {
-                ExplorerTreeView(fileService: fileService)
+                ProjectNavigatorOutlineView(host: sidebarHost)
             }
             Spacer(minLength: 0)
             Divider()
@@ -114,25 +115,31 @@ private struct ExplorerContent: View {
             },
             including: .subviews
         )
-        .background(
-            ExplorerKeyboardMonitor(
-                onSidebarInteraction: {
-                    appState.focusExplorer()
-                },
-                onMoveUp: {
-                    _ = appState.moveExplorerSelection(by: -1)
-                },
-                onMoveDown: {
-                    _ = appState.moveExplorerSelection(by: 1)
-                },
-                onCollapse: {
-                    _ = appState.collapseSelectedExplorerItem()
-                },
-                onExpand: {
-                    _ = appState.expandSelectedExplorerItem()
-                }
-            )
-        )
+        .onAppear { wireHost() }
+        .onChange(of: fileService.rootURL) { _, _ in wireHost() }
+    }
+
+    private func wireHost() {
+        sidebarHost.setFileManager(fileService.manager)
+        sidebarHost.onOpenFile = { url in
+            Task { @MainActor in
+                let item = FileItem(
+                    url: url,
+                    isDirectory: (try? url.resourceValues(forKeys: [.isDirectoryKey]).isDirectory) ?? false
+                )
+                appState.previewFile(item)
+                appState.selectExplorerURL(url)
+            }
+        }
+        sidebarHost.onOpenFileInTab = { url in
+            Task { @MainActor in
+                let item = FileItem(
+                    url: url,
+                    isDirectory: (try? url.resourceValues(forKeys: [.isDirectoryKey]).isDirectory) ?? false
+                )
+                appState.openFile(item)
+            }
+        }
     }
 }
 
@@ -142,6 +149,8 @@ private struct ExplorerHeaderView: View {
     @ObservedObject var fileService: FileService
     @EnvironmentObject private var appState: AppState
     @Environment(\.appTheme) private var theme
+
+    @State private var gitBranch: String?
 
     var title: String {
         fileService.rootURL?.lastPathComponent ?? "No Folder"
@@ -157,6 +166,18 @@ private struct ExplorerHeaderView: View {
                     .foregroundStyle(.secondary)
                     .lineLimit(1)
                     .truncationMode(.middle)
+
+                if let gitBranch, !gitBranch.isEmpty {
+                    Text("\u{00B7}")
+                        .font(.system(size: appState.sidebarCaptionFontSize))
+                        .foregroundStyle(.tertiary)
+                    Text(gitBranch)
+                        .font(.system(size: appState.sidebarCaptionFontSize - 1, weight: .regular, design: .monospaced))
+                        .foregroundStyle(.tertiary)
+                        .lineLimit(1)
+                        .truncationMode(.tail)
+                }
+
                 Spacer()
             }
             .padding(.horizontal, 12)
@@ -169,7 +190,41 @@ private struct ExplorerHeaderView: View {
                     .padding(.bottom, 6)
             }
         }
+        .onAppear { refreshGitBranch(for: fileService.rootURL) }
+        .onChange(of: fileService.rootURL) { _, url in
+            refreshGitBranch(for: url)
+        }
     }
+
+    private func refreshGitBranch(for url: URL?) {
+        guard let url else {
+            gitBranch = nil
+            return
+        }
+        Task.detached {
+            let branch = runGitBranch(in: url)
+            await MainActor.run { self.gitBranch = branch }
+        }
+    }
+}
+
+private func runGitBranch(in url: URL) -> String? {
+    let process = Process()
+    process.executableURL = URL(fileURLWithPath: "/usr/bin/git")
+    process.arguments = ["-C", url.path, "rev-parse", "--abbrev-ref", "HEAD"]
+    let pipe = Pipe()
+    process.standardOutput = pipe
+    process.standardError = Pipe()
+    do {
+        try process.run()
+    } catch {
+        return nil
+    }
+    process.waitUntilExit()
+    guard process.terminationStatus == 0 else { return nil }
+    let data = pipe.fileHandleForReading.readDataToEndOfFile()
+    let str = String(data: data, encoding: .utf8)?.trimmingCharacters(in: .whitespacesAndNewlines)
+    return (str?.isEmpty == false) ? str : nil
 }
 
 // MARK: - Toolbar

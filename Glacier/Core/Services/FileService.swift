@@ -20,6 +20,14 @@ final class FileService: ObservableObject {
     private var pendingRefreshWorkItem: DispatchWorkItem?
     private var pendingRefreshURLs: Set<URL> = []
 
+    // MARK: - CEWorkspaceFileManager bridge
+    //
+    // Phase 2: FileService still maintains the legacy `rootItems: [FileItem]` tree that
+    // its existing SwiftUI/AppState callers rely on, but also owns a CEWorkspaceFileManager
+    // which is the single source of truth for the new NSOutlineView sidebar. Both trees
+    // refresh from disk on the same event stream, so they stay in sync.
+    private(set) var manager: CEWorkspaceFileManager?
+
     // MARK: - Open Folder
 
     func openFolder(at url: URL) {
@@ -34,6 +42,11 @@ final class FileService: ObservableObject {
             pendingRefreshWorkItem = nil
             pendingRefreshURLs.removeAll()
             rootEventStream = nil
+            manager?.cleanUp()
+            manager = CEWorkspaceFileManager(
+                folderUrl: normalizedURL,
+                ignoredFilesAndFolders: Self.defaultIgnoredFilesAndFolders
+            )
         }
         isLoading = true
         WorkspaceStore.shared.add(normalizedURL)
@@ -59,8 +72,14 @@ final class FileService: ObservableObject {
         pendingRefreshWorkItem = nil
         pendingRefreshURLs.removeAll()
         rootEventStream = nil
+        manager?.cleanUp()
+        manager = nil
         markTreeDidChange()
     }
+
+    /// Default ignore list for the CE file manager. Keep minimal — we don't want to
+    /// silently drop files. .DS_Store is the obvious noise candidate.
+    static let defaultIgnoredFilesAndFolders: Set<String> = [".DS_Store"]
 
     // MARK: - Load Children
 

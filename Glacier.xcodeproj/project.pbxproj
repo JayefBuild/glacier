@@ -33,6 +33,20 @@
 		CE00000000000000000000B6 /* CEWorkspaceFileManager+Error.swift in Sources */ = {isa = PBXBuildFile; fileRef = CE00000000000000000000F6 /* CEWorkspaceFileManager+Error.swift */; };
 		CE00000000000000000000B7 /* CEWorkspaceFileManager+FileManagement.swift in Sources */ = {isa = PBXBuildFile; fileRef = CE00000000000000000000F7 /* CEWorkspaceFileManager+FileManagement.swift */; };
 		CE00000000000000000000B8 /* DirectoryEventStream.swift in Sources */ = {isa = PBXBuildFile; fileRef = CE00000000000000000000F8 /* DirectoryEventStream.swift */; };
+		CE000000000000000000ABA1 /* SidebarHost.swift in Sources */ = {isa = PBXBuildFile; fileRef = CE00000000000000000000A1 /* SidebarHost.swift */; };
+		CE000000000000000000ABA2 /* ProjectNavigatorOutlineView.swift in Sources */ = {isa = PBXBuildFile; fileRef = CE00000000000000000000A2 /* ProjectNavigatorOutlineView.swift */; };
+		CE000000000000000000ABA3 /* ProjectNavigatorViewController.swift in Sources */ = {isa = PBXBuildFile; fileRef = CE00000000000000000000A3 /* ProjectNavigatorViewController.swift */; };
+		CE000000000000000000ABA4 /* ProjectNavigatorViewController+NSOutlineViewDataSource.swift in Sources */ = {isa = PBXBuildFile; fileRef = CE00000000000000000000A4 /* ProjectNavigatorViewController+NSOutlineViewDataSource.swift */; };
+		CE000000000000000000ABA5 /* ProjectNavigatorViewController+NSOutlineViewDelegate.swift in Sources */ = {isa = PBXBuildFile; fileRef = CE00000000000000000000A5 /* ProjectNavigatorViewController+NSOutlineViewDelegate.swift */; };
+		CE000000000000000000ABA6 /* ProjectNavigatorViewController+NSMenuDelegate.swift in Sources */ = {isa = PBXBuildFile; fileRef = CE00000000000000000000A6 /* ProjectNavigatorViewController+NSMenuDelegate.swift */; };
+		CE000000000000000000ABA7 /* ProjectNavigatorViewController+OutlineTableViewCellDelegate.swift in Sources */ = {isa = PBXBuildFile; fileRef = CE00000000000000000000A7 /* ProjectNavigatorViewController+OutlineTableViewCellDelegate.swift */; };
+		CE000000000000000000ABA8 /* ProjectNavigatorTableViewCell.swift in Sources */ = {isa = PBXBuildFile; fileRef = CE00000000000000000000A8 /* ProjectNavigatorTableViewCell.swift */; };
+		CE000000000000000000ABA9 /* ProjectNavigatorMenu.swift in Sources */ = {isa = PBXBuildFile; fileRef = CE00000000000000000000A9 /* ProjectNavigatorMenu.swift */; };
+		CE000000000000000000ABAA /* ProjectNavigatorMenuActions.swift in Sources */ = {isa = PBXBuildFile; fileRef = CE00000000000000000000AA /* ProjectNavigatorMenuActions.swift */; };
+		CE000000000000000000ABAB /* ProjectNavigatorNSOutlineView.swift in Sources */ = {isa = PBXBuildFile; fileRef = CE00000000000000000000AB /* ProjectNavigatorNSOutlineView.swift */; };
+		CE000000000000000000ABAC /* FileSystemTableViewCell.swift in Sources */ = {isa = PBXBuildFile; fileRef = CE00000000000000000000AC /* FileSystemTableViewCell.swift */; };
+		CE000000000000000000ABAD /* StandardTableViewCell.swift in Sources */ = {isa = PBXBuildFile; fileRef = CE00000000000000000000AD /* StandardTableViewCell.swift */; };
+		CE000000000000000000ABAE /* TextTableViewCell.swift in Sources */ = {isa = PBXBuildFile; fileRef = CE00000000000000000000AE /* TextTableViewCell.swift */; };
 		71A63D9F94BC4DE15D639984 /* FocusedAppState.swift in Sources */ = {isa = PBXBuildFile; fileRef = EC85B918140EBDA7A4BAFD8D /* FocusedAppState.swift */; };
 		779EBCEE08533E2847A2A7FC /* GlacierCommands.swift in Sources */ = {isa = PBXBuildFile; fileRef = E12F526BF85595F4F2377633 /* GlacierCommands.swift */; };
 		7F3295DBCA75CFB816671B56 /* DebugUITest.swift in Sources */ = {isa = PBXBuildFile; fileRef = F80AC125D3152A7106A12278 /* DebugUITest.swift */; };
@@ -90,6 +104,20 @@
 		CE00000000000000000000F6 /* CEWorkspaceFileManager+Error.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = "CEWorkspaceFileManager+Error.swift"; sourceTree = "<group>"; };
 		CE00000000000000000000F7 /* CEWorkspaceFileManager+FileManagement.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = "CEWorkspaceFileManager+FileManagement.swift"; sourceTree = "<group>"; };
 		CE00000000000000000000F8 /* DirectoryEventStream.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = DirectoryEventStream.swift; sourceTree = "<group>"; };
+		CE00000000000000000000A1 /* SidebarHost.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = SidebarHost.swift; sourceTree = "<group>"; };
+		CE00000000000000000000A2 /* ProjectNavigatorOutlineView.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = ProjectNavigatorOutlineView.swift; sourceTree = "<group>"; };
+		CE00000000000000000000A3 /* ProjectNavigatorViewController.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = ProjectNavigatorViewController.swift; sourceTree = "<group>"; };
+		CE00000000000000000000A4 /* ProjectNavigatorViewController+NSOutlineViewDataSource.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = "ProjectNavigatorViewController+NSOutlineViewDataSource.swift"; sourceTree = "<group>"; };
+		CE00000000000000000000A5 /* ProjectNavigatorViewController+NSOutlineViewDelegate.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = "ProjectNavigatorViewController+NSOutlineViewDelegate.swift"; sourceTree = "<group>"; };
+		CE00000000000000000000A6 /* ProjectNavigatorViewController+NSMenuDelegate.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = "ProjectNavigatorViewController+NSMenuDelegate.swift"; sourceTree = "<group>"; };
+		CE00000000000000000000A7 /* ProjectNavigatorViewController+OutlineTableViewCellDelegate.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = "ProjectNavigatorViewController+OutlineTableViewCellDelegate.swift"; sourceTree = "<group>"; };
+		CE00000000000000000000A8 /* ProjectNavigatorTableViewCell.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = ProjectNavigatorTableViewCell.swift; sourceTree = "<group>"; };
+		CE00000000000000000000A9 /* ProjectNavigatorMenu.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = ProjectNavigatorMenu.swift; sourceTree = "<group>"; };
+		CE00000000000000000000AA /* ProjectNavigatorMenuActions.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = ProjectNavigatorMenuActions.swift; sourceTree = "<group>"; };
+		CE00000000000000000000AB /* ProjectNavigatorNSOutlineView.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = ProjectNavigatorNSOutlineView.swift; sourceTree = "<group>"; };
+		CE00000000000000000000AC /* FileSystemTableViewCell.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = FileSystemTableViewCell.swift; sourceTree = "<group>"; };
+		CE00000000000000000000AD /* StandardTableViewCell.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = StandardTableViewCell.swift; sourceTree = "<group>"; };
+		CE00000000000000000000AE /* TextTableViewCell.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = TextTableViewCell.swift; sourceTree = "<group>"; };
 		4AB76542D0D42359BD5CB051 /* react.min.js */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.javascript; path = react.min.js; sourceTree = "<group>"; };
 		514C6B81CB9C5AA52346DB3E /* ImageViewerView.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = ImageViewerView.swift; sourceTree = "<group>"; };
 		525B6E4CCA234E9F6D2D7EE2 /* Glacier.entitlements */ = {isa = PBXFileReference; lastKnownFileType = text.plist.entitlements; path = Glacier.entitlements; sourceTree = "<group>"; };
@@ -260,8 +288,38 @@
 				623249D019FA8412880434CB /* ExplorerView.swift */,
 				F785EA939571F234815930C5 /* FileRowView.swift */,
 				A29835D7429DEB0C2E24968D /* WorkspaceSwitcherView.swift */,
+				CE00000000000000000000C0 /* Cells */,
+				CE00000000000000000000B0 /* Sidebar */,
 			);
 			path = Explorer;
+			sourceTree = "<group>";
+		};
+		CE00000000000000000000B0 /* Sidebar */ = {
+			isa = PBXGroup;
+			children = (
+				CE00000000000000000000A1 /* SidebarHost.swift */,
+				CE00000000000000000000A2 /* ProjectNavigatorOutlineView.swift */,
+				CE00000000000000000000A3 /* ProjectNavigatorViewController.swift */,
+				CE00000000000000000000A4 /* ProjectNavigatorViewController+NSOutlineViewDataSource.swift */,
+				CE00000000000000000000A5 /* ProjectNavigatorViewController+NSOutlineViewDelegate.swift */,
+				CE00000000000000000000A6 /* ProjectNavigatorViewController+NSMenuDelegate.swift */,
+				CE00000000000000000000A7 /* ProjectNavigatorViewController+OutlineTableViewCellDelegate.swift */,
+				CE00000000000000000000A8 /* ProjectNavigatorTableViewCell.swift */,
+				CE00000000000000000000A9 /* ProjectNavigatorMenu.swift */,
+				CE00000000000000000000AA /* ProjectNavigatorMenuActions.swift */,
+				CE00000000000000000000AB /* ProjectNavigatorNSOutlineView.swift */,
+			);
+			path = Sidebar;
+			sourceTree = "<group>";
+		};
+		CE00000000000000000000C0 /* Cells */ = {
+			isa = PBXGroup;
+			children = (
+				CE00000000000000000000AC /* FileSystemTableViewCell.swift */,
+				CE00000000000000000000AD /* StandardTableViewCell.swift */,
+				CE00000000000000000000AE /* TextTableViewCell.swift */,
+			);
+			path = Cells;
 			sourceTree = "<group>";
 		};
 		BDB96C959EBD3A62FA792C3F /* Products */ = {
@@ -459,6 +517,20 @@
 				CE00000000000000000000B6 /* CEWorkspaceFileManager+Error.swift in Sources */,
 				CE00000000000000000000B7 /* CEWorkspaceFileManager+FileManagement.swift in Sources */,
 				CE00000000000000000000B8 /* DirectoryEventStream.swift in Sources */,
+				CE000000000000000000ABA1 /* SidebarHost.swift in Sources */,
+				CE000000000000000000ABA2 /* ProjectNavigatorOutlineView.swift in Sources */,
+				CE000000000000000000ABA3 /* ProjectNavigatorViewController.swift in Sources */,
+				CE000000000000000000ABA4 /* ProjectNavigatorViewController+NSOutlineViewDataSource.swift in Sources */,
+				CE000000000000000000ABA5 /* ProjectNavigatorViewController+NSOutlineViewDelegate.swift in Sources */,
+				CE000000000000000000ABA6 /* ProjectNavigatorViewController+NSMenuDelegate.swift in Sources */,
+				CE000000000000000000ABA7 /* ProjectNavigatorViewController+OutlineTableViewCellDelegate.swift in Sources */,
+				CE000000000000000000ABA8 /* ProjectNavigatorTableViewCell.swift in Sources */,
+				CE000000000000000000ABA9 /* ProjectNavigatorMenu.swift in Sources */,
+				CE000000000000000000ABAA /* ProjectNavigatorMenuActions.swift in Sources */,
+				CE000000000000000000ABAB /* ProjectNavigatorNSOutlineView.swift in Sources */,
+				CE000000000000000000ABAC /* FileSystemTableViewCell.swift in Sources */,
+				CE000000000000000000ABAD /* StandardTableViewCell.swift in Sources */,
+				CE000000000000000000ABAE /* TextTableViewCell.swift in Sources */,
 				9CCCE74E801685099345E041 /* FileTypeRegistry.swift in Sources */,
 				D4A2C2AD9B128971DEFAE880 /* FileViewerRouter.swift in Sources */,
 				71A63D9F94BC4DE15D639984 /* FocusedAppState.swift in Sources */,
