@@ -525,11 +525,14 @@ final class FileService: ObservableObject {
         }
 
         guard let directoryItem = fileItem(at: normalizedDirectoryURL),
-              directoryItem.isDirectory,
-              directoryItem.isLoaded else {
+              directoryItem.isDirectory else {
             return false
         }
 
+        // Always re-diff the affected directory, even if it wasn't previously loaded.
+        // Without this, moving a file INTO a collapsed folder silently drops the event,
+        // and the user sees stale contents when they later expand that folder. This is
+        // the "files don't show up until I close/reopen the sidebar" bug.
         directoryItem.children = loadChildren(
             of: normalizedDirectoryURL,
             expandedDirectories: expandedDirectories

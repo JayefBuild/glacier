@@ -418,6 +418,7 @@ private struct ExplorerTreeView: View {
             LazyVStack(alignment: .leading, spacing: 0) {
                 ForEach(fileService.rootItems) { item in
                     FileRowView(item: item, depth: 0)
+                        .id(ObjectIdentifier(item))
                 }
             }
             .padding(.vertical, 4)

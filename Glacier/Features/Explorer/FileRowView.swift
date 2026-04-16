@@ -77,11 +77,15 @@ struct FileRowView: View {
                     isDropTarget = targeted
                 }
 
-            // Expanded children (via FileService public API — Phase 1 boundary seal)
+            // Expanded children (via FileService public API — Phase 1 boundary seal).
+            // ObjectIdentifier tied to view .id forces SwiftUI to re-create the row
+            // when the underlying FileItem instance is replaced (which happens on
+            // refresh), so @ObservedObject binds to the new instance's @Published state.
             if appState.fileService.isExpanded(item),
                let children = appState.fileService.children(of: item) {
                 ForEach(children) { child in
                     FileRowView(item: child, depth: depth + 1)
+                        .id(ObjectIdentifier(child))
                 }
             }
         }
