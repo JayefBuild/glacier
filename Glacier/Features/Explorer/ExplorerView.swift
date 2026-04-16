@@ -141,28 +141,58 @@ private struct ExplorerContent: View {
             }
         }
         sidebarHost.onFileWillBeRenamed = { oldURL in
-            // Runs BEFORE disk move. Mark discarding + close tab synchronously so the
-            // editor's onDisappear→saveNow fires while the flag is set and is dropped.
-            // Must be synchronous (not Task) because the move happens right after.
+            // Runs BEFORE disk move. Mark discarding + close tab AND clear preview
+            // synchronously so the editor's onDisappear→saveNow fires while the flag
+            // is set and is dropped. Must be synchronous (not Task) — the move happens
+            // right after this returns.
             let normalized = oldURL.standardizedFileURL
             let normalizedPath = normalized.path
             fileService.beginDiscarding(normalized)
+
+            // Clear preview in either pane if it matches.
+            for pane in [EditorPane.primary, EditorPane.secondary] {
+                if let previewed = appState.previewedFileItem(in: pane) {
+                    let previewPath = previewed.url.standardizedFileURL.path
+                    if previewPath == normalizedPath || previewPath.hasPrefix(normalizedPath + "/") {
+                        fileService.beginDiscarding(previewed.url.standardizedFileURL)
+                        appState.clearPreview(in: pane)
+                    }
+                }
+            }
+
+            // Close open tabs for this URL or anything under it.
             for tab in appState.tabs {
                 guard case .file(let fileItem) = tab.kind else { continue }
                 let tabPath = fileItem.url.standardizedFileURL.path
                 if tabPath == normalizedPath || tabPath.hasPrefix(normalizedPath + "/") {
-                    // Also mark inner files as discarding so their pending saves drop.
                     fileService.beginDiscarding(fileItem.url.standardizedFileURL)
                     appState.closeTab(tab, bypassingConfirmation: true)
                 }
             }
         }
         sidebarHost.onFilesWillBeRemoved = { removedURLs in
-            // Runs BEFORE disk mutation. Same synchronous close + flag pattern.
+            // Runs BEFORE disk mutation. Same synchronous close + flag pattern,
+            // plus preview clearing.
             let normalized = removedURLs.map { $0.standardizedFileURL.path }
             for url in removedURLs {
                 fileService.beginDiscarding(url.standardizedFileURL)
             }
+
+            // Clear preview in either pane if it matches.
+            for pane in [EditorPane.primary, EditorPane.secondary] {
+                if let previewed = appState.previewedFileItem(in: pane) {
+                    let previewPath = previewed.url.standardizedFileURL.path
+                    let match = normalized.contains { removed in
+                        previewPath == removed || previewPath.hasPrefix(removed + "/")
+                    }
+                    if match {
+                        fileService.beginDiscarding(previewed.url.standardizedFileURL)
+                        appState.clearPreview(in: pane)
+                    }
+                }
+            }
+
+            // Close matching tabs.
             for tab in appState.tabs {
                 guard case .file(let fileItem) = tab.kind else { continue }
                 let tabPath = fileItem.url.standardizedFileURL.path
