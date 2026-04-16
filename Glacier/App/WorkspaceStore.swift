@@ -79,6 +79,14 @@ final class WorkspaceStore: ObservableObject {
         setActiveWorkspace(nil, for: windowID)
     }
 
+    var applicationTerminationInProgress: Bool {
+        isApplicationTerminating
+    }
+
+    func markApplicationTerminating() {
+        isApplicationTerminating = true
+    }
+
     func restoreOpenWorkspacesIfNeeded(using appState: AppState) {
         guard !didRestoreOpenWorkspacesOnLaunch else { return }
         didRestoreOpenWorkspacesOnLaunch = true

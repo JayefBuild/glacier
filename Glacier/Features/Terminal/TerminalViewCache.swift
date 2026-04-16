@@ -33,6 +33,14 @@ final class TerminalViewCache: @unchecked Sendable {
     }
 
     @MainActor
+    func hasForegroundProcessRunning(_ id: UUID) -> Bool {
+        lock.lock()
+        let view = cache[id]
+        lock.unlock()
+        return view?.hasForegroundProcessRunning ?? false
+    }
+
+    @MainActor
     func focus(_ id: UUID) {
         let view = get(id)
         if focusDebugLoggingEnabled {

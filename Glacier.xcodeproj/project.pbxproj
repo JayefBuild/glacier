@@ -7,6 +7,7 @@
 	objects = {
 
 /* Begin PBXBuildFile section */
+		0E2F3A41D5126595F9F89BEF /* CloseProtection.swift in Sources */ = {isa = PBXBuildFile; fileRef = B16B2F5FC7DBD55D18740806 /* CloseProtection.swift */; };
 		17AA8CAE714DA3BD729D6700 /* GlacierApp.swift in Sources */ = {isa = PBXBuildFile; fileRef = 5944FC51D64A920B0E52E5F0 /* GlacierApp.swift */; };
 		26E37FC3639099962A77591E /* SyntaxHighlighter.swift in Sources */ = {isa = PBXBuildFile; fileRef = 1D18FBC0FF11123033274329 /* SyntaxHighlighter.swift */; };
 		2A4702E37E4FC2E93A17C393 /* excalidraw.min.js in Resources */ = {isa = PBXBuildFile; fileRef = 624C6EB480F5ACF0DA3AE052 /* excalidraw.min.js */; };
@@ -88,6 +89,7 @@
 		A64424275D2FFF6780CBB0D8 /* GlacierUITests.xctest */ = {isa = PBXFileReference; explicitFileType = wrapper.cfbundle; includeInIndex = 0; path = GlacierUITests.xctest; sourceTree = BUILT_PRODUCTS_DIR; };
 		A99E9311E7D20849B09A27D0 /* Assets.xcassets */ = {isa = PBXFileReference; lastKnownFileType = folder.assetcatalog; path = Assets.xcassets; sourceTree = "<group>"; };
 		AD93BCF96F8E85B00F773337 /* ExcalidrawViewer.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = ExcalidrawViewer.swift; sourceTree = "<group>"; };
+		B16B2F5FC7DBD55D18740806 /* CloseProtection.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = CloseProtection.swift; sourceTree = "<group>"; };
 		B52D6AAC9967E2036F524B91 /* ContentView.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = ContentView.swift; sourceTree = "<group>"; };
 		B62D358B4D39E089035D5C94 /* FileItem.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = FileItem.swift; sourceTree = "<group>"; };
 		B64386233001CAFCDF131C27 /* MainContentArea.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = MainContentArea.swift; sourceTree = "<group>"; };
@@ -219,6 +221,7 @@
 			isa = PBXGroup;
 			children = (
 				CF5BDA0D91882E19997A60C4 /* AppState.swift */,
+				B16B2F5FC7DBD55D18740806 /* CloseProtection.swift */,
 				B52D6AAC9967E2036F524B91 /* ContentView.swift */,
 				EC85B918140EBDA7A4BAFD8D /* FocusedAppState.swift */,
 				5944FC51D64A920B0E52E5F0 /* GlacierApp.swift */,
@@ -402,6 +405,7 @@
 			buildActionMask = 2147483647;
 			files = (
 				978D445809AD3EF3FED7B552 /* AppState.swift in Sources */,
+				0E2F3A41D5126595F9F89BEF /* CloseProtection.swift in Sources */,
 				939FFD364A1F541038A0B479 /* ContentView.swift in Sources */,
 				441C2863B2D58D883B160C5C /* ExcalidrawViewer.swift in Sources */,
 				BBBF864E4057B1D41C4ADE5D /* ExplorerView.swift in Sources */,

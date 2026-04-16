@@ -3,6 +3,7 @@
 
 import SwiftTerm
 import AppKit
+import Darwin
 
 /// LocalProcessTerminalView subclass that guards against zero-size frame updates.
 /// When SwiftUI removes a view from the hierarchy it sends setFrameSize(.zero),
@@ -54,6 +55,27 @@ final class GuardedTerminalView: LocalProcessTerminalView {
             return super.performKeyEquivalent(with: event)
         }
         return true
+    }
+
+    var hasForegroundProcessRunning: Bool {
+        guard let process,
+              process.running,
+              process.childfd >= 0,
+              process.shellPid > 0 else {
+            return false
+        }
+
+        let foregroundProcessGroup = tcgetpgrp(process.childfd)
+        guard foregroundProcessGroup >= 0 else {
+            return false
+        }
+
+        let shellProcessGroup = getpgid(process.shellPid)
+        guard shellProcessGroup >= 0 else {
+            return false
+        }
+
+        return foregroundProcessGroup != shellProcessGroup
     }
 
     func setFocused(_ isFocused: Bool) {

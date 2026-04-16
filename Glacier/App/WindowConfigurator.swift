@@ -82,7 +82,7 @@ struct WindowConfigurator: NSViewRepresentable {
     }
 }
 
-final class WindowObservationView: NSView {
+final class WindowObservationView: NSView, NSWindowDelegate {
     weak var appState: AppState? {
         didSet {
             activateIfNeeded()
@@ -122,10 +122,16 @@ final class WindowObservationView: NSView {
             return
         }
 
+        if let observedWindow,
+           observedWindow.delegate === self {
+            observedWindow.delegate = nil
+        }
+
         removeObservers()
         observedWindow = window
 
         guard let window else { return }
+        window.delegate = self
 
         if shouldForceActivationForSelfTest {
             DispatchQueue.main.async {
@@ -166,11 +172,23 @@ final class WindowObservationView: NSView {
     }
 
     @objc
-    private func windowWillClose(_ notification: Notification) {
+    func windowWillClose(_ notification: Notification) {
         appState?.handleWindowWillClose()
         deactivateIfNeeded()
+        if let observedWindow,
+           observedWindow.delegate === self {
+            observedWindow.delegate = nil
+        }
         removeObservers()
         observedWindow = nil
+    }
+
+    func windowShouldClose(_ sender: NSWindow) -> Bool {
+        guard !WorkspaceStore.shared.applicationTerminationInProgress else {
+            return true
+        }
+
+        return appState?.confirmProjectCloseIfNeeded() ?? true
     }
 
     private func activateIfNeeded() {

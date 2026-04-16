@@ -164,6 +164,7 @@ final class AppState: ObservableObject {
     // MARK: - Init
 
     init() {
+        AppStateRegistry.shared.register(self)
         focusDebugLog("GlacierFocus appStateInit")
         observeFileTreeChanges()
         observeWorkspaceChanges()
@@ -519,6 +520,17 @@ final class AppState: ObservableObject {
         WorkspaceStore.shared.unregisterWindow(windowID)
     }
 
+    var openTerminalSessionCount: Int {
+        tabs.reduce(into: 0) { count, tab in
+            guard case .terminal(let terminal) = tab.kind else { return }
+            count += terminal.sessionCount
+        }
+    }
+
+    func confirmProjectCloseIfNeeded() -> Bool {
+        confirmProtectedClose(.project, processCount: openTerminalSessionCount)
+    }
+
     // MARK: - Open Terminal
 
     func openNewTerminal(workingDirectory: URL? = nil) {
@@ -549,7 +561,12 @@ final class AppState: ObservableObject {
 
     // MARK: - Close Tab
 
-    func closeTab(_ tab: Tab) {
+    func closeTab(_ tab: Tab, bypassingConfirmation: Bool = false) {
+        guard bypassingConfirmation || confirmTabCloseIfNeeded(tab) else { return }
+        performCloseTab(tab)
+    }
+
+    private func performCloseTab(_ tab: Tab) {
         guard let idx = tabs.firstIndex(of: tab) else { return }
         let wasPrimary = primaryTabID == tab.id
         let wasSecondary = secondaryTabID == tab.id
@@ -1096,16 +1113,24 @@ final class AppState: ObservableObject {
         }
 
         terminal.focusSession(sessionID)
+        guard confirmProtectedClose(.terminal, processCount: 1) else {
+            return
+        }
         guard let closeResult = terminal.closeFocusedSession() else { return }
 
         TerminalViewCache.shared.remove(closeResult.removedSessionID)
 
         if closeResult.shouldCloseTab {
-            closeTab(tab)
+            closeTab(tab, bypassingConfirmation: true)
             return
         }
 
         focusPane(pane)
+    }
+
+    private func confirmTabCloseIfNeeded(_ tab: Tab) -> Bool {
+        guard case .terminal(let terminal) = tab.kind else { return true }
+        return confirmProtectedClose(.terminal, processCount: terminal.sessionCount)
     }
 
     private func isDirectory(_ url: URL) -> Bool {
