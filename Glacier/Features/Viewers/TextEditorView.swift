@@ -4,6 +4,11 @@
 import SwiftUI
 import Combine
 
+enum SyntaxTextDisplayStyle: Equatable {
+    case source
+    case markdownRich
+}
+
 struct TextEditorView: View {
     @Binding var text: String
     let fileExtension: String
@@ -110,6 +115,7 @@ struct SyntaxTextView: NSViewRepresentable {
     let fileExtension: String
     let showLineNumbers: Bool
     var fontSize: CGFloat = 15
+    var displayStyle: SyntaxTextDisplayStyle = .source
     let theme: any AppTheme
 
     func makeCoordinator() -> Coordinator {
@@ -130,6 +136,7 @@ struct SyntaxTextView: NSViewRepresentable {
             fileExtension: fileExtension,
             showLineNumbers: showLineNumbers,
             fontSize: fontSize,
+            displayStyle: displayStyle,
             theme: theme
         )
     }
@@ -143,6 +150,7 @@ struct SyntaxTextView: NSViewRepresentable {
         private var renderedThemeName = ""
         private var renderedFontSize: CGFloat = 0
         private var renderedLineNumbers = false
+        private var renderedDisplayStyle: SyntaxTextDisplayStyle = .source
 
         init(text: Binding<String>) {
             _text = text
@@ -155,6 +163,7 @@ struct SyntaxTextView: NSViewRepresentable {
             fileExtension: String,
             showLineNumbers: Bool,
             fontSize: CGFloat,
+            displayStyle: SyntaxTextDisplayStyle,
             theme: any AppTheme
         ) {
             nsView.textView.backgroundColor = NSColor(theme.colors.editorBackground)
@@ -167,11 +176,16 @@ struct SyntaxTextView: NSViewRepresentable {
                 renderedText != text ||
                 renderedFileExtension != fileExtension ||
                 renderedThemeName != theme.name ||
-                renderedFontSize != fontSize
+                renderedFontSize != fontSize ||
+                renderedDisplayStyle != displayStyle
 
             guard didChangeHighlightInputs else { return }
 
-            let highlighter = SyntaxHighlighter(theme: theme, fontSize: fontSize)
+            let highlighter = SyntaxHighlighter(
+                theme: theme,
+                fontSize: fontSize,
+                displayStyle: displayStyle
+            )
             let attributed = highlighter.highlight(text, extension: fileExtension)
             let currentString = nsView.textView.string
             let selectedRanges = nsView.textView.selectedRanges
@@ -191,6 +205,7 @@ struct SyntaxTextView: NSViewRepresentable {
             renderedFileExtension = fileExtension
             renderedThemeName = theme.name
             renderedFontSize = fontSize
+            renderedDisplayStyle = displayStyle
             nsView.invalidateLineNumbers()
         }
 

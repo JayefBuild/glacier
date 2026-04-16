@@ -157,13 +157,16 @@ final class AppState: ObservableObject {
     // MARK: - Services
 
     let fileService = FileService()
+    let windowID = UUID()
     private var cancellables = Set<AnyCancellable>()
+    private var lastRegisteredWorkspaceURL: URL?
 
     // MARK: - Init
 
     init() {
         focusDebugLog("GlacierFocus appStateInit")
         observeFileTreeChanges()
+        observeWorkspaceChanges()
 
         // Test hooks: allow UI tests to boot straight into a workspace or file.
         let environment = ProcessInfo.processInfo.environment
@@ -498,6 +501,10 @@ final class AppState: ObservableObject {
         try? fileService.trash(item: pendingTrashItem)
         clearExplorerSelection()
         self.pendingTrashItem = nil
+    }
+
+    func handleWindowWillClose() {
+        WorkspaceStore.shared.unregisterWindow(windowID)
     }
 
     // MARK: - Open Terminal
@@ -955,6 +962,20 @@ final class AppState: ObservableObject {
         fileService.$rootItems
             .sink { [weak self] _ in
                 self?.reconcileExplorerSelectionAfterTreeChange()
+            }
+            .store(in: &cancellables)
+    }
+
+    private func observeWorkspaceChanges() {
+        fileService.$rootURL
+            .sink { [weak self] rootURL in
+                guard let self else { return }
+
+                let normalizedURL = rootURL?.standardizedFileURL
+                guard self.lastRegisteredWorkspaceURL != normalizedURL else { return }
+
+                self.lastRegisteredWorkspaceURL = normalizedURL
+                WorkspaceStore.shared.setActiveWorkspace(normalizedURL, for: self.windowID)
             }
             .store(in: &cancellables)
     }

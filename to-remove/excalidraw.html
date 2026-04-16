@@ -60,6 +60,9 @@ function mount() {
   var initialElements = [];
   var initialAppState = { theme: __THEME__ };
   var initialFiles = {};
+  var latestElements = [];
+  var latestAppState = { theme: __THEME__ };
+  var latestFiles = {};
 
   try {
     if (__INITIAL_DATA__ && __INITIAL_DATA__.trim() && __INITIAL_DATA__ !== '{}') {
@@ -75,7 +78,7 @@ function mount() {
     console.warn('Could not parse initial data:', e);
   }
 
-  var saveDebounced = debounce(function(elements, appState, files) {
+  function emitSave(elements, appState, files) {
     var payload = JSON.stringify({
       type: 'excalidraw',
       version: 2,
@@ -91,12 +94,23 @@ function mount() {
     if (window.webkit && window.webkit.messageHandlers && window.webkit.messageHandlers.glacierSave) {
       window.webkit.messageHandlers.glacierSave.postMessage(payload);
     }
+  }
+
+  var saveDebounced = debounce(function(elements, appState, files) {
+    emitSave(elements, appState, files);
   }, 1000);
+
+  window.glacierForceSave = function() {
+    emitSave(latestElements, latestAppState, latestFiles);
+  };
 
   function App() {
     var excalidrawRef = useRef(null);
 
     var onChange = useCallback(function(elements, appState, files) {
+      latestElements = elements;
+      latestAppState = appState;
+      latestFiles = files || {};
       saveDebounced(elements, appState, files);
     }, []);
 
@@ -115,6 +129,10 @@ function mount() {
 
   document.getElementById('loading').style.display = 'none';
   document.getElementById('root').style.display = 'block';
+
+  latestElements = initialElements;
+  latestAppState = initialAppState;
+  latestFiles = initialFiles;
 
   var root = ReactDOM.createRoot(document.getElementById('root'));
   root.render(createElement(App));

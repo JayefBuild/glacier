@@ -167,6 +167,7 @@ final class WindowObservationView: NSView {
 
     @objc
     private func windowWillClose(_ notification: Notification) {
+        appState?.handleWindowWillClose()
         deactivateIfNeeded()
         removeObservers()
         observedWindow = nil

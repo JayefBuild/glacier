@@ -882,6 +882,10 @@ private struct GitGraphContentView: View {
 
     @Environment(\.appTheme) private var theme
 
+    private var workingTreeLane: Int {
+        snapshot.rows.first?.commitLane ?? 0
+    }
+
     var body: some View {
         VStack(spacing: 0) {
             VStack(alignment: .leading, spacing: 10) {
@@ -898,6 +902,13 @@ private struct GitGraphContentView: View {
                             .foregroundStyle(.secondary)
                             .lineLimit(1)
                             .truncationMode(.middle)
+
+                        if let statusLine = snapshot.statusLine, !statusLine.isEmpty {
+                            Text(statusLine)
+                                .font(.system(size: 11, weight: .medium, design: .monospaced))
+                                .foregroundStyle(theme.colors.secondaryText)
+                                .lineLimit(1)
+                        }
                     }
 
                     Spacer()
@@ -918,25 +929,62 @@ private struct GitGraphContentView: View {
 
             Divider()
 
-            if snapshot.rows.isEmpty {
-                GitSidebarMessageView(
-                    icon: "clock.arrow.trianglehead.counterclockwise.rotate.90",
-                    title: "No Commits Yet",
-                    message: "This repository exists, but it does not have any commits yet."
-                )
-            } else {
-                ScrollView([.vertical, .horizontal]) {
-                    LazyVStack(alignment: .leading, spacing: 0) {
-                        ForEach(snapshot.rows) { row in
-                            GitGraphRowView(
-                                row: row,
-                                graphColumnCount: snapshot.graphColumnCount
-                            )
+            ScrollView([.vertical, .horizontal]) {
+                VStack(alignment: .leading, spacing: 0) {
+                    if !snapshot.workingTreeEntries.isEmpty {
+                        VStack(alignment: .leading, spacing: 0) {
+                            HStack {
+                                Text("Working Tree")
+                                    .font(theme.typography.captionFont.weight(.semibold))
+                                    .foregroundStyle(theme.colors.secondaryText)
+
+                                Spacer()
+
+                                Text("\(snapshot.workingTreeEntries.count) unstaged")
+                                    .font(.system(size: 11, weight: .medium, design: .monospaced))
+                                    .foregroundStyle(.secondary)
+                            }
+                            .padding(.horizontal, 12)
+                            .padding(.top, 10)
+                            .padding(.bottom, 6)
+
+                            ForEach(Array(snapshot.workingTreeEntries.enumerated()), id: \.element.id) { index, entry in
+                                GitWorkingTreeRowView(
+                                    entry: entry,
+                                    graphColumnCount: snapshot.graphColumnCount,
+                                    lane: workingTreeLane,
+                                    isFirst: index == 0,
+                                    isLast: index == snapshot.workingTreeEntries.count - 1,
+                                    connectsToHistory: !snapshot.rows.isEmpty
+                                )
+                            }
+                            .padding(.bottom, 8)
                         }
+
+                        Divider()
                     }
-                    .padding(.vertical, 8)
-                    .fixedSize(horizontal: true, vertical: false)
+
+                    if snapshot.rows.isEmpty {
+                        GitSidebarMessageView(
+                            icon: "clock.arrow.trianglehead.counterclockwise.rotate.90",
+                            title: "No Commits Yet",
+                            message: "This repository exists, but it does not have any commits yet.",
+                            fillsAvailableSpace: false
+                        )
+                    } else {
+                        LazyVStack(alignment: .leading, spacing: 0) {
+                            ForEach(snapshot.rows) { row in
+                                GitGraphRowView(
+                                    row: row,
+                                    graphColumnCount: snapshot.graphColumnCount
+                                )
+                            }
+                        }
+                        .padding(.vertical, 8)
+                    }
                 }
+                .frame(maxWidth: snapshot.rows.isEmpty ? .infinity : nil, alignment: .topLeading)
+                .fixedSize(horizontal: snapshot.rows.isEmpty == false, vertical: false)
             }
         }
         .frame(maxWidth: .infinity, maxHeight: .infinity, alignment: .topLeading)
@@ -985,6 +1033,51 @@ private struct GitGraphRowView: View {
                     .font(.system(size: 13, weight: .medium))
                     .foregroundStyle(theme.colors.primaryText)
                     .lineLimit(1)
+            }
+            .fixedSize(horizontal: true, vertical: false)
+        }
+        .fixedSize(horizontal: true, vertical: false)
+        .padding(.horizontal, 12)
+        .padding(.vertical, 4)
+    }
+}
+
+private struct GitWorkingTreeRowView: View {
+    let entry: GitWorkingTreeEntry
+    let graphColumnCount: Int
+    let lane: Int
+    let isFirst: Bool
+    let isLast: Bool
+    let connectsToHistory: Bool
+
+    @Environment(\.appTheme) private var theme
+
+    var body: some View {
+        HStack(alignment: .center, spacing: 10) {
+            GitWorkingTreeLaneView(
+                graphColumnCount: graphColumnCount,
+                lane: lane,
+                isFirst: isFirst,
+                isLast: isLast,
+                connectsToHistory: connectsToHistory
+            )
+
+            VStack(alignment: .leading, spacing: 3) {
+                HStack(spacing: 6) {
+                    Text(entry.status.label)
+                        .font(.system(size: 11, weight: .semibold, design: .monospaced))
+                        .foregroundStyle(Color.white)
+                        .padding(.horizontal, 6)
+                        .padding(.vertical, 3)
+                        .background(entry.status.tint)
+                        .clipShape(Capsule())
+
+                    Text(entry.path)
+                        .font(.system(size: 12, weight: .medium))
+                        .foregroundStyle(theme.colors.primaryText)
+                        .lineLimit(1)
+                        .truncationMode(.middle)
+                }
             }
             .fixedSize(horizontal: true, vertical: false)
         }
@@ -1081,6 +1174,66 @@ private struct GitLaneGraphView: View {
     }
 }
 
+private struct GitWorkingTreeLaneView: View {
+    let graphColumnCount: Int
+    let lane: Int
+    let isFirst: Bool
+    let isLast: Bool
+    let connectsToHistory: Bool
+
+    private let laneSpacing: CGFloat = 14
+
+    private var graphWidth: CGFloat {
+        let columns = max(graphColumnCount, 1)
+        return CGFloat(columns) * laneSpacing + 12
+    }
+
+    var body: some View {
+        Canvas(rendersAsynchronously: true) { context, size in
+            let x = xPosition(for: lane)
+            let centerY = size.height / 2
+            let topY: CGFloat = 2
+            let bottomY = size.height - 2
+            let tint = Color(red: 0.97, green: 0.59, blue: 0.22)
+
+            var line = Path()
+            if !isFirst {
+                line.move(to: CGPoint(x: x, y: topY))
+                line.addLine(to: CGPoint(x: x, y: centerY - 5))
+            }
+            if !isLast || connectsToHistory {
+                line.move(to: CGPoint(x: x, y: centerY + 5))
+                line.addLine(to: CGPoint(x: x, y: bottomY))
+            }
+            context.stroke(
+                line,
+                with: .color(tint.opacity(0.9)),
+                style: StrokeStyle(lineWidth: 2, lineCap: .round)
+            )
+
+            var diamond = Path()
+            diamond.move(to: CGPoint(x: x, y: centerY - 4.5))
+            diamond.addLine(to: CGPoint(x: x + 4.5, y: centerY))
+            diamond.addLine(to: CGPoint(x: x, y: centerY + 4.5))
+            diamond.addLine(to: CGPoint(x: x - 4.5, y: centerY))
+            diamond.closeSubpath()
+
+            context.fill(diamond, with: .color(tint))
+            context.stroke(
+                diamond,
+                with: .color(Color.white.opacity(0.8)),
+                style: StrokeStyle(lineWidth: 1)
+            )
+        }
+        .frame(width: graphWidth, height: 24, alignment: .leading)
+        .drawingGroup()
+    }
+
+    private func xPosition(for lane: Int) -> CGFloat {
+        6 + CGFloat(lane) * laneSpacing + (laneSpacing / 2)
+    }
+}
+
 private enum GitGraphPalette {
     static func colors(for theme: any AppTheme) -> [Color] {
         [
@@ -1128,8 +1281,21 @@ private struct GitSidebarMessageView: View {
     let icon: String
     let title: String
     let message: String
+    let fillsAvailableSpace: Bool
 
     @Environment(\.appTheme) private var theme
+
+    init(
+        icon: String,
+        title: String,
+        message: String,
+        fillsAvailableSpace: Bool = true
+    ) {
+        self.icon = icon
+        self.title = title
+        self.message = message
+        self.fillsAvailableSpace = fillsAvailableSpace
+    }
 
     var body: some View {
         VStack(spacing: 12) {
@@ -1148,7 +1314,7 @@ private struct GitSidebarMessageView: View {
                 .multilineTextAlignment(.center)
                 .padding(.horizontal, 18)
         }
-        .frame(maxWidth: .infinity, maxHeight: .infinity)
+        .frame(maxWidth: .infinity, maxHeight: fillsAvailableSpace ? .infinity : nil)
         .padding()
     }
 }
@@ -1165,6 +1331,7 @@ private struct GitGraphSnapshot: Sendable {
     let currentRef: String
     let statusLine: String?
     let branchNames: [String]
+    let workingTreeEntries: [GitWorkingTreeEntry]
     let rows: [GitGraphRow]
     let graphColumnCount: Int
 }
@@ -1198,6 +1365,62 @@ private struct GitReference: Hashable, Sendable {
 
     let label: String
     let kind: Kind
+}
+
+private struct GitWorkingTreeEntry: Identifiable, Hashable, Sendable {
+    let id: String
+    let path: String
+    let status: GitWorkingTreeStatus
+
+    init(path: String, status: GitWorkingTreeStatus) {
+        self.id = "\(status.label):\(path)"
+        self.path = path
+        self.status = status
+    }
+}
+
+private enum GitWorkingTreeStatus: Sendable {
+    case modified
+    case added
+    case deleted
+    case renamed
+    case copied
+    case untracked
+    case conflicted
+
+    var label: String {
+        switch self {
+        case .modified:
+            return "MOD"
+        case .added:
+            return "ADD"
+        case .deleted:
+            return "DEL"
+        case .renamed:
+            return "REN"
+        case .copied:
+            return "CPY"
+        case .untracked:
+            return "NEW"
+        case .conflicted:
+            return "CON"
+        }
+    }
+
+    var tint: Color {
+        switch self {
+        case .modified:
+            return Color(red: 0.97, green: 0.59, blue: 0.22)
+        case .added, .copied, .untracked:
+            return Color(red: 0.13, green: 0.74, blue: 0.55)
+        case .deleted:
+            return Color(red: 0.87, green: 0.29, blue: 0.52)
+        case .renamed:
+            return Color(red: 0.16, green: 0.56, blue: 0.95)
+        case .conflicted:
+            return Color(red: 0.93, green: 0.34, blue: 0.54)
+        }
+    }
 }
 
 private enum GitLaneAnchor: Hashable, Sendable {
@@ -1261,6 +1484,16 @@ private enum GitGraphLoader {
             .map(String.init)?
             .replacingOccurrences(of: "## ", with: "")
 
+        let workingTreeOutput = runGit(arguments: [
+            "-C", repoRoot,
+            "status",
+            "--porcelain=v1",
+            "--untracked-files=all"
+        ])
+        let workingTreeEntries = workingTreeOutput.exitCode == 0
+            ? parseWorkingTreeEntries(from: workingTreeOutput.stdout)
+            : []
+
         let branchesOutput = runGit(arguments: [
             "-C", repoRoot,
             "for-each-ref",
@@ -1303,6 +1536,7 @@ private enum GitGraphLoader {
                 currentRef: currentRef.isEmpty ? (detachedHead.isEmpty ? "HEAD" : detachedHead) : currentRef,
                 statusLine: statusLine,
                 branchNames: branchNames,
+                workingTreeEntries: workingTreeEntries,
                 rows: rowState.rows,
                 graphColumnCount: rowState.graphColumnCount
             )
@@ -1483,6 +1717,54 @@ private enum GitGraphLoader {
         return GitRowBuildState(rows: rows, graphColumnCount: graphColumnCount)
     }
 
+    private static func parseWorkingTreeEntries(from output: String) -> [GitWorkingTreeEntry] {
+        output
+            .split(whereSeparator: \.isNewline)
+            .compactMap { rawLine in
+                let line = String(rawLine)
+                guard line.count >= 3 else { return nil }
+
+                let indexStatus = line[line.startIndex]
+                let worktreeStatus = line[line.index(after: line.startIndex)]
+                let pathStartIndex = line.index(line.startIndex, offsetBy: 3)
+                let rawPath = String(line[pathStartIndex...])
+
+                if indexStatus == "?" && worktreeStatus == "?" {
+                    return GitWorkingTreeEntry(
+                        path: normalizedWorkingTreePath(rawPath),
+                        status: .untracked
+                    )
+                }
+
+                guard worktreeStatus != " " else {
+                    return nil
+                }
+
+                let status: GitWorkingTreeStatus
+                switch worktreeStatus {
+                case "M":
+                    status = .modified
+                case "A":
+                    status = .added
+                case "D":
+                    status = .deleted
+                case "R":
+                    status = .renamed
+                case "C":
+                    status = .copied
+                case "U":
+                    status = .conflicted
+                default:
+                    status = indexStatus == "U" ? .conflicted : .modified
+                }
+
+                return GitWorkingTreeEntry(
+                    path: normalizedWorkingTreePath(rawPath),
+                    status: status
+                )
+            }
+    }
+
     private static func parseReferences(_ decorations: String) -> [GitReference] {
         decorations
             .split(separator: ",", omittingEmptySubsequences: true)
@@ -1507,6 +1789,13 @@ private enum GitGraphLoader {
                     kind: kind
                 )
             }
+    }
+
+    private static func normalizedWorkingTreePath(_ rawPath: String) -> String {
+        guard let separatorRange = rawPath.range(of: " -> ") else {
+            return rawPath
+        }
+        return String(rawPath[separatorRange.upperBound...])
     }
 }
 

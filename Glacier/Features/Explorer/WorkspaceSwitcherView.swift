@@ -146,11 +146,10 @@ private struct WorkspacePickerPopover: View {
     private func openInNewTab(url: URL) {
         guard let currentWindow = NSApp.keyWindow else { return }
 
-        // Queue the URL so the new ContentView picks it up on appear
-        WorkspaceStore.shared.pendingOpenURL = url
+        WorkspaceStore.shared.queuePendingOpenURL(url)
 
         // Open a new window via SwiftUI's WindowGroup mechanism
-        NSApp.sendAction(Selector(("newWindowForTab:")), to: nil, from: NSApp)
+        NSApp.sendAction(#selector(NSResponder.newWindowForTab(_:)), to: nil, from: NSApp)
 
         // After a short delay the new window exists — grab it and merge into current
         DispatchQueue.main.asyncAfter(deadline: .now() + 0.15) {

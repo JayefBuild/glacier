@@ -74,10 +74,10 @@ struct ContentView: View {
             .ignoresSafeArea()
         }
         .onAppear {
-            // If a workspace was queued for a new tab, open it now
-            if let url = WorkspaceStore.shared.pendingOpenURL {
-                WorkspaceStore.shared.pendingOpenURL = nil
+            if let url = WorkspaceStore.shared.consumePendingOpenURL() {
                 appState.fileService.openFolder(at: url)
+            } else {
+                WorkspaceStore.shared.restoreOpenWorkspacesIfNeeded(using: appState)
             }
         }
     }

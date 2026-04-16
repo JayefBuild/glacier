@@ -4,6 +4,7 @@
 import Foundation
 import Combine
 import Darwin
+import UniformTypeIdentifiers
 
 @MainActor
 final class FileService: ObservableObject {
@@ -247,7 +248,8 @@ final class FileService: ObservableObject {
     // MARK: - Read File
 
     func readFile(at url: URL) async throws -> FileContent {
-        let kind = FileTypeRegistry.kind(for: url.pathExtension.lowercased())
+        let pathExtension = url.pathExtension.lowercased()
+        let kind = resolvedFileKind(for: url, pathExtension: pathExtension)
 
         switch kind {
         case .image:
@@ -278,15 +280,84 @@ final class FileService: ObservableObject {
             return .binary(url)
 
         default:
-            // Attempt to read as text
+            guard sampleLooksLikeText(at: url) else {
+                return .binary(url)
+            }
+
             if let text = try? String(contentsOf: url, encoding: .utf8) {
-                return .text(text, url.pathExtension.lowercased())
+                return .text(text, pathExtension)
             } else if let text = try? String(contentsOf: url, encoding: .isoLatin1) {
-                return .text(text, url.pathExtension.lowercased())
+                return .text(text, pathExtension)
             } else {
                 return .binary(url)
             }
         }
+    }
+
+    private func resolvedFileKind(for url: URL, pathExtension: String) -> FileKind {
+        let extensionKind = FileTypeRegistry.kind(for: pathExtension)
+        guard extensionKind == .unknown else {
+            return extensionKind
+        }
+
+        guard let contentType = try? url.resourceValues(forKeys: [.contentTypeKey]).contentType else {
+            return .unknown
+        }
+
+        if contentType.conforms(to: .image) {
+            return .image
+        }
+        if contentType.conforms(to: .movie) || contentType.conforms(to: .audiovisualContent) {
+            return .video
+        }
+        if contentType.conforms(to: .audio) {
+            return .audio
+        }
+        if contentType.conforms(to: .pdf) {
+            return .pdf
+        }
+        if contentType.conforms(to: .json) {
+            return .json
+        }
+        if contentType.conforms(to: .plainText)
+            || contentType.conforms(to: .text)
+            || contentType.conforms(to: .sourceCode)
+            || contentType.conforms(to: .xml)
+            || contentType.conforms(to: .html) {
+            return .text
+        }
+
+        return .unknown
+    }
+
+    private func sampleLooksLikeText(at url: URL, sampleSize: Int = 8192) -> Bool {
+        guard let handle = try? FileHandle(forReadingFrom: url) else {
+            return true
+        }
+        defer {
+            try? handle.close()
+        }
+
+        guard let data = try? handle.read(upToCount: sampleSize), !data.isEmpty else {
+            return true
+        }
+
+        if data.contains(0) {
+            return false
+        }
+
+        let suspiciousByteCount = data.reduce(into: 0) { count, byte in
+            switch byte {
+            case 9, 10, 13, 32...126:
+                break
+            case 0x80...0xFF:
+                break
+            default:
+                count += 1
+            }
+        }
+
+        return Double(suspiciousByteCount) / Double(data.count) < 0.02
     }
 
     private func restoreExpandedDirectories(in items: [FileItem]) {

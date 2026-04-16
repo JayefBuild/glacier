@@ -4,8 +4,7 @@ xcuserdata/
 *.xcuserstate
 DerivedData/
 .build/
+private/
 remote-artifacts/
 *.o
 *.d
-glacier_icon_v*.png
-glacier_icon_*cropped*.png

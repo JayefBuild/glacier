@@ -8,6 +8,7 @@ struct SyntaxHighlighter {
 
     let theme: any AppTheme
     var fontSize: CGFloat? = nil   // overrides theme.typography.editorFontSize when set
+    var displayStyle: SyntaxTextDisplayStyle = .source
 
     private var resolvedFontSize: CGFloat {
         fontSize ?? theme.typography.editorFontSize
@@ -24,7 +25,12 @@ struct SyntaxHighlighter {
         case .json:
             return highlightJSON(text)
         case .markdown:
-            return highlightMarkdown(text)
+            switch displayStyle {
+            case .source:
+                return highlightMarkdown(text)
+            case .markdownRich:
+                return highlightMarkdownRich(text)
+            }
         default:
             return AttributedString(text)
         }
@@ -131,13 +137,142 @@ struct SyntaxHighlighter {
         return result
     }
 
+    private func highlightMarkdownRich(_ text: String) -> AttributedString {
+        var result = AttributedString(text)
+        let tc = theme.colors
+        let baseSize = resolvedFontSize + 1
+        let baseFont = NSFont.systemFont(ofSize: baseSize, weight: .regular)
+
+        applyBase(&result, font: baseFont, color: NSColor(tc.primaryText))
+
+        // Inline emphasis keeps the raw markdown visible while making it feel rendered.
+        apply(&result, pattern: #"\*\*(.+?)\*\*"#,
+              color: NSColor(tc.primaryText), bold: true, fontName: baseFont.fontName, fontSize: baseSize)
+        apply(&result, pattern: #"(?<!\*)\*([^*\n]+)\*(?!\*)"#,
+              color: NSColor(tc.primaryText), italic: true, fontName: baseFont.fontName, fontSize: baseSize)
+        apply(&result, pattern: #"`[^`\n]+`"#,
+              color: NSColor(tc.syntaxString), fontName: theme.typography.editorFontName, fontSize: baseSize * 0.95)
+        apply(&result, pattern: #"\[([^\]]+)\]\([^\)]+\)"#,
+              color: NSColor(tc.accentSecondary), fontName: baseFont.fontName, fontSize: baseSize)
+
+        let stringRange = NSRange(text.startIndex..., in: text)
+
+        if let headingRegex = try? NSRegularExpression(pattern: #"(?m)^(#{1,6})([ \t]+)(.+)$"#) {
+            headingRegex.enumerateMatches(in: text, range: stringRange) { match, _, _ in
+                guard let match else { return }
+
+                let level = match.range(at: 1).length
+                let markerRange = match.range(at: 1)
+                let titleRange = match.range(at: 3)
+                let headingFont = richMarkdownHeadingFont(level: level, baseSize: baseSize)
+                let markerFont = NSFont.systemFont(
+                    ofSize: max(baseSize * 0.82, 12),
+                    weight: .semibold
+                )
+
+                applyAttributes(
+                    &result,
+                    string: text,
+                    nsRange: markerRange,
+                    font: markerFont,
+                    color: NSColor(tc.tertiaryText)
+                )
+                applyAttributes(
+                    &result,
+                    string: text,
+                    nsRange: titleRange,
+                    font: headingFont,
+                    color: NSColor(tc.primaryText)
+                )
+            }
+        }
+
+        if let blockquoteRegex = try? NSRegularExpression(pattern: #"(?m)^(>)(.*)$"#) {
+            blockquoteRegex.enumerateMatches(in: text, range: stringRange) { match, _, _ in
+                guard let match else { return }
+
+                applyAttributes(
+                    &result,
+                    string: text,
+                    nsRange: match.range(at: 1),
+                    font: NSFont.systemFont(ofSize: baseSize, weight: .semibold),
+                    color: NSColor(tc.syntaxComment)
+                )
+                applyAttributes(
+                    &result,
+                    string: text,
+                    nsRange: match.range(at: 2),
+                    font: NSFont.systemFont(ofSize: baseSize, weight: .regular),
+                    color: NSColor(tc.secondaryText)
+                )
+            }
+        }
+
+        if let listRegex = try? NSRegularExpression(pattern: #"(?m)^(\s*(?:[-*+]|\d+\.))(\s+)"#) {
+            listRegex.enumerateMatches(in: text, range: stringRange) { match, _, _ in
+                guard let match else { return }
+
+                applyAttributes(
+                    &result,
+                    string: text,
+                    nsRange: match.range(at: 1),
+                    font: NSFont.systemFont(ofSize: baseSize, weight: .semibold),
+                    color: NSColor(tc.accentSecondary)
+                )
+            }
+        }
+
+        if let fenceRegex = try? NSRegularExpression(pattern: #"(?ms)^```.*?^```[ \t]*$"#) {
+            fenceRegex.enumerateMatches(in: text, range: stringRange) { match, _, _ in
+                guard let match else { return }
+
+                applyAttributes(
+                    &result,
+                    string: text,
+                    nsRange: match.range(at: 0),
+                    font: NSFont.monospacedSystemFont(ofSize: baseSize * 0.92, weight: .regular),
+                    color: NSColor(tc.syntaxString)
+                )
+            }
+        }
+
+        return result
+    }
+
     // MARK: - Helpers
+
+    private func applyBase(_ result: inout AttributedString, font: NSFont, color: NSColor) {
+        var container = AttributeContainer()
+        container.font = font
+        container.foregroundColor = color
+        result.mergeAttributes(container)
+    }
 
     private func applyBase(_ result: inout AttributedString, fontName: String, fontSize: CGFloat, color: NSColor) {
         var container = AttributeContainer()
         container.font = NSFont(name: fontName, size: fontSize) ?? NSFont.monospacedSystemFont(ofSize: fontSize, weight: .regular)
         container.foregroundColor = color
         result.mergeAttributes(container)
+    }
+
+    private func applyAttributes(
+        _ result: inout AttributedString,
+        string: String,
+        nsRange: NSRange,
+        font: NSFont,
+        color: NSColor
+    ) {
+        guard
+            let swiftRange = Range(nsRange, in: string),
+            let attrRange = Range(swiftRange, in: result)
+        else {
+            return
+        }
+
+        var container = AttributeContainer()
+        container.font = font
+        container.foregroundColor = color
+        result[attrRange].mergeAttributes(container)
     }
 
     private func apply(
@@ -177,6 +312,34 @@ struct SyntaxHighlighter {
             container.foregroundColor = color
             result[attrRange].mergeAttributes(container)
         }
+    }
+
+    private func richMarkdownHeadingFont(level: Int, baseSize: CGFloat) -> NSFont {
+        let scale: CGFloat
+        let weight: NSFont.Weight
+
+        switch level {
+        case 1:
+            scale = 2.05
+            weight = .bold
+        case 2:
+            scale = 1.65
+            weight = .semibold
+        case 3:
+            scale = 1.38
+            weight = .semibold
+        case 4:
+            scale = 1.22
+            weight = .semibold
+        case 5:
+            scale = 1.08
+            weight = .medium
+        default:
+            scale = 1.0
+            weight = .medium
+        }
+
+        return NSFont.systemFont(ofSize: baseSize * scale, weight: weight)
     }
 
     // MARK: - Keywords
