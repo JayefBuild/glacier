@@ -91,7 +91,28 @@ extension UTType {
     static let glacierTabReference = UTType(exportedAs: "com.glacier.tabreference")
 }
 
-struct EditorSaveRequest {
+@MainActor
+final class EditorSaveRequest {
+    let pane: EditorPane
+    let url: URL
+
+    private var didAcknowledge = false
+    private let onAcknowledge: (() -> Void)?
+
+    init(pane: EditorPane, url: URL, onAcknowledge: (() -> Void)? = nil) {
+        self.pane = pane
+        self.url = url
+        self.onAcknowledge = onAcknowledge
+    }
+
+    func acknowledge() {
+        guard !didAcknowledge else { return }
+        didAcknowledge = true
+        onAcknowledge?()
+    }
+}
+
+private struct DocumentSaveTarget: Hashable {
     let pane: EditorPane
     let url: URL
 }
@@ -303,7 +324,7 @@ final class AppState: ObservableObject {
             return true
         }
 
-        guard item.isDirectory, !item.isExpanded else {
+        guard item.isDirectory, !fileService.isExpanded(item) else {
             return false
         }
 
@@ -398,7 +419,7 @@ final class AppState: ObservableObject {
             return false
         }
 
-        if !item.isExpanded {
+        if !fileService.isExpanded(item) {
             fileService.toggleExpansion(of: item)
             if focusDebugLoggingEnabled {
                 focusDebugLog("GlacierFocus expandExplorerItem toggle=\(item.url.path)")
@@ -406,7 +427,7 @@ final class AppState: ObservableObject {
             return true
         }
 
-        guard let firstChild = item.children?.first else {
+        guard let firstChild = fileService.children(of: item)?.first else {
             return false
         }
 
@@ -427,7 +448,7 @@ final class AppState: ObservableObject {
             return false
         }
 
-        if item.isDirectory, item.isExpanded {
+        if item.isDirectory, fileService.isExpanded(item) {
             fileService.toggleExpansion(of: item)
             if focusDebugLoggingEnabled {
                 focusDebugLog("GlacierFocus collapseExplorerItem toggle=\(item.url.path)")
@@ -490,10 +511,24 @@ final class AppState: ObservableObject {
 
     func requestSaveForFocusedPane() {
         guard let item = visibleFileItem(in: focusedPane) else { return }
-        NotificationCenter.default.post(
-            name: .glacierSaveDocument,
-            object: EditorSaveRequest(pane: focusedPane, url: item.url)
-        )
+        postSaveRequest(for: focusedPane, url: item.url)
+    }
+
+    func saveOpenDocumentsBeforeClose(timeout: TimeInterval = 1.5) {
+        let targets = visibleDocumentSaveTargets()
+        guard !targets.isEmpty else { return }
+
+        var remainingAcks = targets.count
+        for target in targets {
+            postSaveRequest(for: target.pane, url: target.url) {
+                remainingAcks -= 1
+            }
+        }
+
+        let deadline = Date().addingTimeInterval(timeout)
+        while remainingAcks > 0 && Date() < deadline {
+            RunLoop.main.run(mode: .default, before: Date().addingTimeInterval(0.01))
+        }
     }
 
     func moveSelectedExplorerItemToTrash() {
@@ -528,7 +563,12 @@ final class AppState: ObservableObject {
     }
 
     func confirmProjectCloseIfNeeded() -> Bool {
-        confirmProtectedClose(.project, processCount: openTerminalSessionCount)
+        guard confirmProtectedClose(.project, processCount: openTerminalSessionCount) else {
+            return false
+        }
+
+        saveOpenDocumentsBeforeClose()
+        return true
     }
 
     // MARK: - Open Terminal
@@ -563,6 +603,7 @@ final class AppState: ObservableObject {
 
     func closeTab(_ tab: Tab, bypassingConfirmation: Bool = false) {
         guard bypassingConfirmation || confirmTabCloseIfNeeded(tab) else { return }
+        saveTabIfNeededBeforeClose(tab)
         performCloseTab(tab)
     }
 
@@ -904,6 +945,29 @@ final class AppState: ObservableObject {
         return terminal
     }
 
+    private func visibleDocumentSaveTargets() -> [DocumentSaveTarget] {
+        var targets: [DocumentSaveTarget] = []
+        let panes: [EditorPane] = isSplitViewVisible ? [.primary, .secondary] : [.primary]
+
+        for pane in panes {
+            guard let item = visibleFileItem(in: pane) else { continue }
+            targets.append(DocumentSaveTarget(pane: pane, url: item.url))
+        }
+
+        return Array(Set(targets))
+    }
+
+    private func postSaveRequest(for pane: EditorPane, url: URL, onAcknowledge: (() -> Void)? = nil) {
+        NotificationCenter.default.post(
+            name: .glacierSaveDocument,
+            object: EditorSaveRequest(
+                pane: pane,
+                url: url,
+                onAcknowledge: onAcknowledge
+            )
+        )
+    }
+
     private func visibleFileItem(in pane: EditorPane) -> FileItem? {
         if let previewItem = previewedFileItem(in: pane) {
             return previewItem
@@ -968,27 +1032,11 @@ final class AppState: ObservableObject {
     }
 
     private func fileItem(at url: URL) -> FileItem? {
-        let normalizedURL = url.standardizedFileURL
-
-        func search(_ items: [FileItem]) -> FileItem? {
-            for item in items {
-                if item.url == normalizedURL {
-                    return item
-                }
-
-                if let children = item.children, let match = search(children) {
-                    return match
-                }
-            }
-
-            return nil
-        }
-
-        return search(fileService.rootItems)
+        fileService.fileItem(at: url)
     }
 
     private func observeFileTreeChanges() {
-        fileService.$rootItems
+        fileService.$treeChangeToken
             .sink { [weak self] _ in
                 self?.reconcileExplorerSelectionAfterTreeChange()
             }
@@ -1131,6 +1179,15 @@ final class AppState: ObservableObject {
     private func confirmTabCloseIfNeeded(_ tab: Tab) -> Bool {
         guard case .terminal(let terminal) = tab.kind else { return true }
         return confirmProtectedClose(.terminal, processCount: terminal.sessionCount)
+    }
+
+    private func saveTabIfNeededBeforeClose(_ tab: Tab) {
+        guard case .file(let item) = tab.kind,
+              let pane = pane(for: tab.id) else {
+            return
+        }
+
+        postSaveRequest(for: pane, url: item.url)
     }
 
     private func isDirectory(_ url: URL) -> Bool {

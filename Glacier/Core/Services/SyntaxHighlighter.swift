@@ -18,22 +18,26 @@ struct SyntaxHighlighter {
 
     func highlight(_ text: String, extension ext: String) -> AttributedString {
         let kind = FileTypeRegistry.kind(for: ext)
+        var result: AttributedString
 
         switch kind {
         case .code:
-            return highlightCode(text, ext: ext)
+            result = highlightCode(text, ext: ext)
         case .json:
-            return highlightJSON(text)
+            result = highlightJSON(text)
         case .markdown:
             switch displayStyle {
             case .source:
-                return highlightMarkdown(text)
+                result = highlightMarkdown(text)
             case .markdownRich:
-                return highlightMarkdownRich(text)
+                result = highlightMarkdownRich(text)
             }
         default:
-            return AttributedString(text)
+            result = AttributedString(text)
         }
+
+        URLLinkifier.applyLinks(to: &result, in: text)
+        return result
     }
 
     // MARK: - Code Highlighting
@@ -393,5 +397,42 @@ struct SyntaxHighlighter {
         default:
             return []
         }
+    }
+}
+
+enum URLLinkifier {
+    private static let detector = try? NSDataDetector(
+        types: NSTextCheckingResult.CheckingType.link.rawValue
+    )
+
+    static func applyLinks(to attributedText: inout AttributedString, in text: String) {
+        guard let detector else { return }
+
+        let nsRange = NSRange(text.startIndex..., in: text)
+        detector.enumerateMatches(in: text, options: [], range: nsRange) { match, _, _ in
+            guard let match,
+                  let url = match.url,
+                  let swiftRange = Range(match.range, in: text),
+                  let attributedRange = Range(swiftRange, in: attributedText) else {
+                return
+            }
+
+            var container = AttributeContainer()
+            container.link = url
+            attributedText[attributedRange].mergeAttributes(container)
+        }
+    }
+
+    static func attributedString(for text: String, color: NSColor? = nil) -> AttributedString {
+        var attributedText = AttributedString(text)
+
+        if let color {
+            var baseAttributes = AttributeContainer()
+            baseAttributes.foregroundColor = color
+            attributedText.mergeAttributes(baseAttributes)
+        }
+
+        applyLinks(to: &attributedText, in: text)
+        return attributedText
     }
 }

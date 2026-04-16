@@ -77,8 +77,9 @@ struct FileRowView: View {
                     isDropTarget = targeted
                 }
 
-            // Expanded children
-            if item.isExpanded, let children = item.children {
+            // Expanded children (via FileService public API — Phase 1 boundary seal)
+            if appState.fileService.isExpanded(item),
+               let children = appState.fileService.children(of: item) {
                 ForEach(children) { child in
                     FileRowView(item: child, depth: depth + 1)
                 }
@@ -149,7 +150,8 @@ struct FileRowView: View {
                 .frame(width: CGFloat(depth) * theme.spacing.indentWidth)
 
             if item.isDirectory {
-                Image(systemName: item.isExpanded ? "chevron.down" : "chevron.right")
+                let expanded = appState.fileService.isExpanded(item)
+                Image(systemName: expanded ? "chevron.down" : "chevron.right")
                     .font(.system(size: 9, weight: .semibold))
                     .foregroundStyle(.tertiary)
                     .frame(width: 10)

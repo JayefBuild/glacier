@@ -3,7 +3,6 @@
 
 import Foundation
 import Combine
-import Darwin
 import UniformTypeIdentifiers
 
 @MainActor
@@ -14,10 +13,12 @@ final class FileService: ObservableObject {
     @Published var rootItems: [FileItem] = []
     @Published var rootURL: URL?
     @Published var isLoading: Bool = false
+    @Published private(set) var treeChangeToken = UUID()
 
     private var expandedDirectoryURLs: Set<URL> = []
-    private var directoryMonitors: [URL: DirectoryMonitor] = [:]
-    private var pendingReloadWorkItem: DispatchWorkItem?
+    private var rootEventStream: DirectoryEventStream?
+    private var pendingRefreshWorkItem: DispatchWorkItem?
+    private var pendingRefreshURLs: Set<URL> = []
 
     // MARK: - Open Folder
 
@@ -29,7 +30,10 @@ final class FileService: ObservableObject {
         if !isSameRoot {
             rootItems = []
             expandedDirectoryURLs = []
-            replaceDirectoryMonitors(with: [])
+            pendingRefreshWorkItem?.cancel()
+            pendingRefreshWorkItem = nil
+            pendingRefreshURLs.removeAll()
+            rootEventStream = nil
         }
         isLoading = true
         WorkspaceStore.shared.add(normalizedURL)
@@ -41,7 +45,8 @@ final class FileService: ObservableObject {
                 self.rootItems = items
                 self.expandedDirectoryURLs = expandedDirectories
                 self.isLoading = false
-                self.synchronizeDirectoryMonitors()
+                self.ensureDirectoryEventStream()
+                self.markTreeDidChange()
             }
         }
     }
@@ -50,9 +55,11 @@ final class FileService: ObservableObject {
         rootURL = nil
         rootItems = []
         expandedDirectoryURLs = []
-        pendingReloadWorkItem?.cancel()
-        pendingReloadWorkItem = nil
-        replaceDirectoryMonitors(with: [])
+        pendingRefreshWorkItem?.cancel()
+        pendingRefreshWorkItem = nil
+        pendingRefreshURLs.removeAll()
+        rootEventStream = nil
+        markTreeDidChange()
     }
 
     // MARK: - Load Children
@@ -95,7 +102,7 @@ final class FileService: ObservableObject {
         if item.isExpanded {
             item.isExpanded = false
             expandedDirectoryURLs.remove(item.url)
-            synchronizeDirectoryMonitors()
+            ensureDirectoryEventStream()
             return
         }
 
@@ -105,7 +112,7 @@ final class FileService: ObservableObject {
             if let children = item.children {
                 restoreExpandedDirectories(in: children)
             }
-            synchronizeDirectoryMonitors()
+            ensureDirectoryEventStream()
             return
         }
 
@@ -117,7 +124,7 @@ final class FileService: ObservableObject {
                 item.children = children
                 item.isLoaded = true
                 item.isExpanded = true
-                self.synchronizeDirectoryMonitors()
+                self.ensureDirectoryEventStream()
             }
         }
     }
@@ -135,6 +142,7 @@ final class FileService: ObservableObject {
             throw CocoaError(.fileWriteFileExists)
         }
         FileManager.default.createFile(atPath: dest.path, contents: nil)
+        refreshDirectoriesAfterMutation([directory])
         return dest
     }
 
@@ -165,25 +173,32 @@ final class FileService: ObservableObject {
     func createFolder(named name: String, in directory: URL) throws -> URL {
         let dest = directory.appendingPathComponent(name)
         try FileManager.default.createDirectory(at: dest, withIntermediateDirectories: false)
+        refreshDirectoriesAfterMutation([directory])
         return dest
     }
 
     // MARK: - Rename
 
     func rename(item: FileItem, to newName: String) throws {
-        let dest = item.url.deletingLastPathComponent().appendingPathComponent(newName)
+        let sourceURL = item.url.standardizedFileURL
+        let dest = sourceURL.deletingLastPathComponent()
+            .appendingPathComponent(newName)
+            .standardizedFileURL
         try FileManager.default.moveItem(at: item.url, to: dest)
-        // Reload the parent directory
-        reload()
+        if item.isDirectory {
+            rewriteExpandedDirectoryURLs(movingFrom: sourceURL, to: dest)
+        }
+        refreshDirectoriesAfterMutation([sourceURL.deletingLastPathComponent()])
     }
 
     // MARK: - Trash
 
     func trash(item: FileItem) throws {
         try FileManager.default.trashItem(at: item.url, resultingItemURL: nil)
-        // Reload
-        expandedDirectoryURLs.remove(item.url)
-        reload()
+        if item.isDirectory {
+            removeExpandedDirectoryURLs(inSubtreeOf: item.url)
+        }
+        refreshDirectoriesAfterMutation([item.url.deletingLastPathComponent()])
     }
 
     // MARK: - Collapse All
@@ -197,21 +212,32 @@ final class FileService: ObservableObject {
         }
         collapse(rootItems)
         expandedDirectoryURLs.removeAll()
-        synchronizeDirectoryMonitors()
+        ensureDirectoryEventStream()
     }
 
     // MARK: - Move
 
     func move(from sourceURL: URL, into destinationDirectory: URL) throws {
+        let normalizedSourceURL = sourceURL.standardizedFileURL
+        let normalizedDestinationDirectory = destinationDirectory.standardizedFileURL
         // Don't move into itself or a child of itself
-        guard !destinationDirectory.path.hasPrefix(sourceURL.path + "/"),
-              sourceURL != destinationDirectory else { return }
+        guard !normalizedDestinationDirectory.path.hasPrefix(normalizedSourceURL.path + "/"),
+              normalizedSourceURL != normalizedDestinationDirectory else { return }
 
-        let dest = destinationDirectory.appendingPathComponent(sourceURL.lastPathComponent)
-        guard dest != sourceURL else { return }
+        let dest = normalizedDestinationDirectory
+            .appendingPathComponent(normalizedSourceURL.lastPathComponent)
+            .standardizedFileURL
+        guard dest != normalizedSourceURL else { return }
 
-        try FileManager.default.moveItem(at: sourceURL, to: dest)
-        reload()
+        let sourceIsDirectory = directoryExists(at: normalizedSourceURL)
+        try FileManager.default.moveItem(at: normalizedSourceURL, to: dest)
+        if sourceIsDirectory {
+            rewriteExpandedDirectoryURLs(movingFrom: normalizedSourceURL, to: dest)
+        }
+        refreshDirectoriesAfterMutation([
+            normalizedSourceURL.deletingLastPathComponent(),
+            normalizedDestinationDirectory
+        ])
     }
 
     // MARK: - Reload
@@ -376,67 +402,214 @@ final class FileService: ObservableObject {
         return exists && isDirectory.boolValue
     }
 
-    private func synchronizeDirectoryMonitors() {
+    // MARK: - Directory Watching (Phase 2: single root FSEvents stream)
+    //
+    // We intentionally watch the entire tree below rootURL with ONE FSEvents stream
+    // instead of per-folder watchers. This eliminates the "new subfolder doesn't get
+    // watched" bug class: FSEvents covers newly-created descendants automatically.
+    // On any event, we re-diff the affected parent against the filesystem — advisory
+    // events, authoritative diffs. Also resilient to missed/reordered/mislabeled events.
+
+    private func ensureDirectoryEventStream() {
         guard let rootURL else {
-            replaceDirectoryMonitors(with: [])
+            rootEventStream = nil
             return
         }
 
-        var urls = Set(expandedDirectoryURLs.filter { directoryExists(at: $0) })
-        urls.insert(rootURL)
-        replaceDirectoryMonitors(with: Array(urls))
-    }
-
-    private func replaceDirectoryMonitors(with urls: [URL]) {
-        let normalizedURLs = Set(urls.map(\.standardizedFileURL))
-        directoryMonitors = directoryMonitors.filter { normalizedURLs.contains($0.key) }
-
-        for url in normalizedURLs where directoryMonitors[url] == nil {
-            if let monitor = DirectoryMonitor(url: url, onChange: { [weak self] in
+        // Rebuild the stream only when the root changes; otherwise keep the existing one.
+        if rootEventStream == nil {
+            rootEventStream = DirectoryEventStream(rootURL: rootURL) { [weak self] events in
+                // FSEvents delivers on our background queue. Hop to main to touch state.
                 Task { @MainActor in
-                    self?.scheduleReload()
+                    self?.handleDirectoryEvents(events)
                 }
-            }) {
-                directoryMonitors[url] = monitor
             }
         }
     }
 
-    private func scheduleReload() {
-        pendingReloadWorkItem?.cancel()
+    private func handleDirectoryEvents(_ events: [DirectoryEvent]) {
+        guard let rootURL else { return }
+
+        for event in events {
+            switch event.kind {
+            case .rootDeleted:
+                // Workspace folder was deleted — treat as close.
+                closeFolder()
+                return
+
+            case .rootRenamed:
+                // Root was renamed/moved by something outside our control.
+                // FSEvents doesn't reliably report the new path, so reload what we have.
+                scheduleRefresh(for: rootURL)
+
+            case .changeInDirectory:
+                // The event path is the file or directory that changed. We re-diff
+                // its parent folder (which is what actually matters for the tree).
+                let parent = event.url.deletingLastPathComponent().standardizedFileURL
+                scheduleRefresh(for: parent)
+            }
+        }
+    }
+
+    private func scheduleRefresh(for directoryURL: URL) {
+        pendingRefreshURLs.insert(directoryURL.standardizedFileURL)
+        pendingRefreshWorkItem?.cancel()
 
         let workItem = DispatchWorkItem { [weak self] in
-            self?.reload()
+            self?.flushPendingRefreshes()
         }
-        pendingReloadWorkItem = workItem
+        pendingRefreshWorkItem = workItem
         DispatchQueue.main.asyncAfter(deadline: .now() + 0.12, execute: workItem)
     }
-}
 
-private final class DirectoryMonitor {
-    private let fileDescriptor: CInt
-    private let source: DispatchSourceFileSystemObject
+    private func flushPendingRefreshes() {
+        let urls = Array(pendingRefreshURLs)
+        pendingRefreshURLs.removeAll()
+        pendingRefreshWorkItem = nil
+        refreshDirectoriesAfterMutation(urls)
+    }
 
-    init?(url: URL, onChange: @escaping @Sendable () -> Void) {
-        fileDescriptor = Darwin.open(url.path, O_EVTONLY)
-        guard fileDescriptor >= 0 else {
+    private func refreshDirectoriesAfterMutation(_ urls: [URL]) {
+        guard let rootURL else { return }
+
+        let normalizedURLs = Set(urls.map(\.standardizedFileURL))
+        guard !normalizedURLs.isEmpty else { return }
+
+        expandedDirectoryURLs = Set(expandedDirectoryURLs.filter { directoryExists(at: $0) })
+        let expandedDirectories = expandedDirectoryURLs
+        var didChangeTree = false
+
+        if normalizedURLs.contains(rootURL) {
+            rootItems = loadChildren(of: rootURL, expandedDirectories: expandedDirectories)
+            didChangeTree = true
+        }
+
+        for directoryURL in normalizedURLs where directoryURL != rootURL {
+            didChangeTree = refreshDirectoryAfterMutation(
+                at: directoryURL,
+                expandedDirectories: expandedDirectories
+            ) || didChangeTree
+        }
+
+        ensureDirectoryEventStream()
+        if didChangeTree {
+            markTreeDidChange()
+        }
+    }
+
+    private func refreshDirectoryAfterMutation(
+        at directoryURL: URL,
+        expandedDirectories: Set<URL>
+    ) -> Bool {
+        let normalizedDirectoryURL = directoryURL.standardizedFileURL
+        guard let rootURL else { return false }
+
+        if normalizedDirectoryURL == rootURL {
+            rootItems = loadChildren(of: rootURL, expandedDirectories: expandedDirectories)
+            return true
+        }
+
+        if !directoryExists(at: normalizedDirectoryURL) {
+            let parentURL = normalizedDirectoryURL.deletingLastPathComponent().standardizedFileURL
+            guard parentURL != normalizedDirectoryURL,
+                  parentURL.path.hasPrefix(rootURL.path),
+                  parentURL != rootURL else {
+                rootItems = loadChildren(of: rootURL, expandedDirectories: expandedDirectories)
+                return true
+            }
+
+            return refreshDirectoryAfterMutation(
+                at: parentURL,
+                expandedDirectories: expandedDirectories
+            )
+        }
+
+        guard let directoryItem = fileItem(at: normalizedDirectoryURL),
+              directoryItem.isDirectory,
+              directoryItem.isLoaded else {
+            return false
+        }
+
+        directoryItem.children = loadChildren(
+            of: normalizedDirectoryURL,
+            expandedDirectories: expandedDirectories
+        )
+        directoryItem.isLoaded = true
+        return true
+    }
+
+    func fileItem(at url: URL) -> FileItem? {
+        let normalizedURL = url.standardizedFileURL
+
+        func search(_ items: [FileItem]) -> FileItem? {
+            for item in items {
+                if item.url == normalizedURL {
+                    return item
+                }
+
+                if let children = item.children,
+                   let match = search(children) {
+                    return match
+                }
+            }
+
             return nil
         }
 
-        source = DispatchSource.makeFileSystemObjectSource(
-            fileDescriptor: fileDescriptor,
-            eventMask: [.write, .rename, .delete, .extend, .attrib, .link, .revoke],
-            queue: DispatchQueue.global(qos: .utility)
-        )
-        source.setEventHandler(handler: onChange)
-        source.setCancelHandler { [fileDescriptor] in
-            Darwin.close(fileDescriptor)
-        }
-        source.resume()
+        return search(rootItems)
     }
 
-    deinit {
-        source.cancel()
+    // MARK: - Tree Accessors (stable public API — Phase 1 boundary seal)
+    //
+    // These are the only way callers outside FileService should read the tree.
+    // Phase 2 swaps the nested-node backing store; these signatures stay stable,
+    // so the sidebar view and AppState don't need to change again.
+
+    /// Returns the children of a directory item, or nil if not a directory / not loaded.
+    func children(of item: FileItem) -> [FileItem]? {
+        item.children
+    }
+
+    /// Whether a directory item is currently expanded in the sidebar.
+    func isExpanded(_ item: FileItem) -> Bool {
+        item.isExpanded
+    }
+
+    private func removeExpandedDirectoryURLs(inSubtreeOf url: URL) {
+        let normalizedURL = url.standardizedFileURL
+        let pathPrefix = normalizedURL.path + "/"
+        expandedDirectoryURLs = expandedDirectoryURLs.filter { existingURL in
+            let normalizedExistingURL = existingURL.standardizedFileURL
+            return normalizedExistingURL != normalizedURL
+                && !normalizedExistingURL.path.hasPrefix(pathPrefix)
+        }
+    }
+
+    private func rewriteExpandedDirectoryURLs(movingFrom sourceURL: URL, to destinationURL: URL) {
+        let normalizedSourceURL = sourceURL.standardizedFileURL
+        let normalizedDestinationURL = destinationURL.standardizedFileURL
+        let sourcePath = normalizedSourceURL.path
+        let sourcePrefix = sourcePath + "/"
+
+        expandedDirectoryURLs = Set(expandedDirectoryURLs.map { existingURL in
+            let normalizedExistingURL = existingURL.standardizedFileURL
+            let existingPath = normalizedExistingURL.path
+
+            if normalizedExistingURL == normalizedSourceURL {
+                return normalizedDestinationURL
+            }
+
+            guard existingPath.hasPrefix(sourcePrefix) else {
+                return normalizedExistingURL
+            }
+
+            let suffix = String(existingPath.dropFirst(sourcePath.count))
+            return URL(fileURLWithPath: normalizedDestinationURL.path + suffix).standardizedFileURL
+        })
+    }
+
+    private func markTreeDidChange() {
+        treeChangeToken = UUID()
     }
 }
 

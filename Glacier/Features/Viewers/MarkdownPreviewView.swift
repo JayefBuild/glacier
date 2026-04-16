@@ -78,7 +78,7 @@ struct MarkdownEditorView: View {
             scheduleSave(text: newValue)
         }
         .onDisappear {
-            saveCancellable?.cancel()
+            saveNow(text: text)
         }
         .onReceive(NotificationCenter.default.publisher(for: .glacierSaveDocument)) { notification in
             guard let request = notification.object as? EditorSaveRequest,
@@ -87,6 +87,7 @@ struct MarkdownEditorView: View {
                 return
             }
             saveNow(text: text)
+            request.acknowledge()
         }
     }
 
@@ -101,9 +102,7 @@ struct MarkdownEditorView: View {
 
     private func saveNow(text: String) {
         saveCancellable?.cancel()
-        Task { @MainActor in
-            try? fileService.writeFile(text: text, to: url)
-        }
+        try? fileService.writeFile(text: text, to: url)
     }
 
     private var statusBar: some View {
@@ -190,10 +189,7 @@ private struct MarkdownFrontmatterPanel: View {
                             .foregroundStyle(.secondary)
                             .frame(width: 140, alignment: .leading)
 
-                        Text(property.value)
-                            .font(theme.typography.captionFont)
-                            .foregroundStyle(theme.colors.primaryText)
-                            .textSelection(.enabled)
+                        LinkifiedValueText(value: property.value)
 
                         Spacer(minLength: 0)
                     }
@@ -203,6 +199,28 @@ private struct MarkdownFrontmatterPanel: View {
         .padding(.horizontal, 16)
         .padding(.vertical, 14)
         .background(theme.colors.editorBackground.opacity(0.82))
+    }
+}
+
+private struct LinkifiedValueText: View {
+    let value: String
+
+    @Environment(\.appTheme) private var theme
+
+    private var attributedValue: AttributedString {
+        URLLinkifier.attributedString(for: value, color: NSColor(theme.colors.primaryText))
+    }
+
+    var body: some View {
+        Text(attributedValue)
+            .font(theme.typography.captionFont)
+            .lineLimit(nil)
+            .textSelection(.enabled)
+            .tint(theme.colors.accentSecondary)
+            .environment(\.openURL, OpenURLAction { url in
+                NSWorkspace.shared.open(url)
+                return .handled
+            })
     }
 }
 

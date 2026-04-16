@@ -52,6 +52,9 @@ struct TextEditorView: View {
         .onChange(of: text) { _, newValue in
             scheduleSave(text: newValue)
         }
+        .onDisappear {
+            saveNow(text: text)
+        }
         .onReceive(NotificationCenter.default.publisher(for: .glacierSaveDocument)) { notification in
             guard let request = notification.object as? EditorSaveRequest,
                   request.pane == pane,
@@ -59,6 +62,7 @@ struct TextEditorView: View {
                 return
             }
             saveNow(text: text)
+            request.acknowledge()
         }
     }
 
@@ -75,9 +79,7 @@ struct TextEditorView: View {
 
     private func saveNow(text: String) {
         saveCancellable?.cancel()
-        Task { @MainActor in
-            try? fileService.writeFile(text: text, to: url)
-        }
+        try? fileService.writeFile(text: text, to: url)
     }
 
     // MARK: - Status Bar
@@ -167,6 +169,10 @@ struct SyntaxTextView: NSViewRepresentable {
             theme: any AppTheme
         ) {
             nsView.textView.backgroundColor = NSColor(theme.colors.editorBackground)
+            nsView.textView.linkTextAttributes = [
+                .foregroundColor: NSColor(theme.colors.accentSecondary),
+                .underlineStyle: NSUnderlineStyle.single.rawValue
+            ]
             if renderedLineNumbers != showLineNumbers {
                 nsView.setShowLineNumbers(showLineNumbers)
                 renderedLineNumbers = showLineNumbers
@@ -232,7 +238,7 @@ final class GlacierScrollView: NSScrollView {
         textStorage.addLayoutManager(layoutManager)
         layoutManager.addTextContainer(textContainer)
 
-        textView = NSTextView(frame: .zero, textContainer: textContainer)
+        textView = GlacierTextView(frame: .zero, textContainer: textContainer)
         textView.minSize = NSSize(width: 0, height: 0)
         textView.maxSize = NSSize(width: CGFloat.greatestFiniteMagnitude, height: CGFloat.greatestFiniteMagnitude)
         lineNumberView = LineNumberRulerView(textView: textView)
@@ -276,6 +282,23 @@ final class GlacierScrollView: NSScrollView {
 
     func invalidateLineNumbers() {
         lineNumberView.needsDisplay = true
+    }
+}
+
+final class GlacierTextView: NSTextView {
+    override func clicked(onLink link: Any, at charIndex: Int) {
+        if let url = link as? URL {
+            NSWorkspace.shared.open(url)
+            return
+        }
+
+        if let string = link as? String,
+           let url = URL(string: string) {
+            NSWorkspace.shared.open(url)
+            return
+        }
+
+        super.clicked(onLink: link, at: charIndex)
     }
 }
 

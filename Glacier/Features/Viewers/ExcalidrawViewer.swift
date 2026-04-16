@@ -10,13 +10,13 @@ struct ExcalidrawViewer: View {
     let url: URL
     let pane: EditorPane
     let fileService: FileService
-    @State private var saveRequestCount = 0
+    @State private var saveRequest: EditorSaveRequest?
 
     var body: some View {
         ExcalidrawWebView(
             text: $text,
             url: url,
-            saveRequestCount: saveRequestCount,
+            saveRequest: saveRequest,
             fileService: fileService
         )
             .frame(maxWidth: .infinity, maxHeight: .infinity)
@@ -26,7 +26,7 @@ struct ExcalidrawViewer: View {
                       request.url == url else {
                     return
                 }
-                saveRequestCount += 1
+                saveRequest = request
             }
     }
 }
@@ -36,7 +36,7 @@ struct ExcalidrawViewer: View {
 struct ExcalidrawWebView: NSViewRepresentable {
     @Binding var text: String
     let url: URL
-    let saveRequestCount: Int
+    let saveRequest: EditorSaveRequest?
     let fileService: FileService
 
     func makeCoordinator() -> Coordinator {
@@ -58,8 +58,10 @@ struct ExcalidrawWebView: NSViewRepresentable {
     }
 
     func updateNSView(_ webView: WKWebView, context: Context) {
-        if context.coordinator.lastSaveRequestCount != saveRequestCount {
-            context.coordinator.lastSaveRequestCount = saveRequestCount
+        if let saveRequest,
+           context.coordinator.lastHandledSaveRequest !== saveRequest {
+            context.coordinator.lastHandledSaveRequest = saveRequest
+            context.coordinator.pendingSaveRequest = saveRequest
             webView.evaluateJavaScript("window.glacierForceSave && window.glacierForceSave();", completionHandler: nil)
         }
     }
@@ -80,7 +82,8 @@ struct ExcalidrawWebView: NSViewRepresentable {
         let fileService: FileService
         weak var webView: WKWebView?
         var didLoadInitialData = false
-        var lastSaveRequestCount = 0
+        weak var lastHandledSaveRequest: EditorSaveRequest?
+        var pendingSaveRequest: EditorSaveRequest?
 
         init(text: Binding<String>, url: URL, fileService: FileService) {
             _text = text
@@ -126,9 +129,9 @@ struct ExcalidrawWebView: NSViewRepresentable {
             DispatchQueue.main.async { [weak self] in
                 guard let self else { return }
                 self.text = json
-                Task { @MainActor in
-                    try? self.fileService.writeFile(text: json, to: self.url)
-                }
+                try? self.fileService.writeFile(text: json, to: self.url)
+                self.pendingSaveRequest?.acknowledge()
+                self.pendingSaveRequest = nil
             }
         }
 

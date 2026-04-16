@@ -81,6 +81,9 @@ struct MarkwhenViewer: View {
         .onChange(of: text) { _, newValue in
             scheduleSave(text: newValue)
         }
+        .onDisappear {
+            saveNow(text: text)
+        }
         .onReceive(NotificationCenter.default.publisher(for: .glacierSaveDocument)) { notification in
             guard let request = notification.object as? EditorSaveRequest,
                   request.pane == pane,
@@ -88,6 +91,7 @@ struct MarkwhenViewer: View {
                 return
             }
             saveNow(text: text)
+            request.acknowledge()
         }
     }
 
@@ -115,9 +119,7 @@ struct MarkwhenViewer: View {
 
     private func saveNow(text: String) {
         saveCancellable?.cancel()
-        Task { @MainActor in
-            try? fileService.writeFile(text: text, to: url)
-        }
+        try? fileService.writeFile(text: text, to: url)
     }
 }
 

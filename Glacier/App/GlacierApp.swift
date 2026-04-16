@@ -30,6 +30,9 @@ final class GlacierApplicationDelegate: NSObject, NSApplicationDelegate {
             return .terminateCancel
         }
 
+        AppStateRegistry.shared.allAppStates.forEach { appState in
+            appState.saveOpenDocumentsBeforeClose()
+        }
         WorkspaceStore.shared.markApplicationTerminating()
         return .terminateNow
     }

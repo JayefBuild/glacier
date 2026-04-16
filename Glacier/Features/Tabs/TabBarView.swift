@@ -5,12 +5,14 @@ import SwiftUI
 
 struct TabBarView: View {
     let pane: EditorPane?
+    let isDropTarget: Bool
 
     @EnvironmentObject private var appState: AppState
     @Environment(\.appTheme) private var theme
 
-    init(pane: EditorPane? = nil) {
+    init(pane: EditorPane? = nil, isDropTarget: Bool = false) {
         self.pane = pane
+        self.isDropTarget = isDropTarget
     }
 
     private var displayedTabs: [Tab] {
@@ -37,6 +39,16 @@ struct TabBarView: View {
             shadowRadius: 12,
             shadowY: 6
         )
+        .overlay {
+            if isDropTarget {
+                RoundedRectangle(cornerRadius: theme.radius.large, style: .continuous)
+                    .strokeBorder(theme.colors.accent.opacity(0.55), lineWidth: 2)
+                    .background {
+                        RoundedRectangle(cornerRadius: theme.radius.large, style: .continuous)
+                            .fill(theme.colors.accent.opacity(0.12))
+                    }
+            }
+        }
     }
 }
 
