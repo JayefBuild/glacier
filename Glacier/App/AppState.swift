@@ -98,6 +98,7 @@ struct EditorSaveRequest {
 
 extension Notification.Name {
     static let glacierSaveDocument = Notification.Name("GlacierSaveDocument")
+    static let glacierFocusExplorerResponder = Notification.Name("GlacierFocusExplorerResponder")
 }
 
 // MARK: - Tab
@@ -161,6 +162,7 @@ final class AppState: ObservableObject {
     // MARK: - Init
 
     init() {
+        focusDebugLog("GlacierFocus appStateInit")
         observeFileTreeChanges()
 
         // Test hooks: allow UI tests to boot straight into a workspace or file.
@@ -181,6 +183,7 @@ final class AppState: ObservableObject {
     // MARK: - Explorer State
 
     @Published var isSidebarVisible: Bool = true
+    @Published private(set) var isExplorerFocused: Bool = false
     @Published var selectedFileItem: FileItem?
     @Published private(set) var selectedFileURLs: Set<URL> = []
     @Published private var primaryPreviewFileItem: FileItem?
@@ -331,6 +334,100 @@ final class AppState: ObservableObject {
         selectedFileItem = nil
         selectedFileURLs = []
         explorerSelectionAnchorURL = nil
+    }
+
+    func focusExplorer() {
+        if focusDebugLoggingEnabled {
+            focusDebugLog("GlacierFocus focusExplorer")
+        }
+        isExplorerFocused = true
+        NotificationCenter.default.post(name: .glacierFocusExplorerResponder, object: nil)
+    }
+
+    @discardableResult
+    func moveExplorerSelection(by offset: Int) -> Bool {
+        guard offset != 0 else {
+            return false
+        }
+
+        let visibleItems = fileService.visibleItems()
+        guard !visibleItems.isEmpty else {
+            return false
+        }
+
+        let fallbackIndex = offset > 0 ? -1 : visibleItems.count
+        let currentIndex = selectedVisibleExplorerIndex(in: visibleItems) ?? fallbackIndex
+        let targetIndex = min(max(currentIndex + offset, 0), visibleItems.count - 1)
+
+        guard targetIndex != currentIndex else {
+            return false
+        }
+
+        let item = visibleItems[targetIndex]
+        selectExplorerItem(item)
+        if !item.isDirectory {
+            previewFile(item)
+        }
+        if focusDebugLoggingEnabled {
+            focusDebugLog("GlacierFocus moveExplorerSelection offset=\(offset) target=\(item.url.path)")
+        }
+        return true
+    }
+
+    @discardableResult
+    func expandSelectedExplorerItem() -> Bool {
+        let visibleItems = fileService.visibleItems()
+        guard let item = selectedVisibleExplorerItem(in: visibleItems),
+              item.isDirectory else {
+            return false
+        }
+
+        if !item.isExpanded {
+            fileService.toggleExpansion(of: item)
+            if focusDebugLoggingEnabled {
+                focusDebugLog("GlacierFocus expandExplorerItem toggle=\(item.url.path)")
+            }
+            return true
+        }
+
+        guard let firstChild = item.children?.first else {
+            return false
+        }
+
+        selectExplorerItem(firstChild)
+        if !firstChild.isDirectory {
+            previewFile(firstChild)
+        }
+        if focusDebugLoggingEnabled {
+            focusDebugLog("GlacierFocus expandExplorerItem child=\(firstChild.url.path)")
+        }
+        return true
+    }
+
+    @discardableResult
+    func collapseSelectedExplorerItem() -> Bool {
+        let visibleItems = fileService.visibleItems()
+        guard let item = selectedVisibleExplorerItem(in: visibleItems) else {
+            return false
+        }
+
+        if item.isDirectory, item.isExpanded {
+            fileService.toggleExpansion(of: item)
+            if focusDebugLoggingEnabled {
+                focusDebugLog("GlacierFocus collapseExplorerItem toggle=\(item.url.path)")
+            }
+            return true
+        }
+
+        guard let parentItem = parentExplorerItem(for: item) else {
+            return false
+        }
+
+        selectExplorerItem(parentItem)
+        if focusDebugLoggingEnabled {
+            focusDebugLog("GlacierFocus collapseExplorerItem parent=\(parentItem.url.path)")
+        }
+        return true
     }
 
     private func selectExplorerRange(to item: FileItem) {
@@ -542,6 +639,7 @@ final class AppState: ObservableObject {
         if focusDebugLoggingEnabled {
             focusDebugLog("GlacierFocus focusPane pane=\(pane.rawValue)")
         }
+        isExplorerFocused = false
         focusedPane = pane
         activeTabID = tabID(for: pane) ?? primaryTabID
         syncExplorerSelectionToVisibleFile(in: pane)
@@ -799,6 +897,38 @@ final class AppState: ObservableObject {
         }
 
         return fileItem(at: url) ?? FileItem(url: url, isDirectory: isDirectory(url))
+    }
+
+    private func selectedVisibleExplorerItem(in visibleItems: [FileItem]) -> FileItem? {
+        if let selectedURL = selectedExplorerTargetURL,
+           let exactMatch = visibleItems.first(where: { $0.url == selectedURL }) {
+            return exactMatch
+        }
+
+        return visibleItems.first(where: isExplorerItemSelected)
+    }
+
+    private func selectedVisibleExplorerIndex(in visibleItems: [FileItem]) -> Int? {
+        guard let item = selectedVisibleExplorerItem(in: visibleItems) else {
+            return nil
+        }
+
+        return visibleItems.firstIndex(where: { $0.url == item.url })
+    }
+
+    private func parentExplorerItem(for item: FileItem) -> FileItem? {
+        guard let rootURL = fileService.rootURL?.standardizedFileURL else {
+            return nil
+        }
+
+        let parentURL = item.url.deletingLastPathComponent().standardizedFileURL
+        guard parentURL != item.url,
+              parentURL.path.hasPrefix(rootURL.path),
+              parentURL != rootURL else {
+            return nil
+        }
+
+        return fileItem(at: parentURL)
     }
 
     private func fileItem(at url: URL) -> FileItem? {

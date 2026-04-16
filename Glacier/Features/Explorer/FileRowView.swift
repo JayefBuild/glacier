@@ -234,6 +234,8 @@ struct FileRowView: View {
     // MARK: - Tap
 
     private func handleSingleClick() {
+        appState.focusExplorer()
+
         let modifierFlags = NSEvent.modifierFlags.intersection(.deviceIndependentFlagsMask)
         if modifierFlags.contains(.shift) {
             appState.selectExplorerItem(item, extendingRange: true)
@@ -254,6 +256,7 @@ struct FileRowView: View {
     }
 
     private func handleDoubleClick() {
+        appState.focusExplorer()
         appState.selectExplorerItem(item)
         guard !item.isDirectory else {
             return
