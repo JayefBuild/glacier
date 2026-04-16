@@ -286,7 +286,27 @@ final class FileService: ObservableObject {
 
     // MARK: - Write File
 
+    /// URLs currently being deleted/renamed. Auto-save attempts to these URLs are
+    /// silently dropped to prevent the editor's pending debounced save from recreating
+    /// a file we're in the middle of removing.
+    private var discardingURLs: Set<URL> = []
+
+    /// Mark a URL as "being discarded" — writes to it are dropped until `endDiscarding`.
+    /// Call BEFORE closing the tab and performing the disk mutation.
+    func beginDiscarding(_ url: URL) {
+        discardingURLs.insert(url.standardizedFileURL)
+    }
+
+    /// Stop dropping writes for this URL. Call AFTER the mutation completes.
+    func endDiscarding(_ url: URL) {
+        discardingURLs.remove(url.standardizedFileURL)
+    }
+
     func writeFile(text: String, to url: URL) throws {
+        let normalized = url.standardizedFileURL
+        if discardingURLs.contains(normalized) {
+            return
+        }
         try text.write(to: url, atomically: true, encoding: .utf8)
     }
 

@@ -15,6 +15,10 @@ import AppKit
 extension ProjectNavigatorViewController: OutlineTableViewCellDelegate {
     func moveFile(file: CEWorkspaceFile, to destination: URL) {
         do {
+            // Close any open tab for the old URL + mark it as discarding BEFORE the
+            // disk move. Otherwise the editor's debounced save fires against the old
+            // URL after the move completes, recreating the original file.
+            host?.onFileWillBeRenamed?(file.url)
             // move(...) returns nil when the destination parent isn't currently indexed —
             // the move STILL happened on disk. The original bug: bailing on nil here left
             // the sidebar showing a stale node for the pre-move file while the post-move

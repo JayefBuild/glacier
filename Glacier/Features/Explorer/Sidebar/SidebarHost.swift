@@ -27,11 +27,21 @@ final class SidebarHost: ObservableObject {
     /// the "Open in Tab" context menu). Glacier wires this to `AppState.openFile(...)`.
     var onOpenFileInTab: ((URL) -> Void)?
 
+    /// Called by the outline view BEFORE a file/folder is trashed or deleted. Glacier
+    /// wires this to (a) mark the URL as "discarding" in FileService so any pending
+    /// auto-save is dropped, and (b) close the open tab immediately so the editor's
+    /// onDisappear fires BEFORE the disk mutation. This prevents the "auto-save
+    /// recreates the deleted file" race.
+    var onFilesWillBeRemoved: (([URL]) -> Void)?
+
     /// Called by the outline view after files/folders are trashed or deleted. Glacier
-    /// wires this to close any tabs open for those URLs (including files inside a
-    /// removed folder). Passed URLs are the items the user actioned — the callback
-    /// is responsible for expanding folders to individual tabs.
+    /// wires this to clear the "discarding" flag once the disk mutation is complete.
     var onFilesRemoved: (([URL]) -> Void)?
+
+    /// Called by the outline view BEFORE a file/folder is renamed/moved. Glacier wires
+    /// this to mark the OLD URL as discarding and close its tab so the editor's pending
+    /// save doesn't fire against the old URL (recreating it after the move).
+    var onFileWillBeRenamed: ((URL) -> Void)?
 
     /// Called by the outline view after a file/folder is renamed (moved on disk).
     /// Glacier wires this so open tabs retarget from the old URL to the new one.

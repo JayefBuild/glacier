@@ -181,6 +181,9 @@ extension ProjectNavigatorMenu {
         do {
             let items = selectedItems()
             let removedURLs = items.map(\.url)
+            // Close tabs + mark URLs as discarding BEFORE touching disk, so the editor's
+            // onDisappear→saveNow race cannot recreate the file we're about to trash.
+            host?.onFilesWillBeRemoved?(removedURLs)
             var affectedParents: Set<CEWorkspaceFile> = []
             try items.forEach { item in
                 guard FileManager.default.fileExists(atPath: item.url.path) else {
@@ -213,6 +216,8 @@ extension ProjectNavigatorMenu {
         do {
             let selectedItems = selectedItems()
             let removedURLs = selectedItems.map(\.url)
+            // See trash() — close + mark discarding before disk mutation.
+            host?.onFilesWillBeRemoved?(removedURLs)
             let affectedParents: Set<CEWorkspaceFile> = Set(selectedItems.compactMap { $0.parent })
             if selectedItems.count == 1 {
                 try selectedItems.forEach { item in

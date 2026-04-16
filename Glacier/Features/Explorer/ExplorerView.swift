@@ -140,50 +140,65 @@ private struct ExplorerContent: View {
                 appState.openFile(item)
             }
         }
+        sidebarHost.onFileWillBeRenamed = { oldURL in
+            // Runs BEFORE disk move. Mark discarding + close tab synchronously so the
+            // editor's onDisappear→saveNow fires while the flag is set and is dropped.
+            // Must be synchronous (not Task) because the move happens right after.
+            let normalized = oldURL.standardizedFileURL
+            let normalizedPath = normalized.path
+            fileService.beginDiscarding(normalized)
+            for tab in appState.tabs {
+                guard case .file(let fileItem) = tab.kind else { continue }
+                let tabPath = fileItem.url.standardizedFileURL.path
+                if tabPath == normalizedPath || tabPath.hasPrefix(normalizedPath + "/") {
+                    // Also mark inner files as discarding so their pending saves drop.
+                    fileService.beginDiscarding(fileItem.url.standardizedFileURL)
+                    appState.closeTab(tab, bypassingConfirmation: true)
+                }
+            }
+        }
+        sidebarHost.onFilesWillBeRemoved = { removedURLs in
+            // Runs BEFORE disk mutation. Same synchronous close + flag pattern.
+            let normalized = removedURLs.map { $0.standardizedFileURL.path }
+            for url in removedURLs {
+                fileService.beginDiscarding(url.standardizedFileURL)
+            }
+            for tab in appState.tabs {
+                guard case .file(let fileItem) = tab.kind else { continue }
+                let tabPath = fileItem.url.standardizedFileURL.path
+                let match = normalized.contains { removed in
+                    tabPath == removed || tabPath.hasPrefix(removed + "/")
+                }
+                if match {
+                    fileService.beginDiscarding(fileItem.url.standardizedFileURL)
+                    appState.closeTab(tab, bypassingConfirmation: true)
+                }
+            }
+        }
         sidebarHost.onFileRenamed = { oldURL, newURL in
+            // Runs AFTER disk move. Tab was already closed by onFileWillBeRenamed;
+            // just reopen under the new URL and clear the discarding flag.
             Task { @MainActor in
-                let oldPath = oldURL.standardizedFileURL.path
-                let newPath = newURL.standardizedFileURL.path
-                for tab in appState.tabs {
-                    guard case .file(let fileItem) = tab.kind else { continue }
-                    let tabPath = fileItem.url.standardizedFileURL.path
-                    if tabPath == oldPath || tabPath.hasPrefix(oldPath + "/") {
-                        // Close the stale tab. If the rename was a file, open the renamed one.
-                        appState.closeTab(tab, bypassingConfirmation: true)
-                        if tabPath == oldPath {
-                            let newItem = FileItem(
-                                url: newURL,
-                                isDirectory: (try? newURL.resourceValues(forKeys: [.isDirectoryKey]).isDirectory) ?? false
-                            )
-                            appState.openFile(newItem)
-                        } else {
-                            // Tab was inside a renamed folder — translate the path.
-                            let suffix = String(tabPath.dropFirst(oldPath.count))
-                            let translated = URL(fileURLWithPath: newPath + suffix)
-                            let newItem = FileItem(
-                                url: translated,
-                                isDirectory: (try? translated.resourceValues(forKeys: [.isDirectoryKey]).isDirectory) ?? false
-                            )
-                            appState.openFile(newItem)
-                        }
-                    }
+                // Delay briefly so any in-flight debounced save has a chance to fire
+                // (and be dropped by the discarding flag) before we release it.
+                try? await Task.sleep(nanoseconds: 600_000_000)
+                fileService.endDiscarding(oldURL.standardizedFileURL)
+
+                // If the rename was a file (not folder), open the renamed URL in a new tab.
+                let isFolder = (try? newURL.resourceValues(forKeys: [.isDirectoryKey]).isDirectory) ?? false
+                if !isFolder {
+                    let newItem = FileItem(url: newURL, isDirectory: false)
+                    appState.openFile(newItem)
                 }
             }
         }
         sidebarHost.onFilesRemoved = { removedURLs in
+            // Runs AFTER disk mutation. Tabs were already closed by onFilesWillBeRemoved;
+            // just clear the discarding flags once pending saves have had a chance to fire.
             Task { @MainActor in
-                // For each open file tab, close it if its URL is among the removed
-                // ones OR sits under a removed folder.
-                let normalized = removedURLs.map { $0.standardizedFileURL.path }
-                for tab in appState.tabs {
-                    guard case .file(let fileItem) = tab.kind else { continue }
-                    let tabPath = fileItem.url.standardizedFileURL.path
-                    let match = normalized.contains { removed in
-                        tabPath == removed || tabPath.hasPrefix(removed + "/")
-                    }
-                    if match {
-                        appState.closeTab(tab, bypassingConfirmation: true)
-                    }
+                try? await Task.sleep(nanoseconds: 600_000_000)
+                for url in removedURLs {
+                    fileService.endDiscarding(url.standardizedFileURL)
                 }
             }
         }
