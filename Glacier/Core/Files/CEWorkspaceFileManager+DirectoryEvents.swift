@@ -20,28 +20,37 @@ extension CEWorkspaceFileManager {
         DispatchQueue.main.async {
             var files: Set<CEWorkspaceFile> = []
             for event in events {
-                // Event returns file/folder that was changed, but in tree we need to update it's parent
-                guard let parentUrl = URL(string: event.path, relativeTo: self.folderUrl)?.deletingLastPathComponent(),
-                      let parentFileItem = self.flattenedFileItems[parentUrl.path] else {
-                    continue
-                }
-
                 switch event.eventType {
                 case .changeInDirectory, .itemChangedOwner, .itemModified:
-                    // Can be ignored for now, these I think not related to tree changes
                     continue
                 case .rootChanged:
                     // TODO: #1880 - Handle workspace root changing.
                     continue
                 case .itemCreated, .itemCloned, .itemRemoved, .itemRenamed:
-                    do {
-                        try self.rebuildFiles(fromItem: parentFileItem)
-                    } catch {
-                        // swiftlint:disable:next line_length
-                        self.logger.error("Failed to rebuild files for event: \(event.eventType.rawValue), path: \(event.path, privacy: .sensitive)")
-                    }
-                    files.insert(parentFileItem)
+                    break
                 }
+
+                // FSEvents reports absolute paths; use fileURLWithPath (not URL(string:), which
+                // fails silently on paths with spaces/parens/etc). The event path can be either
+                // the changed item itself or the parent directory — probe both so moves-in of
+                // folders are caught alongside plain creates/deletes.
+                let eventURL = URL(fileURLWithPath: event.path).standardizedFileURL
+                let parentURL = eventURL.deletingLastPathComponent().standardizedFileURL
+
+                let parentFileItem =
+                    self.flattenedFileItems[eventURL.path]  // event path IS the directory that changed
+                    ?? self.flattenedFileItems[parentURL.path]  // event path is the changed item; its parent holds the mutation
+                guard let parentFileItem else {
+                    continue
+                }
+
+                do {
+                    try self.rebuildFiles(fromItem: parentFileItem)
+                } catch {
+                    // swiftlint:disable:next line_length
+                    self.logger.error("Failed to rebuild files for event: \(event.eventType.rawValue), path: \(event.path, privacy: .sensitive)")
+                }
+                files.insert(parentFileItem)
             }
             if !files.isEmpty {
                 self.notifyObservers(updatedItems: files)
