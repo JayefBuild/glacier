@@ -1,100 +1,31 @@
 // MainContentArea.swift
-// The main content area: tab bar + active file viewer.
+// Hosts the Bonsplit tab/split system for the editor area. Drag-to-split,
+// cross-pane tab moves, resizable dividers — all provided by Bonsplit.
 
 import SwiftUI
-import UniformTypeIdentifiers
-
-// MARK: - Dragged file URL
-//
-// Used by editor-split drop handling to decode file-drag payloads from the
-// legacy SwiftUI sidebar. The current NSOutlineView sidebar uses NSURL on the
-// pasteboard instead, so this branch is currently dormant — kept for forward
-// compat until the drag-to-split flow is rewired against the new sidebar.
-struct DraggedFileURL: Transferable, Codable {
-    let url: URL
-
-    static var transferRepresentation: some TransferRepresentation {
-        CodableRepresentation(contentType: .glacierFileURL)
-    }
-
-    enum CodingKeys: String, CodingKey { case path }
-
-    init(url: URL) {
-        self.url = url
-    }
-
-    init(from decoder: Decoder) throws {
-        let c = try decoder.container(keyedBy: CodingKeys.self)
-        url = URL(fileURLWithPath: try c.decode(String.self, forKey: .path))
-    }
-
-    func encode(to encoder: Encoder) throws {
-        var c = encoder.container(keyedBy: CodingKeys.self)
-        try c.encode(url.path, forKey: .path)
-    }
-}
-
-extension UTType {
-    static let glacierFileURL = UTType(exportedAs: "com.glacier.fileurl")
-}
+import Bonsplit
 
 struct MainContentArea: View {
     @EnvironmentObject private var appState: AppState
     @Environment(\.appTheme) private var theme
-    @State private var activeSplitEdge: EditorSplitDropEdge?
-    @State private var activeTabDropPane: EditorPane?
-    @State private var tabBarFrames: [EditorPane: CGRect] = [:]
 
     var body: some View {
-        VStack(spacing: 0) {
-            if !appState.tabs.isEmpty && !appState.isSplitViewVisible {
-                TabBarView()
-                    .padding(.horizontal, 10)
-                    .padding(.top, 10)
-                    .padding(.bottom, 8)
-                    .transition(.move(edge: .top).combined(with: .opacity))
-            }
-
-            GeometryReader { _ in
-                ZStack {
-                    if appState.primaryTab != nil || appState.previewedFileItem(in: .primary) != nil {
-                        editorContent
-                            .transition(.opacity)
-                    } else {
-                        WelcomeView()
+        Group {
+            if appState.tabs.isEmpty {
+                WelcomeView()
+            } else {
+                BonsplitView(
+                    controller: appState.bonsplitController,
+                    content: { bonsplitTab, paneID in
+                        editorContent(for: bonsplitTab, inPane: paneID)
+                    },
+                    emptyPane: { paneID in
+                        EmptyPaneView(appState: appState, paneID: paneID)
                     }
-
-                    // Drop target sits on top of all editor content (including AppKit-backed
-                    // HSplitView/VSplitView which would otherwise swallow the drag).
-                    EditorSplitDropOverlay(
-                        appState: appState,
-                        activeSplitEdge: $activeSplitEdge,
-                        activeTabDropPane: $activeTabDropPane,
-                        tabBarFrames: tabBarFrames
-                    )
-
-                    if let activeSplitEdge {
-                        SplitPreviewOverlay(edge: activeSplitEdge)
-                            .allowsHitTesting(false)
-                            .transition(.opacity)
-                    }
-                }
-                .frame(maxWidth: .infinity, maxHeight: .infinity)
-                .padding(.horizontal, 10)
-                .padding(.bottom, 10)
-                .padding(.top, appState.tabs.isEmpty || appState.isSplitViewVisible ? 10 : 0)
-                .animation(theme.animation.standard, value: appState.activeTabID)
-                .animation(theme.animation.standard, value: appState.secondaryTabID)
-                .animation(theme.animation.fast, value: activeSplitEdge)
-                .animation(theme.animation.fast, value: activeTabDropPane)
-                .onChange(of: appState.primaryTabID) { activeSplitEdge = nil }
-                .onChange(of: appState.secondaryTabID) { activeSplitEdge = nil }
-                .onChange(of: appState.primaryTabID) { _, _ in activeTabDropPane = nil }
-                .onChange(of: appState.secondaryTabID) { _, _ in activeTabDropPane = nil }
+                )
             }
         }
-        .coordinateSpace(name: editorDropAreaCoordinateSpaceName)
-        .onPreferenceChange(TabBarFramePreferenceKey.self) { tabBarFrames = $0 }
+        .frame(maxWidth: .infinity, maxHeight: .infinity)
         .background {
             Rectangle()
                 .fill(.thinMaterial)
@@ -112,447 +43,19 @@ struct MainContentArea: View {
     }
 
     @ViewBuilder
-    private var editorContent: some View {
-        if appState.secondaryTab != nil {
-            switch appState.splitOrientation {
-            case .sideBySide:
-                HSplitView {
-                    EditorPaneView(pane: .primary, isTabDropTarget: activeTabDropPane == .primary)
-                    EditorPaneView(pane: .secondary, isTabDropTarget: activeTabDropPane == .secondary)
-                }
-            case .topBottom:
-                VSplitView {
-                    EditorPaneView(pane: .primary, isTabDropTarget: activeTabDropPane == .primary)
-                    EditorPaneView(pane: .secondary, isTabDropTarget: activeTabDropPane == .secondary)
-                }
-            }
+    private func editorContent(for bonsplitTab: Bonsplit.Tab, inPane paneID: PaneID) -> some View {
+        if let glacierID = appState.bridge.glacierTabID(for: bonsplitTab.id),
+           let glacierTab = appState.tab(with: glacierID) {
+            FileViewerRouter(
+                tab: glacierTab,
+                previewItem: appState.bridge.preview(inPane: paneID),
+                paneID: paneID
+            )
         } else {
-            EditorPaneView(pane: .primary, isTabDropTarget: false)
+            Color.clear
         }
     }
 }
-
-private struct EditorPaneView: View {
-    let pane: EditorPane
-    let isTabDropTarget: Bool
-
-    @EnvironmentObject private var appState: AppState
-    @Environment(\.appTheme) private var theme
-
-    private var isFocused: Bool {
-        appState.focusedPane == pane
-    }
-
-    private var visibleTab: Tab? {
-        switch pane {
-        case .primary:
-            return appState.primaryTab
-        case .secondary:
-            return appState.secondaryTab
-        }
-    }
-
-    private var previewItem: FileItem? {
-        appState.previewedFileItem(in: pane)
-    }
-
-    private var contentIdentity: String {
-        if let previewItem {
-            return "preview:\(previewItem.url.path)"
-        }
-        if let visibleTab {
-            return "tab:\(visibleTab.id.uuidString)"
-        }
-        return "empty:\(pane.rawValue)"
-    }
-
-    var body: some View {
-        let panelShape = RoundedRectangle(cornerRadius: theme.radius.panel + 2, style: .continuous)
-
-        VStack(spacing: 0) {
-            if appState.isSplitViewVisible {
-                TabBarView(pane: pane, isDropTarget: isTabDropTarget)
-                    .padding(.horizontal, 12)
-                    .padding(.top, 12)
-                    .padding(.bottom, 8)
-                    .background {
-                        GeometryReader { proxy in
-                            Color.clear.preference(
-                                key: TabBarFramePreferenceKey.self,
-                                value: [pane: proxy.frame(in: .named(editorDropAreaCoordinateSpaceName))]
-                            )
-                        }
-                    }
-            }
-
-            FileViewerRouter(tab: visibleTab, previewItem: previewItem, pane: pane, isFocused: isFocused)
-                .frame(maxWidth: .infinity, maxHeight: .infinity)
-                .id(contentIdentity)
-        }
-        .background {
-            panelShape
-                .fill(.ultraThinMaterial)
-                .overlay {
-                    panelShape.fill(
-                        LinearGradient(
-                            colors: [
-                                theme.colors.editorBackground.opacity(isFocused ? 0.96 : 0.82),
-                                theme.colors.windowBackground.opacity(0.74)
-                            ],
-                            startPoint: .topLeading,
-                            endPoint: .bottomTrailing
-                        )
-                    )
-                }
-        }
-        .background(
-            PaneInteractionMonitor {
-                appState.focusPane(pane)
-            }
-        )
-        .clipShape(panelShape)
-        .contentShape(Rectangle())
-        .simultaneousGesture(
-            TapGesture().onEnded {
-                appState.focusPane(pane)
-            }
-        )
-        .overlay {
-            panelShape
-                .strokeBorder(
-                    isFocused ? theme.colors.accent.opacity(0.55) : theme.colors.glassBorder.opacity(0.42),
-                    lineWidth: isFocused ? 2 : 1
-                )
-        }
-        .shadow(
-            color: theme.colors.glassShadow.opacity(isFocused ? 0.9 : 0.55),
-            radius: isFocused ? 24 : 18,
-            y: isFocused ? 14 : 10
-        )
-        .accessibilityIdentifier("editor-pane-\(pane.rawValue)")
-    }
-}
-
-private let editorDropAreaCoordinateSpaceName = "editor-drop-area"
-
-private struct TabBarFramePreferenceKey: PreferenceKey {
-    static let defaultValue: [EditorPane: CGRect] = [:]
-
-    static func reduce(value: inout [EditorPane: CGRect], nextValue: () -> [EditorPane: CGRect]) {
-        value.merge(nextValue(), uniquingKeysWith: { _, newValue in newValue })
-    }
-}
-
-private struct PaneInteractionMonitor: NSViewRepresentable {
-    let onInteraction: () -> Void
-
-    func makeNSView(context: Context) -> PaneInteractionHostingView {
-        let view = PaneInteractionHostingView()
-        view.onInteraction = onInteraction
-        return view
-    }
-
-    func updateNSView(_ nsView: PaneInteractionHostingView, context: Context) {
-        nsView.onInteraction = onInteraction
-    }
-}
-
-private final class PaneInteractionHostingView: NSView {
-    var onInteraction: (() -> Void)?
-    private var eventMonitor: EventMonitor?
-
-    override init(frame frameRect: NSRect) {
-        super.init(frame: frameRect)
-        installEventMonitorIfNeeded()
-    }
-
-    @available(*, unavailable)
-    required init?(coder: NSCoder) {
-        fatalError()
-    }
-
-    override func hitTest(_ point: NSPoint) -> NSView? {
-        nil
-    }
-
-    private func installEventMonitorIfNeeded() {
-        guard eventMonitor == nil else { return }
-
-        let token = NSEvent.addLocalMonitorForEvents(matching: [.leftMouseDown]) { [weak self] event in
-            guard let self,
-                  let window = self.window,
-                  event.window === window else {
-                return event
-            }
-
-            let location = self.convert(event.locationInWindow, from: nil)
-            guard self.bounds.contains(location) else { return event }
-
-            self.onInteraction?()
-            return event
-        }
-
-        guard let token else {
-            return
-        }
-
-        eventMonitor = EventMonitor(token: token)
-    }
-}
-
-private final class EventMonitor {
-    private let token: Any
-
-    init(token: Any) {
-        self.token = token
-    }
-
-    deinit {
-        NSEvent.removeMonitor(token)
-    }
-}
-
-private struct SplitPreviewOverlay: View {
-    let edge: EditorSplitDropEdge
-
-    @Environment(\.appTheme) private var theme
-
-    var body: some View {
-        GeometryReader { proxy in
-            let previewWidth = min(max(proxy.size.width * 0.34, 240), 420)
-            let previewHeight = min(max(proxy.size.height * 0.34, 180), 320)
-
-            ZStack {
-                switch edge {
-                case .left:
-                    HStack(spacing: 0) {
-                        previewPanel
-                            .frame(width: previewWidth)
-                        Spacer(minLength: 0)
-                    }
-
-                case .right:
-                    HStack(spacing: 0) {
-                        Spacer(minLength: 0)
-                        previewPanel
-                            .frame(width: previewWidth)
-                    }
-
-                case .top:
-                    VStack(spacing: 0) {
-                        previewPanel
-                            .frame(height: previewHeight)
-                        Spacer(minLength: 0)
-                    }
-
-                case .bottom:
-                    VStack(spacing: 0) {
-                        Spacer(minLength: 0)
-                        previewPanel
-                            .frame(height: previewHeight)
-                    }
-                }
-            }
-            .padding(6)
-        }
-    }
-
-    private var previewPanel: some View {
-        RoundedRectangle(cornerRadius: theme.radius.medium)
-            .fill(theme.colors.accent.opacity(0.24))
-            .overlay {
-                RoundedRectangle(cornerRadius: theme.radius.medium)
-                    .strokeBorder(theme.colors.accent.opacity(0.55), lineWidth: 1.5)
-            }
-    }
-}
-
-private struct EditorSplitDropOverlay: NSViewRepresentable {
-    @ObservedObject var appState: AppState
-    @Binding var activeSplitEdge: EditorSplitDropEdge?
-    @Binding var activeTabDropPane: EditorPane?
-    let tabBarFrames: [EditorPane: CGRect]
-
-    func makeCoordinator() -> Coordinator {
-        Coordinator(
-            appState: appState,
-            activeSplitEdge: $activeSplitEdge,
-            activeTabDropPane: $activeTabDropPane,
-            tabBarFrames: tabBarFrames
-        )
-    }
-
-    func makeNSView(context: Context) -> EditorSplitDropHostingView {
-        let view = EditorSplitDropHostingView()
-        view.coordinator = context.coordinator
-        return view
-    }
-
-    func updateNSView(_ nsView: EditorSplitDropHostingView, context: Context) {
-        context.coordinator.appState = appState
-        context.coordinator.activeSplitEdge = $activeSplitEdge
-        context.coordinator.activeTabDropPane = $activeTabDropPane
-        context.coordinator.tabBarFrames = tabBarFrames
-        nsView.coordinator = context.coordinator
-    }
-
-    @MainActor
-    final class Coordinator: NSObject {
-        var appState: AppState
-        var activeSplitEdge: Binding<EditorSplitDropEdge?>
-        var activeTabDropPane: Binding<EditorPane?>
-        var tabBarFrames: [EditorPane: CGRect]
-
-        init(
-            appState: AppState,
-            activeSplitEdge: Binding<EditorSplitDropEdge?>,
-            activeTabDropPane: Binding<EditorPane?>,
-            tabBarFrames: [EditorPane: CGRect]
-        ) {
-            self.appState = appState
-            self.activeSplitEdge = activeSplitEdge
-            self.activeTabDropPane = activeTabDropPane
-            self.tabBarFrames = tabBarFrames
-        }
-
-        func draggingEntered(_ sender: NSDraggingInfo, in size: CGSize, hostView: NSView) -> NSDragOperation {
-            guard hasSupportedPayload(sender.draggingPasteboard) else { return [] }
-            updateDropTarget(for: sender, in: size, hostView: hostView)
-            return .copy
-        }
-
-        func draggingUpdated(_ sender: NSDraggingInfo, in size: CGSize, hostView: NSView) -> NSDragOperation {
-            guard hasSupportedPayload(sender.draggingPasteboard) else { return [] }
-            updateDropTarget(for: sender, in: size, hostView: hostView)
-            return .copy
-        }
-
-        func draggingExited() {
-            activeSplitEdge.wrappedValue = nil
-            activeTabDropPane.wrappedValue = nil
-        }
-
-        func performDragOperation(_ sender: NSDraggingInfo, in size: CGSize, hostView: NSView) -> Bool {
-            let location = hostView.convert(sender.draggingLocation, from: nil)
-
-            let pasteboard = sender.draggingPasteboard
-            if let data = pasteboard.data(forType: NSPasteboard.PasteboardType(UTType.glacierTabReference.identifier)),
-               let reference = try? JSONDecoder().decode(DraggedTabReference.self, from: data) {
-                if let targetPane = tabDropTarget(
-                    for: location,
-                    pasteboard: pasteboard
-                ) {
-                    activeTabDropPane.wrappedValue = nil
-                    activeSplitEdge.wrappedValue = nil
-                    appState.activateTab(id: reference.id, in: targetPane)
-                    return true
-                }
-
-                if let edge = splitPreviewEdge(for: location, in: size) {
-                    activeTabDropPane.wrappedValue = nil
-                    activeSplitEdge.wrappedValue = nil
-                    appState.splitPane(with: reference.id, edge: edge)
-                    return true
-                }
-            }
-
-            if let data = pasteboard.data(forType: NSPasteboard.PasteboardType(UTType.glacierFileURL.identifier)),
-               let reference = try? JSONDecoder().decode(DraggedFileURL.self, from: data) {
-                activeTabDropPane.wrappedValue = nil
-                guard let edge = splitPreviewEdge(for: location, in: size) else {
-                    activeSplitEdge.wrappedValue = nil
-                    return false
-                }
-
-                activeSplitEdge.wrappedValue = nil
-                appState.splitFile(at: reference.url, edge: edge)
-                return true
-            }
-
-            activeTabDropPane.wrappedValue = nil
-            activeSplitEdge.wrappedValue = nil
-            return false
-        }
-
-        private func updateDropTarget(for sender: NSDraggingInfo, in size: CGSize, hostView: NSView) {
-            let location = hostView.convert(sender.draggingLocation, from: nil)
-
-            let nextTabDropPane = tabDropTarget(for: location, pasteboard: sender.draggingPasteboard)
-            if activeTabDropPane.wrappedValue != nextTabDropPane {
-                activeTabDropPane.wrappedValue = nextTabDropPane
-            }
-
-            let nextEdge = nextTabDropPane == nil ? splitPreviewEdge(for: location, in: size) : nil
-            guard activeSplitEdge.wrappedValue != nextEdge else { return }
-            activeSplitEdge.wrappedValue = nextEdge
-        }
-
-        private func tabDropTarget(for location: CGPoint, pasteboard: NSPasteboard) -> EditorPane? {
-            guard appState.isSplitViewVisible,
-                  let data = pasteboard.data(forType: NSPasteboard.PasteboardType(UTType.glacierTabReference.identifier)),
-                  let reference = try? JSONDecoder().decode(DraggedTabReference.self, from: data) else {
-                return nil
-            }
-
-            for (pane, frame) in tabBarFrames where frame.contains(location) {
-                guard appState.paneAssignment(for: reference.id) != pane else {
-                    return nil
-                }
-                return pane
-            }
-
-            return nil
-        }
-
-        private func hasSupportedPayload(_ pasteboard: NSPasteboard) -> Bool {
-            pasteboard.data(forType: NSPasteboard.PasteboardType(UTType.glacierTabReference.identifier)) != nil ||
-            pasteboard.data(forType: NSPasteboard.PasteboardType(UTType.glacierFileURL.identifier)) != nil
-        }
-    }
-}
-
-private final class EditorSplitDropHostingView: NSView {
-    weak var coordinator: EditorSplitDropOverlay.Coordinator?
-
-    override var isFlipped: Bool {
-        true
-    }
-
-    override init(frame frameRect: NSRect) {
-        super.init(frame: frameRect)
-        registerForDraggedTypes([
-            NSPasteboard.PasteboardType(UTType.glacierTabReference.identifier),
-            NSPasteboard.PasteboardType(UTType.glacierFileURL.identifier)
-        ])
-    }
-
-    @available(*, unavailable)
-    required init?(coder: NSCoder) {
-        fatalError()
-    }
-
-    override func hitTest(_ point: NSPoint) -> NSView? {
-        nil
-    }
-
-    override func draggingEntered(_ sender: NSDraggingInfo) -> NSDragOperation {
-        coordinator?.draggingEntered(sender, in: bounds.size, hostView: self) ?? []
-    }
-
-    override func draggingUpdated(_ sender: NSDraggingInfo) -> NSDragOperation {
-        coordinator?.draggingUpdated(sender, in: bounds.size, hostView: self) ?? []
-    }
-
-    override func draggingExited(_ sender: NSDraggingInfo?) {
-        coordinator?.draggingExited()
-    }
-
-    override func performDragOperation(_ sender: NSDraggingInfo) -> Bool {
-        coordinator?.performDragOperation(sender, in: bounds.size, hostView: self) ?? false
-    }
-}
-
-// MARK: - Welcome View
 
 private struct WelcomeView: View {
     @EnvironmentObject private var appState: AppState
@@ -603,6 +106,33 @@ private struct WelcomeView: View {
     private func openFolder() {
         openFolderPanel { url in
             appState.fileService.openFolder(at: url)
+        }
+    }
+}
+
+private struct EmptyPaneView: View {
+    @ObservedObject var appState: AppState
+    let paneID: PaneID
+
+    @Environment(\.appTheme) private var theme
+
+    var body: some View {
+        if let previewItem = appState.bridge.preview(inPane: paneID) {
+            FileViewerRouter(
+                tab: nil,
+                previewItem: previewItem,
+                paneID: paneID
+            )
+        } else {
+            VStack(spacing: 16) {
+                Image(systemName: "doc.text")
+                    .font(.system(size: 40, weight: .thin))
+                    .foregroundStyle(.tertiary)
+                Text("No Open Tabs")
+                    .font(theme.typography.labelFont)
+                    .foregroundStyle(.secondary)
+            }
+            .frame(maxWidth: .infinity, maxHeight: .infinity)
         }
     }
 }

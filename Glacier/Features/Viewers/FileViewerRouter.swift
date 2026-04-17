@@ -2,19 +2,22 @@
 // Routes a Tab to the appropriate viewer based on its kind.
 
 import SwiftUI
+import Bonsplit
 
 struct FileViewerRouter: View {
     let tab: Tab?
     let previewItem: FileItem?
-    let pane: EditorPane
-    let isFocused: Bool
+    let paneID: PaneID
     @EnvironmentObject private var appState: AppState
+
+    private var isFocused: Bool {
+        appState.bonsplitController.focusedPaneId == paneID
+    }
 
     var body: some View {
         if let previewItem {
             FileContentView(
                 item: previewItem,
-                pane: pane,
                 editorFontSize: appState.editorFontSize,
                 fileService: appState.fileService
             )
@@ -23,7 +26,6 @@ struct FileViewerRouter: View {
             case .file(let item):
                 FileContentView(
                     item: item,
-                    pane: pane,
                     editorFontSize: appState.editorFontSize,
                     fileService: appState.fileService
                 )
@@ -32,10 +34,10 @@ struct FileViewerRouter: View {
                     terminal: terminal,
                     isFocused: isFocused,
                     onSessionInteraction: { sessionID in
-                        appState.focusTerminalSession(sessionID, in: pane)
+                        appState.focusTerminalSession(sessionID)
                     },
                     onSessionCommand: { sessionID, command in
-                        appState.handleTerminalCommand(command, sessionID: sessionID, in: pane)
+                        appState.handleTerminalCommand(command, sessionID: sessionID)
                     }
                 )
             case .gitGraph:
@@ -51,7 +53,6 @@ struct FileViewerRouter: View {
 
 private struct FileContentView: View {
     let item: FileItem
-    let pane: EditorPane
     let editorFontSize: CGFloat
     let fileService: FileService
 
@@ -102,7 +103,6 @@ private struct FileContentView: View {
                 MarkdownEditorView(
                     text: $editableText,
                     url: item.url,
-                    pane: pane,
                     fontSize: editorFontSize,
                     fileService: fileService
                 )
@@ -111,7 +111,6 @@ private struct FileContentView: View {
                     text: $editableText,
                     fileExtension: ext,
                     url: item.url,
-                    pane: pane,
                     fontSize: editorFontSize,
                     fileService: fileService
                 )
@@ -120,12 +119,11 @@ private struct FileContentView: View {
             MarkwhenViewer(
                 text: $editableText,
                 url: url,
-                pane: pane,
                 fontSize: editorFontSize,
                 fileService: fileService
             )
         case .excalidraw(_, let url):
-            ExcalidrawViewer(text: $editableExcalidraw, url: url, pane: pane, fileService: fileService)
+            ExcalidrawViewer(text: $editableExcalidraw, url: url, fileService: fileService)
         case .image(let url):
             ImageViewerView(url: url)
         case .video(let url):

@@ -8,7 +8,6 @@ import WebKit
 struct ExcalidrawViewer: View {
     @Binding var text: String
     let url: URL
-    let pane: EditorPane
     let fileService: FileService
     @State private var saveRequest: EditorSaveRequest?
 
@@ -22,7 +21,6 @@ struct ExcalidrawViewer: View {
             .frame(maxWidth: .infinity, maxHeight: .infinity)
             .onReceive(NotificationCenter.default.publisher(for: .glacierSaveDocument)) { notification in
                 guard let request = notification.object as? EditorSaveRequest,
-                      request.pane == pane,
                       request.url == url else {
                     return
                 }

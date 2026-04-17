@@ -9,7 +9,6 @@ import MarkdownEditor
 struct MarkdownEditorView: View {
     @Binding var text: String
     let url: URL
-    let pane: EditorPane
     var fontSize: CGFloat = 16
     let fileService: FileService
 
@@ -82,7 +81,6 @@ struct MarkdownEditorView: View {
         }
         .onReceive(NotificationCenter.default.publisher(for: .glacierSaveDocument)) { notification in
             guard let request = notification.object as? EditorSaveRequest,
-                  request.pane == pane,
                   request.url == url else {
                 return
             }

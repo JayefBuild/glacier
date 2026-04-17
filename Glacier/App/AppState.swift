@@ -1,9 +1,14 @@
 // AppState.swift
 // Central observable state for the entire application.
+//
+// Tab content & data model (file/terminal/gitGraph) live here. Pane layout,
+// per-pane tab ordering, focus, and drag-to-split gestures are owned by
+// Bonsplit via BonsplitBridge (see BonsplitBridge.swift).
 
 import SwiftUI
 import Combine
 import UniformTypeIdentifiers
+import Bonsplit
 
 let focusDebugLoggingEnabled = ProcessInfo.processInfo.environment["GLACIER_DEBUG_FOCUS"] == "1"
 let focusDebugLogPath = ProcessInfo.processInfo.environment["GLACIER_DEBUG_FOCUS_LOG"]
@@ -44,63 +49,14 @@ enum TabKind: Equatable {
     }
 }
 
-enum EditorPane: String {
-    case primary
-    case secondary
-}
-
-enum EditorSplitOrientation {
-    case sideBySide
-    case topBottom
-}
-
-enum EditorSplitDropEdge {
-    case left
-    case right
-    case top
-    case bottom
-
-    var orientation: EditorSplitOrientation {
-        switch self {
-        case .left, .right:
-            return .sideBySide
-        case .top, .bottom:
-            return .topBottom
-        }
-    }
-
-    var insertsBeforeAnchor: Bool {
-        switch self {
-        case .left, .top:
-            return true
-        case .right, .bottom:
-            return false
-        }
-    }
-}
-
-struct DraggedTabReference: Transferable, Codable {
-    let id: UUID
-
-    static var transferRepresentation: some TransferRepresentation {
-        CodableRepresentation(contentType: .glacierTabReference)
-    }
-}
-
-extension UTType {
-    static let glacierTabReference = UTType(exportedAs: "com.glacier.tabreference")
-}
-
 @MainActor
 final class EditorSaveRequest {
-    let pane: EditorPane
     let url: URL
 
     private var didAcknowledge = false
     private let onAcknowledge: (() -> Void)?
 
-    init(pane: EditorPane, url: URL, onAcknowledge: (() -> Void)? = nil) {
-        self.pane = pane
+    init(url: URL, onAcknowledge: (() -> Void)? = nil) {
         self.url = url
         self.onAcknowledge = onAcknowledge
     }
@@ -110,11 +66,6 @@ final class EditorSaveRequest {
         didAcknowledge = true
         onAcknowledge?()
     }
-}
-
-private struct DocumentSaveTarget: Hashable {
-    let pane: EditorPane
-    let url: URL
 }
 
 extension Notification.Name {
@@ -182,11 +133,19 @@ final class AppState: ObservableObject {
     private var cancellables = Set<AnyCancellable>()
     private var lastRegisteredWorkspaceURL: URL?
 
+    // MARK: - Bonsplit bridge (owns pane layout)
+
+    let bridge: BonsplitBridge
+
+    var bonsplitController: BonsplitController { bridge.controller }
+
     // MARK: - Init
 
     init() {
+        self.bridge = BonsplitBridge()
         AppStateRegistry.shared.register(self)
         focusDebugLog("GlacierFocus appStateInit")
+        self.bridge.appState = self
         observeFileTreeChanges()
         observeWorkspaceChanges()
 
@@ -210,14 +169,9 @@ final class AppState: ObservableObject {
 
         if environment["GLACIER_OPEN_GIT_GRAPH"] == "1" {
             Task { @MainActor in
-                // Give the folder-open above a moment to settle before opening the
-                // Git Graph tab so the snapshot loads against the real repo.
                 try? await Task.sleep(nanoseconds: 400_000_000)
                 self.openGitGraph()
 
-                // Ensure the window is key so SwiftUI begins rendering the
-                // main content area (`.task` modifiers fire only after the view
-                // appears, which can be deferred on a headless session).
                 if let window = NSApp.windows.first(where: { $0.isVisible }) {
                     window.makeKeyAndOrderFront(nil)
                 }
@@ -239,8 +193,6 @@ final class AppState: ObservableObject {
     @Published private(set) var isExplorerFocused: Bool = false
     @Published var selectedFileItem: FileItem?
     @Published private(set) var selectedFileURLs: Set<URL> = []
-    @Published private var primaryPreviewFileItem: FileItem?
-    @Published private var secondaryPreviewFileItem: FileItem?
     @Published private(set) var pendingTrashItem: FileItem?
     private var explorerSelectionAnchorURL: URL?
 
@@ -264,35 +216,20 @@ final class AppState: ObservableObject {
     // MARK: - Tabs
 
     @Published var tabs: [Tab] = []
-    @Published var activeTabID: UUID?
-    @Published var primaryTabID: UUID?
-    @Published var secondaryTabID: UUID?
-    @Published private var tabPaneAffinities: [UUID: EditorPane] = [:]
-    @Published var focusedPane: EditorPane = .primary
-    @Published var splitOrientation: EditorSplitOrientation = .sideBySide
 
     var activeTab: Tab? {
-        tab(with: activeTabID) ?? tab(with: tabID(for: focusedPane)) ?? primaryTab
+        bridge.focusedGlacierTab ?? tabs.first
     }
 
-    var primaryTab: Tab? {
-        tab(with: primaryTabID)
-    }
-
-    var secondaryTab: Tab? {
-        tab(with: secondaryTabID)
-    }
-
-    var isSplitViewVisible: Bool {
-        primaryTab != nil && secondaryTab != nil
-    }
-
-    var canSplitFocusedPane: Bool {
-        isSplitViewVisible || tabs.count > 1
+    // `activeTabID` is a derived convenience for the few call sites that still
+    // reference it (tests, commands). It mirrors whatever Bonsplit reports as
+    // the focused-pane's selected tab.
+    var activeTabID: UUID? {
+        bridge.focusedGlacierTabID
     }
 
     var canSaveFocusedDocument: Bool {
-        visibleFileItem(in: focusedPane) != nil
+        focusedVisibleFileItem != nil
     }
 
     var canTrashSelectedExplorerItem: Bool {
@@ -300,29 +237,36 @@ final class AppState: ObservableObject {
     }
 
     var focusedVisibleFileURL: URL? {
-        visibleFileItem(in: focusedPane)?.url
+        focusedVisibleFileItem?.url
+    }
+
+    private var focusedVisibleFileItem: FileItem? {
+        if let paneID = bonsplitController.focusedPaneId,
+           let previewItem = bridge.preview(inPane: paneID) {
+            return previewItem
+        }
+        guard let tab = activeTab else { return nil }
+        if case .file(let item) = tab.kind { return item }
+        return nil
     }
 
     // MARK: - Open File
 
     func openFile(_ item: FileItem) {
-        clearPreview(in: focusedPane)
+        if let paneID = bonsplitController.focusedPaneId {
+            bridge.setPreview(nil, inPane: paneID)
+        }
 
-        // If already open, just activate
         if let existing = tabs.first(where: {
             if case .file(let f) = $0.kind { return f.url == item.url }
             return false
         }) {
-            if let pane = pane(for: existing.id) {
-                focusPane(pane)
-            } else {
-                showTab(id: existing.id, in: focusedPane)
-            }
+            bridge.selectTab(glacierID: existing.id)
             return
         }
         let tab = Tab(file: item)
         tabs.append(tab)
-        showTab(id: tab.id, in: focusedPane)
+        bridge.addTab(tab)
     }
 
     // MARK: - Explorer Selection
@@ -503,40 +447,64 @@ final class AppState: ObservableObject {
         }
     }
 
-    func previewedFileItem(in pane: EditorPane) -> FileItem? {
-        switch pane {
-        case .primary:
-            return primaryPreviewFileItem
-        case .secondary:
-            return secondaryPreviewFileItem
+    // MARK: - Preview
+
+    /// Whether the focused pane currently shows a preview item.
+    var hasFocusedPreview: Bool {
+        guard let paneID = bonsplitController.focusedPaneId else { return false }
+        return bridge.preview(inPane: paneID) != nil
+    }
+
+    func clearFocusedPreview() {
+        guard let paneID = bonsplitController.focusedPaneId else { return }
+        bridge.setPreview(nil, inPane: paneID)
+    }
+
+    /// Remove the given URL's preview from any pane that's showing it.
+    func clearPreview(matching url: URL) {
+        for paneID in bonsplitController.allPaneIds {
+            if let previewed = bridge.preview(inPane: paneID),
+               previewed.url.standardizedFileURL == url.standardizedFileURL {
+                bridge.setPreview(nil, inPane: paneID)
+            }
         }
     }
 
-    func previewFile(_ item: FileItem, in pane: EditorPane? = nil) {
-        let targetPane = pane ?? focusedPane
-        setPreviewFileItem(item, in: targetPane)
+    /// Clear previews whose URL is at or under any of the given paths.
+    func clearPreviews(underPaths paths: [String]) {
+        let normalizedPaths = paths.map { URL(fileURLWithPath: $0).standardizedFileURL.path }
+        for paneID in bonsplitController.allPaneIds {
+            guard let previewed = bridge.preview(inPane: paneID) else { continue }
+            let previewPath = previewed.url.standardizedFileURL.path
+            let shouldClear = normalizedPaths.contains { removedPath in
+                previewPath == removedPath || previewPath.hasPrefix(removedPath + "/")
+            }
+            if shouldClear {
+                fileService.beginDiscarding(previewed.url.standardizedFileURL)
+                bridge.setPreview(nil, inPane: paneID)
+            }
+        }
     }
 
-    func clearPreview(in pane: EditorPane) {
-        setPreviewFileItem(nil, in: pane)
-    }
-
-    func hasPreview(in pane: EditorPane) -> Bool {
-        previewedFileItem(in: pane) != nil
+    func previewFile(_ item: FileItem) {
+        guard let paneID = bonsplitController.focusedPaneId ?? bonsplitController.allPaneIds.first else {
+            return
+        }
+        bridge.setPreview(item, inPane: paneID)
     }
 
     func requestSaveForFocusedPane() {
-        guard let item = visibleFileItem(in: focusedPane) else { return }
-        postSaveRequest(for: focusedPane, url: item.url)
+        guard let item = focusedVisibleFileItem else { return }
+        postSaveRequest(url: item.url)
     }
 
     func saveOpenDocumentsBeforeClose(timeout: TimeInterval = 1.5) {
-        let targets = visibleDocumentSaveTargets()
-        guard !targets.isEmpty else { return }
+        let urls = visibleDocumentSaveURLs()
+        guard !urls.isEmpty else { return }
 
-        var remainingAcks = targets.count
-        for target in targets {
-            postSaveRequest(for: target.pane, url: target.url) {
+        var remainingAcks = urls.count
+        for url in urls {
+            postSaveRequest(url: url) {
                 remainingAcks -= 1
             }
         }
@@ -594,7 +562,7 @@ final class AppState: ObservableObject {
         let terminal = TerminalTabState(workingDirectory: dir, fontSize: defaultTerminalFontSize)
         let tab = Tab(terminal: terminal)
         tabs.append(tab)
-        showTab(id: tab.id, in: focusedPane)
+        bridge.addTab(tab)
     }
 
     func openGitGraph() {
@@ -602,17 +570,13 @@ final class AppState: ObservableObject {
             if case .gitGraph = $0.kind { return true }
             return false
         }) {
-            if let pane = pane(for: existing.id) {
-                focusPane(pane)
-            } else {
-                showTab(id: existing.id, in: focusedPane)
-            }
+            bridge.selectTab(glacierID: existing.id)
             return
         }
 
         let tab = Tab(gitGraph: ())
         tabs.append(tab)
-        showTab(id: tab.id, in: focusedPane)
+        bridge.addTab(tab)
     }
 
     // MARK: - Close Tab
@@ -620,83 +584,31 @@ final class AppState: ObservableObject {
     func closeTab(_ tab: Tab, bypassingConfirmation: Bool = false) {
         guard bypassingConfirmation || confirmTabCloseIfNeeded(tab) else { return }
         saveTabIfNeededBeforeClose(tab)
-        performCloseTab(tab)
-    }
-
-    private func performCloseTab(_ tab: Tab) {
-        guard let idx = tabs.firstIndex(of: tab) else { return }
-        let wasPrimary = primaryTabID == tab.id
-        let wasSecondary = secondaryTabID == tab.id
-
-        if case .terminal(let terminal) = tab.kind {
-            for sessionID in terminal.allSessionIDs {
-                TerminalViewCache.shared.remove(sessionID)
-            }
-        }
-
-        tabs.remove(at: idx)
-        tabPaneAffinities.removeValue(forKey: tab.id)
-
-        if wasPrimary {
-            primaryTabID = replacementTabID(
-                afterRemovingIndex: idx,
-                replacing: .primary,
-                excluding: Set([secondaryTabID].compactMap { $0 })
-            )
-        }
-
-        if wasSecondary {
-            secondaryTabID = replacementTabID(
-                afterRemovingIndex: idx,
-                replacing: .secondary,
-                excluding: Set([primaryTabID].compactMap { $0 })
-            )
-        }
-
-        normalizePaneAssignments()
+        bridge.removeTab(glacierID: tab.id)
+        // Bonsplit's delegate callback `handleBonsplitTabClosed` finishes the removal.
     }
 
     func activateTab(id: UUID) {
-        if let pane = pane(for: id) {
-            clearPreview(in: pane)
-            focusPane(pane)
-        } else {
-            showTab(id: id, in: focusedPane)
-        }
+        bridge.selectTab(glacierID: id)
     }
 
-    func activateTab(id: UUID, in pane: EditorPane) {
-        if tabID(for: pane) == id {
-            clearPreview(in: pane)
-            focusPane(pane)
-        } else {
-            showTab(id: id, in: pane)
-        }
-    }
-
-    func closeOtherTabs(keeping id: UUID, in pane: EditorPane? = nil) {
-        let tabsToClose: [Tab]
-        if let pane, isSplitViewVisible {
-            tabsToClose = tabs(for: pane).filter { $0.id != id }
-        } else {
-            tabsToClose = tabs.filter { $0.id != id }
-        }
-
+    func closeOtherTabs(keeping id: UUID) {
+        let tabsToClose = tabs.filter { $0.id != id }
         tabsToClose.forEach { closeTab($0) }
     }
 
-    func focusTerminalSession(_ sessionID: UUID, in pane: EditorPane) {
-        guard let terminal = visibleTerminalTab(in: pane) else {
-            focusPane(pane)
+    func focusTerminalSession(_ sessionID: UUID) {
+        guard let paneID = bonsplitController.focusedPaneId,
+              let terminal = visibleTerminalTab(inPane: paneID) else {
             return
         }
 
         terminal.focusSession(sessionID)
-        focusPane(pane)
     }
 
-    func handleTerminalCommand(_ command: TerminalShortcutCommand, sessionID: UUID, in pane: EditorPane) {
-        guard let terminal = visibleTerminalTab(in: pane) else {
+    func handleTerminalCommand(_ command: TerminalShortcutCommand, sessionID: UUID) {
+        guard let paneID = bonsplitController.focusedPaneId else { return }
+        guard let terminal = visibleTerminalTab(inPane: paneID) else {
             if command == .newTerminalTab {
                 openNewTerminal()
             }
@@ -707,104 +619,61 @@ final class AppState: ObservableObject {
 
         switch command {
         case .newTerminalTab:
-            focusPane(pane)
             let workingDirectory = terminal.session(for: sessionID)?.workingDirectory
             openNewTerminal(workingDirectory: workingDirectory)
         case .closeTerminal:
-            closeTerminalSession(sessionID, in: pane)
+            closeTerminalSession(sessionID, inPane: paneID)
         case .splitTerminalVertical:
-            splitTerminalSession(sessionID, in: pane, orientation: .vertical)
+            terminal.focusSession(sessionID)
+            _ = terminal.splitFocusedSession(.vertical)
         case .splitTerminalHorizontal:
-            splitTerminalSession(sessionID, in: pane, orientation: .horizontal)
+            terminal.focusSession(sessionID)
+            _ = terminal.splitFocusedSession(.horizontal)
         case .splitEditorRight:
-            focusPane(pane)
-            splitFocusedPaneRight()
+            bonsplitController.splitPane(orientation: .horizontal)
         case .splitEditorDown:
-            focusPane(pane)
-            splitFocusedPaneDown()
+            bonsplitController.splitPane(orientation: .vertical)
         case .closeEditorSplit:
-            focusPane(pane)
-            closeSplit()
+            if let paneID = bonsplitController.focusedPaneId {
+                bonsplitController.closePane(paneID)
+            }
         }
     }
 
-    func focusPane(_ pane: EditorPane) {
+    // MARK: - Bonsplit delegate hooks (called by BonsplitBridge)
+
+    func confirmBonsplitTabClose(_ tab: Tab) -> Bool {
+        guard confirmTabCloseIfNeeded(tab) else { return false }
+        saveTabIfNeededBeforeClose(tab)
+        return true
+    }
+
+    func handleBonsplitTabClosed(glacierID: UUID) {
+        guard let idx = tabs.firstIndex(where: { $0.id == glacierID }) else { return }
+        let tab = tabs[idx]
+        if case .terminal(let terminal) = tab.kind {
+            for sessionID in terminal.allSessionIDs {
+                TerminalViewCache.shared.remove(sessionID)
+            }
+        }
+        tabs.remove(at: idx)
+    }
+
+    func handleBonsplitTabSelected(glacierID: UUID, inPane paneID: PaneID) {
+        guard let tab = tab(with: glacierID) else { return }
+        syncExplorerSelectionToVisibleFile(in: tab)
+        restoreTerminalFocus(for: tab)
+    }
+
+    func handleBonsplitPaneFocused(_ paneID: PaneID) {
         if focusDebugLoggingEnabled {
-            focusDebugLog("GlacierFocus focusPane pane=\(pane.rawValue)")
+            focusDebugLog("GlacierFocus paneFocused")
         }
         isExplorerFocused = false
-        focusedPane = pane
-        activeTabID = tabID(for: pane) ?? primaryTabID
-        syncExplorerSelectionToVisibleFile(in: pane)
-        restoreTerminalFocusForVisibleTab(in: pane)
-    }
-
-    func splitFocusedPaneRight() {
-        splitFocusedPane(edge: .right)
-    }
-
-    func splitFocusedPaneDown() {
-        splitFocusedPane(edge: .bottom)
-    }
-
-    func closeSplit() {
-        guard isSplitViewVisible else { return }
-
-        switch focusedPane {
-        case .primary:
-            secondaryTabID = nil
-            clearPreview(in: .secondary)
-        case .secondary:
-            primaryTabID = secondaryTabID
-            secondaryTabID = nil
-            clearPreview(in: .secondary)
+        if let tab = tab(with: bridge.focusedGlacierTabID ?? UUID()) {
+            syncExplorerSelectionToVisibleFile(in: tab)
+            restoreTerminalFocus(for: tab)
         }
-
-        normalizePaneAssignments()
-    }
-
-    func splitPane(with tabID: UUID, edge: EditorSplitDropEdge) {
-        guard tabs.contains(where: { $0.id == tabID }) else { return }
-        guard let anchorID = self.tabID(for: focusedPane) ?? primaryTabID else {
-            showTab(id: tabID, in: .primary)
-            return
-        }
-        guard let companionID = splitCompanionID(for: tabID, preferredAnchor: anchorID) else {
-            return
-        }
-
-        splitOrientation = edge.orientation
-
-        if edge.insertsBeforeAnchor {
-            primaryTabID = tabID
-            secondaryTabID = companionID
-        } else {
-            primaryTabID = companionID
-            secondaryTabID = tabID
-        }
-
-        normalizePaneAssignments()
-        if let pane = self.pane(for: tabID) {
-            focusPane(pane)
-        }
-    }
-
-    func splitFile(at url: URL, edge: EditorSplitDropEdge) {
-        guard !isDirectory(url) else { return }
-
-        if let existingTab = tabs.first(where: {
-            if case .file(let file) = $0.kind {
-                return file.url == url
-            }
-            return false
-        }) {
-            splitPane(with: existingTab.id, edge: edge)
-            return
-        }
-
-        let tab = Tab(file: FileItem(url: url, isDirectory: false))
-        tabs.append(tab)
-        splitPane(with: tab.id, edge: edge)
     }
 
     // MARK: - Terminal Font Size
@@ -848,155 +717,70 @@ final class AppState: ObservableObject {
         guard !trimmed.isEmpty else { return }
         objectWillChange.send()
         terminal.title = trimmed
-    }
-
-    func isTabVisible(_ id: UUID) -> Bool {
-        pane(for: id) != nil
-    }
-
-    func paneAssignment(for id: UUID) -> EditorPane {
-        pane(for: id) ?? tabPaneAffinities[id] ?? .primary
-    }
-
-    func tabs(for pane: EditorPane) -> [Tab] {
-        guard isSplitViewVisible else { return tabs }
-        return tabs.filter { paneAssignment(for: $0.id) == pane }
-    }
-
-    func visibleTabID(for pane: EditorPane) -> UUID? {
-        tabID(for: pane)
-    }
-
-    func pane(for id: UUID) -> EditorPane? {
-        if primaryTabID == id { return .primary }
-        if secondaryTabID == id { return .secondary }
-        return nil
-    }
-
-    func otherPane(of pane: EditorPane) -> EditorPane {
-        pane == .primary ? .secondary : .primary
-    }
-
-    // MARK: - Pane State
-
-    private func showTab(id: UUID, in pane: EditorPane) {
-        clearPreview(in: pane)
-
-        switch pane {
-        case .primary:
-            if secondaryTabID == id {
-                secondaryTabID = primaryTabID
-            }
-            primaryTabID = id
-        case .secondary:
-            guard primaryTabID != nil else {
-                primaryTabID = id
-                break
-            }
-            if primaryTabID == id {
-                primaryTabID = secondaryTabID
-            }
-            secondaryTabID = id
-        }
-
-        normalizePaneAssignments()
-        if let pane = self.pane(for: id) {
-            focusPane(pane)
+        // Push the new title into Bonsplit so the tab renders the update.
+        if let idx = tabs.firstIndex(where: {
+            if case .terminal(let t) = $0.kind { return t.id == terminal.id }
+            return false
+        }) {
+            bridge.syncTabMetadata(tabs[idx])
         }
     }
 
-    private func normalizePaneAssignments() {
-        if primaryTabID != nil, tab(with: primaryTabID) == nil {
-            primaryTabID = nil
-        }
+    // MARK: - Tab Lookup
 
-        if secondaryTabID != nil, tab(with: secondaryTabID) == nil {
-            secondaryTabID = nil
-        }
-
-        if primaryTabID == nil {
-            primaryTabID = secondaryTabID
-            secondaryTabID = nil
-        }
-
-        if primaryTabID == secondaryTabID {
-            secondaryTabID = nil
-        }
-
-        syncVisibleTabPaneAffinities()
-
-        if primaryTabID == nil {
-            activeTabID = nil
-            focusedPane = .primary
-            return
-        }
-
-        if secondaryTabID == nil, focusedPane == .secondary {
-            focusedPane = .primary
-        }
-
-        if secondaryTabID == nil {
-            clearPreview(in: .secondary)
-        }
-
-        if let activeTabID, let pane = pane(for: activeTabID) {
-            focusedPane = pane
-        } else {
-            activeTabID = tabID(for: focusedPane) ?? primaryTabID
-        }
-
-        syncExplorerSelectionToVisibleFile(in: focusedPane)
+    func tab(with id: UUID?) -> Tab? {
+        guard let id else { return nil }
+        return tabs.first { $0.id == id }
     }
 
-    private func tabID(for pane: EditorPane) -> UUID? {
-        switch pane {
-        case .primary: return primaryTabID
-        case .secondary: return secondaryTabID
-        }
-    }
+    // MARK: - Private helpers
 
-    private func visibleTerminalTab(in pane: EditorPane) -> TerminalTabState? {
-        guard let tab = tab(with: tabID(for: pane)) else { return nil }
+    private func visibleTerminalTab(inPane paneID: PaneID) -> TerminalTabState? {
+        guard let selected = bonsplitController.selectedTab(inPane: paneID),
+              let glacierID = bridge.glacierTabID(for: selected.id),
+              let tab = tab(with: glacierID) else { return nil }
         guard case .terminal(let terminal) = tab.kind else { return nil }
         return terminal
     }
 
-    private func visibleDocumentSaveTargets() -> [DocumentSaveTarget] {
-        var targets: [DocumentSaveTarget] = []
-        let panes: [EditorPane] = isSplitViewVisible ? [.primary, .secondary] : [.primary]
-
-        for pane in panes {
-            guard let item = visibleFileItem(in: pane) else { continue }
-            targets.append(DocumentSaveTarget(pane: pane, url: item.url))
+    private func visibleDocumentSaveURLs() -> [URL] {
+        var urls: Set<URL> = []
+        for paneID in bonsplitController.allPaneIds {
+            if let previewItem = bridge.preview(inPane: paneID) {
+                urls.insert(previewItem.url)
+                continue
+            }
+            if let selected = bonsplitController.selectedTab(inPane: paneID),
+               let glacierID = bridge.glacierTabID(for: selected.id),
+               let tab = tab(with: glacierID),
+               case .file(let item) = tab.kind {
+                urls.insert(item.url)
+            }
         }
-
-        return Array(Set(targets))
+        return Array(urls)
     }
 
-    private func postSaveRequest(for pane: EditorPane, url: URL, onAcknowledge: (() -> Void)? = nil) {
+    private func postSaveRequest(url: URL, onAcknowledge: (() -> Void)? = nil) {
         NotificationCenter.default.post(
             name: .glacierSaveDocument,
             object: EditorSaveRequest(
-                pane: pane,
                 url: url,
                 onAcknowledge: onAcknowledge
             )
         )
     }
 
-    private func visibleFileItem(in pane: EditorPane) -> FileItem? {
-        if let previewItem = previewedFileItem(in: pane) {
-            return previewItem
-        }
-
-        guard let tab = tab(with: tabID(for: pane)) else { return nil }
-        guard case .file(let item) = tab.kind else { return nil }
-        return item
+    private func syncExplorerSelectionToVisibleFile(in tab: Tab) {
+        guard case .file(let item) = tab.kind else { return }
+        selectExplorerURL(item.url)
     }
 
-    private func syncExplorerSelectionToVisibleFile(in pane: EditorPane) {
-        guard let item = visibleFileItem(in: pane) else { return }
-        selectExplorerURL(item.url)
+    private func restoreTerminalFocus(for tab: Tab) {
+        guard case .terminal(let terminal) = tab.kind else { return }
+        if focusDebugLoggingEnabled {
+            focusDebugLog("GlacierFocus restore session=\(terminal.focusedSessionID.uuidString)")
+        }
+        TerminalViewCache.shared.focus(terminal.focusedSessionID)
     }
 
     private var selectedExplorerTargetURL: URL? {
@@ -1106,72 +890,10 @@ final class AppState: ObservableObject {
         FileManager.default.fileExists(atPath: url.path)
     }
 
-    private func restoreTerminalFocusForVisibleTab(in pane: EditorPane) {
-        guard let terminal = visibleTerminalTab(in: pane) else { return }
-        if focusDebugLoggingEnabled {
-            focusDebugLog("GlacierFocus restore pane=\(pane.rawValue) session=\(terminal.focusedSessionID.uuidString)")
-        }
-        TerminalViewCache.shared.focus(terminal.focusedSessionID)
-    }
-
-    private func syncVisibleTabPaneAffinities() {
-        if let primaryTabID {
-            tabPaneAffinities[primaryTabID] = .primary
-        }
-
-        if let secondaryTabID {
-            tabPaneAffinities[secondaryTabID] = .secondary
-        }
-    }
-
-    private func splitCompanionID(for draggedTabID: UUID, preferredAnchor anchorID: UUID) -> UUID? {
-        if anchorID != draggedTabID {
-            return anchorID
-        }
-
-        let visibleTabIDs = [primaryTabID, secondaryTabID].compactMap { $0 }
-        if let otherVisibleID = visibleTabIDs.first(where: { $0 != draggedTabID }) {
-            return otherVisibleID
-        }
-
-        return tabs.map(\.id).first(where: { $0 != draggedTabID })
-    }
-
-    private func splitFocusedPane(edge: EditorSplitDropEdge) {
-        if isSplitViewVisible {
-            splitOrientation = edge.orientation
-            return
-        }
-
-        guard let anchorID = tabID(for: focusedPane) ?? activeTabID ?? primaryTabID else {
-            return
-        }
-
-        guard let splitTabID = nextTabIDForSplit(excluding: anchorID) else {
-            return
-        }
-
-        splitPane(with: splitTabID, edge: edge)
-    }
-
-    private func nextTabIDForSplit(excluding anchorID: UUID) -> UUID? {
-        let candidateIDs = tabs.map(\.id).filter { $0 != anchorID }
-        return candidateIDs.first(where: { pane(for: $0) == nil }) ?? candidateIDs.first
-    }
-
-    private func splitTerminalSession(
-        _ sessionID: UUID,
-        in pane: EditorPane,
-        orientation: TerminalTabSplitOrientation
-    ) {
-        guard let terminal = visibleTerminalTab(in: pane) else { return }
-        terminal.focusSession(sessionID)
-        guard terminal.splitFocusedSession(orientation) != nil else { return }
-        focusPane(pane)
-    }
-
-    private func closeTerminalSession(_ sessionID: UUID, in pane: EditorPane) {
-        guard let tab = tab(with: tabID(for: pane)),
+    private func closeTerminalSession(_ sessionID: UUID, inPane paneID: PaneID) {
+        guard let selected = bonsplitController.selectedTab(inPane: paneID),
+              let glacierID = bridge.glacierTabID(for: selected.id),
+              let tab = tab(with: glacierID),
               case .terminal(let terminal) = tab.kind else {
             return
         }
@@ -1186,10 +908,7 @@ final class AppState: ObservableObject {
 
         if closeResult.shouldCloseTab {
             closeTab(tab, bypassingConfirmation: true)
-            return
         }
-
-        focusPane(pane)
     }
 
     private func confirmTabCloseIfNeeded(_ tab: Tab) -> Bool {
@@ -1198,12 +917,10 @@ final class AppState: ObservableObject {
     }
 
     private func saveTabIfNeededBeforeClose(_ tab: Tab) {
-        guard case .file(let item) = tab.kind,
-              let pane = pane(for: tab.id) else {
+        guard case .file(let item) = tab.kind else {
             return
         }
-
-        postSaveRequest(for: pane, url: item.url)
+        postSaveRequest(url: item.url)
     }
 
     private func isDirectory(_ url: URL) -> Bool {
@@ -1211,67 +928,6 @@ final class AppState: ObservableObject {
         FileManager.default.fileExists(atPath: url.path, isDirectory: &isDirectory)
         return isDirectory.boolValue
     }
-
-    private func setPreviewFileItem(_ item: FileItem?, in pane: EditorPane) {
-        switch pane {
-        case .primary:
-            primaryPreviewFileItem = item
-        case .secondary:
-            secondaryPreviewFileItem = item
-        }
-    }
-
-    private func tab(with id: UUID?) -> Tab? {
-        guard let id else { return nil }
-        return tabs.first { $0.id == id }
-    }
-
-    private func replacementTabID(afterRemovingIndex index: Int, replacing pane: EditorPane, excluding excluded: Set<UUID>) -> UUID? {
-        guard !tabs.isEmpty else { return nil }
-        let start = min(index, tabs.count - 1)
-
-        for tab in tabs[start...] where !excluded.contains(tab.id) && paneAssignment(for: tab.id) == pane {
-            return tab.id
-        }
-
-        if start > 0 {
-            for tab in tabs[..<start].reversed() where !excluded.contains(tab.id) && paneAssignment(for: tab.id) == pane {
-                return tab.id
-            }
-        }
-
-        for tab in tabs[start...] where !excluded.contains(tab.id) {
-            return tab.id
-        }
-
-        if start > 0 {
-            for tab in tabs[..<start].reversed() where !excluded.contains(tab.id) {
-                return tab.id
-            }
-        }
-
-        return nil
-    }
-}
-
-func splitPreviewEdge(for location: CGPoint, in size: CGSize) -> EditorSplitDropEdge? {
-    guard size.width > 0, size.height > 0 else { return nil }
-
-    let horizontalThreshold = min(max(size.width * 0.22, 140), 220)
-    let verticalThreshold = min(max(size.height * 0.22, 110), 180)
-
-    let candidates: [(EditorSplitDropEdge, CGFloat)] = [
-        (.left, location.x / horizontalThreshold),
-        (.right, (size.width - location.x) / horizontalThreshold),
-        (.top, location.y / verticalThreshold),
-        (.bottom, (size.height - location.y) / verticalThreshold)
-    ]
-
-    guard let best = candidates.min(by: { $0.1 < $1.1 }), best.1 <= 1 else {
-        return nil
-    }
-
-    return best.0
 }
 
 // MARK: - Terminal Session

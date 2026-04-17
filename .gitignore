@@ -7,4 +7,4 @@ DerivedData/
 private/
 remote-artifacts/
 *.o
-*.d
+*.dto-remove/

@@ -27,6 +27,9 @@ packages:
     from: 1.2.0
   MarkdownEditor:
     path: Packages/MarkdownEditor
+  Bonsplit:
+    url: https://github.com/almonk/bonsplit
+    from: 1.1.1
 
 targets:
   Glacier:
@@ -50,6 +53,8 @@ targets:
         product: SwiftTerm
       - package: MarkdownEditor
         product: MarkdownEditor
+      - package: Bonsplit
+        product: Bonsplit
 
   GlacierUITests:
     type: bundle.ui-testing

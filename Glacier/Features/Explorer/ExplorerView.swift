@@ -149,16 +149,8 @@ private struct ExplorerContent: View {
             let normalizedPath = normalized.path
             fileService.beginDiscarding(normalized)
 
-            // Clear preview in either pane if it matches.
-            for pane in [EditorPane.primary, EditorPane.secondary] {
-                if let previewed = appState.previewedFileItem(in: pane) {
-                    let previewPath = previewed.url.standardizedFileURL.path
-                    if previewPath == normalizedPath || previewPath.hasPrefix(normalizedPath + "/") {
-                        fileService.beginDiscarding(previewed.url.standardizedFileURL)
-                        appState.clearPreview(in: pane)
-                    }
-                }
-            }
+            // Clear preview in any pane that matches.
+            appState.clearPreviews(underPaths: [normalizedPath])
 
             // Close open tabs for this URL or anything under it.
             for tab in appState.tabs {
@@ -178,19 +170,8 @@ private struct ExplorerContent: View {
                 fileService.beginDiscarding(url.standardizedFileURL)
             }
 
-            // Clear preview in either pane if it matches.
-            for pane in [EditorPane.primary, EditorPane.secondary] {
-                if let previewed = appState.previewedFileItem(in: pane) {
-                    let previewPath = previewed.url.standardizedFileURL.path
-                    let match = normalized.contains { removed in
-                        previewPath == removed || previewPath.hasPrefix(removed + "/")
-                    }
-                    if match {
-                        fileService.beginDiscarding(previewed.url.standardizedFileURL)
-                        appState.clearPreview(in: pane)
-                    }
-                }
-            }
+            // Clear preview in any pane that matches.
+            appState.clearPreviews(underPaths: normalized)
 
             // Close matching tabs.
             for tab in appState.tabs {

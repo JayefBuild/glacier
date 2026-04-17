@@ -13,7 +13,6 @@ struct TextEditorView: View {
     @Binding var text: String
     let fileExtension: String
     let url: URL
-    let pane: EditorPane
     var fontSize: CGFloat = 15
     let fileService: FileService
 
@@ -57,7 +56,6 @@ struct TextEditorView: View {
         }
         .onReceive(NotificationCenter.default.publisher(for: .glacierSaveDocument)) { notification in
             guard let request = notification.object as? EditorSaveRequest,
-                  request.pane == pane,
                   request.url == url else {
                 return
             }

@@ -48,6 +48,7 @@
 		9E8073F11196A309F96DA380 /* GlacierUITests.swift in Sources */ = {isa = PBXBuildFile; fileRef = 214D16911A5FB7FC000483E8 /* GlacierUITests.swift */; };
 		9EE4F8D1E4C6B1FCAE4EE521 /* FileItem.swift in Sources */ = {isa = PBXBuildFile; fileRef = B62D358B4D39E089035D5C94 /* FileItem.swift */; };
 		A2D5752276D6B50A4912BED8 /* TextTableViewCell.swift in Sources */ = {isa = PBXBuildFile; fileRef = A73C01126192D6B821C3FBE1 /* TextTableViewCell.swift */; };
+		A3A06F57A48C0D68D12F3886 /* Bonsplit in Frameworks */ = {isa = PBXBuildFile; productRef = E174CFBECB932DECB41F68EA /* Bonsplit */; };
 		A5F353AA797B01E6ACA1AB81 /* FileSystemTableViewCell.swift in Sources */ = {isa = PBXBuildFile; fileRef = DC7D6AFAD4DB46FB80650193 /* FileSystemTableViewCell.swift */; };
 		ADF46CC7F5D9737058772A88 /* markwhen.html in Resources */ = {isa = PBXBuildFile; fileRef = 05B63625B790B145C2A415C4 /* markwhen.html */; };
 		AF7865A52A536343A2C2059E /* WorkspaceStore.swift in Sources */ = {isa = PBXBuildFile; fileRef = DADED67C8C1FA96929228E8E /* WorkspaceStore.swift */; };
@@ -57,7 +58,6 @@
 		BBBF864E4057B1D41C4ADE5D /* ExplorerView.swift in Sources */ = {isa = PBXBuildFile; fileRef = 623249D019FA8412880434CB /* ExplorerView.swift */; };
 		BFD1E3B65277BED37735FC1A /* ProjectNavigatorTableViewCell.swift in Sources */ = {isa = PBXBuildFile; fileRef = 346AA22F51400F6E4139A547 /* ProjectNavigatorTableViewCell.swift */; };
 		C32BDFB0AFEB2BFF1B35B299 /* MarkdownEditor in Frameworks */ = {isa = PBXBuildFile; productRef = 11B4DDFDE6DA19E65DD5D99B /* MarkdownEditor */; };
-		C59B9232DF4E8D540E520215 /* TabBarView.swift in Sources */ = {isa = PBXBuildFile; fileRef = 9832885CCE672DFC64559C23 /* TabBarView.swift */; };
 		CAE03A9BF58603515DC4C5E1 /* react.min.js in Resources */ = {isa = PBXBuildFile; fileRef = 4AB76542D0D42359BD5CB051 /* react.min.js */; };
 		D374AF32D211D0442ED8C2BF /* CEWorkspaceFileManager+Error.swift in Sources */ = {isa = PBXBuildFile; fileRef = 45FA871BA50F9EC456696EF1 /* CEWorkspaceFileManager+Error.swift */; };
 		D4A2C2AD9B128971DEFAE880 /* FileViewerRouter.swift in Sources */ = {isa = PBXBuildFile; fileRef = E9FC3C49D5662DFF52FB6D2D /* FileViewerRouter.swift */; };
@@ -67,6 +67,7 @@
 		E272E5E6331C5F5B03EB3734 /* ProjectNavigatorViewController+NSOutlineViewDataSource.swift in Sources */ = {isa = PBXBuildFile; fileRef = 41CEBE8CFB08BDAAA22E4737 /* ProjectNavigatorViewController+NSOutlineViewDataSource.swift */; };
 		E36D3FD562393FACA81A135F /* ProjectNavigatorNSOutlineView.swift in Sources */ = {isa = PBXBuildFile; fileRef = C3F5DDEA2D3D7412B802DC7E /* ProjectNavigatorNSOutlineView.swift */; };
 		E9B15CC4646E60DBF9C5FEA2 /* PDFViewerView.swift in Sources */ = {isa = PBXBuildFile; fileRef = 57BF7FC57F6055A25AC0814C /* PDFViewerView.swift */; };
+		EEC2B562198FDA4BD86B3D83 /* BonsplitBridge.swift in Sources */ = {isa = PBXBuildFile; fileRef = A73F3A06EFD58F9BB49939AB /* BonsplitBridge.swift */; };
 		F4363502A8B5B4B334A4A3C0 /* TerminalSession.swift in Sources */ = {isa = PBXBuildFile; fileRef = DDD4F14EF005E20E271FAC11 /* TerminalSession.swift */; };
 		F5AC0DC03770970FB13C8413 /* ProjectNavigatorOutlineView.swift in Sources */ = {isa = PBXBuildFile; fileRef = 73963AF80EF55ECD6CBB5769 /* ProjectNavigatorOutlineView.swift */; };
 		F98C4CA11A23A1B10B4706F4 /* StandardTableViewCell.swift in Sources */ = {isa = PBXBuildFile; fileRef = DD46153570F741B9AC84FF17 /* StandardTableViewCell.swift */; };
@@ -121,13 +122,13 @@
 		8747D4D06D7DFF4951EA81BE /* ProjectNavigatorViewController+OutlineTableViewCellDelegate.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = "ProjectNavigatorViewController+OutlineTableViewCellDelegate.swift"; sourceTree = "<group>"; };
 		8D84D6DA96169DD668395E25 /* Glacier.app */ = {isa = PBXFileReference; explicitFileType = wrapper.application; includeInIndex = 0; path = Glacier.app; sourceTree = BUILT_PRODUCTS_DIR; };
 		9473C6D8C1A5E7EBD9E4230D /* react-dom.min.js */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.javascript; path = "react-dom.min.js"; sourceTree = "<group>"; };
-		9832885CCE672DFC64559C23 /* TabBarView.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = TabBarView.swift; sourceTree = "<group>"; };
 		A12DC6770E2AB95E55F015D4 /* ProjectNavigatorMenuActions.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = ProjectNavigatorMenuActions.swift; sourceTree = "<group>"; };
 		A29835D7429DEB0C2E24968D /* WorkspaceSwitcherView.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = WorkspaceSwitcherView.swift; sourceTree = "<group>"; };
 		A47CBAE36C3E3C8F27FFF08C /* TextEditorView.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = TextEditorView.swift; sourceTree = "<group>"; };
 		A64424275D2FFF6780CBB0D8 /* GlacierUITests.xctest */ = {isa = PBXFileReference; explicitFileType = wrapper.cfbundle; includeInIndex = 0; path = GlacierUITests.xctest; sourceTree = BUILT_PRODUCTS_DIR; };
 		A68A9003D85E44EEC8312C8B /* CEWorkspaceFileManager+FileManagement.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = "CEWorkspaceFileManager+FileManagement.swift"; sourceTree = "<group>"; };
 		A73C01126192D6B821C3FBE1 /* TextTableViewCell.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = TextTableViewCell.swift; sourceTree = "<group>"; };
+		A73F3A06EFD58F9BB49939AB /* BonsplitBridge.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = BonsplitBridge.swift; sourceTree = "<group>"; };
 		A99E9311E7D20849B09A27D0 /* Assets.xcassets */ = {isa = PBXFileReference; lastKnownFileType = folder.assetcatalog; path = Assets.xcassets; sourceTree = "<group>"; };
 		AD93BCF96F8E85B00F773337 /* ExcalidrawViewer.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = ExcalidrawViewer.swift; sourceTree = "<group>"; };
 		B16B2F5FC7DBD55D18740806 /* CloseProtection.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = CloseProtection.swift; sourceTree = "<group>"; };
@@ -159,6 +160,7 @@
 			files = (
 				4A7E90682365AA3E9308567F /* SwiftTerm in Frameworks */,
 				C32BDFB0AFEB2BFF1B35B299 /* MarkdownEditor in Frameworks */,
+				A3A06F57A48C0D68D12F3886 /* Bonsplit in Frameworks */,
 			);
 			runOnlyForDeploymentPostprocessing = 0;
 		};
@@ -213,7 +215,6 @@
 			children = (
 				CB22836B08C1176E08747296 /* Editor */,
 				BC8B5A4E36304853EFCE6D14 /* Explorer */,
-				E79D03C45E0FF2B0DE1AE5A6 /* Tabs */,
 				F674166F5C63411D2B06EF32 /* Terminal */,
 				61CDB4CCCF2551D49415E631 /* Viewers */,
 			);
@@ -347,6 +348,7 @@
 		CB22836B08C1176E08747296 /* Editor */ = {
 			isa = PBXGroup;
 			children = (
+				A73F3A06EFD58F9BB49939AB /* BonsplitBridge.swift */,
 				B64386233001CAFCDF131C27 /* MainContentArea.swift */,
 			);
 			path = Editor;
@@ -359,14 +361,6 @@
 				1D18FBC0FF11123033274329 /* SyntaxHighlighter.swift */,
 			);
 			path = Services;
-			sourceTree = "<group>";
-		};
-		E79D03C45E0FF2B0DE1AE5A6 /* Tabs */ = {
-			isa = PBXGroup;
-			children = (
-				9832885CCE672DFC64559C23 /* TabBarView.swift */,
-			);
-			path = Tabs;
 			sourceTree = "<group>";
 		};
 		F674166F5C63411D2B06EF32 /* Terminal */ = {
@@ -427,6 +421,7 @@
 			packageProductDependencies = (
 				7613E683B9B6635224D3B6A3 /* SwiftTerm */,
 				11B4DDFDE6DA19E65DD5D99B /* MarkdownEditor */,
+				E174CFBECB932DECB41F68EA /* Bonsplit */,
 			);
 			productName = Glacier;
 			productReference = 8D84D6DA96169DD668395E25 /* Glacier.app */;
@@ -463,6 +458,7 @@
 			mainGroup = 651D1F9C0391B9EC5D18BA46;
 			minimizedProjectReferenceProxies = 1;
 			packageReferences = (
+				37EE6E2F744703B3BBEF1891 /* XCRemoteSwiftPackageReference "bonsplit" */,
 				09FEC232195B97195C29C32B /* XCRemoteSwiftPackageReference "SwiftTerm" */,
 				D3B16B259E0277B86AD18AC9 /* XCLocalSwiftPackageReference "Packages/MarkdownEditor" */,
 			);
@@ -498,6 +494,7 @@
 			buildActionMask = 2147483647;
 			files = (
 				978D445809AD3EF3FED7B552 /* AppState.swift in Sources */,
+				EEC2B562198FDA4BD86B3D83 /* BonsplitBridge.swift in Sources */,
 				9C4206182A5173ED1DDF1213 /* CEWorkspaceFile+Recursion.swift in Sources */,
 				291F2D96F367554658A29921 /* CEWorkspaceFile.swift in Sources */,
 				B20E90708476063002B5CBAD /* CEWorkspaceFileIcon.swift in Sources */,
@@ -537,7 +534,6 @@
 				2F2C86432E6702D3D43A0DF3 /* SidebarHost.swift in Sources */,
 				F98C4CA11A23A1B10B4706F4 /* StandardTableViewCell.swift in Sources */,
 				26E37FC3639099962A77591E /* SyntaxHighlighter.swift in Sources */,
-				C59B9232DF4E8D540E520215 /* TabBarView.swift in Sources */,
 				F4363502A8B5B4B334A4A3C0 /* TerminalSession.swift in Sources */,
 				5ABADD52AE8E7A50014B3FF5 /* TerminalView.swift in Sources */,
 				609281CF16DD8030B821F72B /* TerminalViewCache.swift in Sources */,
@@ -830,6 +826,14 @@
 				minimumVersion = 1.2.0;
 			};
 		};
+		37EE6E2F744703B3BBEF1891 /* XCRemoteSwiftPackageReference "bonsplit" */ = {
+			isa = XCRemoteSwiftPackageReference;
+			repositoryURL = "https://github.com/almonk/bonsplit";
+			requirement = {
+				kind = upToNextMajorVersion;
+				minimumVersion = 1.1.1;
+			};
+		};
 /* End XCRemoteSwiftPackageReference section */
 
 /* Begin XCSwiftPackageProductDependency section */
@@ -841,6 +845,11 @@
 			isa = XCSwiftPackageProductDependency;
 			package = 09FEC232195B97195C29C32B /* XCRemoteSwiftPackageReference "SwiftTerm" */;
 			productName = SwiftTerm;
+		};
+		E174CFBECB932DECB41F68EA /* Bonsplit */ = {
+			isa = XCSwiftPackageProductDependency;
+			package = 37EE6E2F744703B3BBEF1891 /* XCRemoteSwiftPackageReference "bonsplit" */;
+			productName = Bonsplit;
 		};
 /* End XCSwiftPackageProductDependency section */
 	};

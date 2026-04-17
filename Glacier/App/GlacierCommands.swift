@@ -2,6 +2,7 @@
 // Menu bar commands — always operate on the focused window's AppState.
 
 import SwiftUI
+import Bonsplit
 
 struct GlacierCommands: Commands {
     @FocusedValue(\.appState) private var focusedAppState: AppState?
@@ -23,8 +24,8 @@ struct GlacierCommands: Commands {
             .keyboardShortcut("t", modifiers: [.command])
 
             Button("Close Tab") {
-                if let appState, appState.hasPreview(in: appState.focusedPane) {
-                    appState.clearPreview(in: appState.focusedPane)
+                if let appState, appState.hasFocusedPreview {
+                    appState.clearFocusedPreview()
                 } else if let tab = appState?.activeTab {
                     appState?.closeTab(tab)
                 }
@@ -74,22 +75,24 @@ struct GlacierCommands: Commands {
             Divider()
 
             Button("Split Right") {
-                appState?.splitFocusedPaneRight()
+                appState?.bonsplitController.splitPane(orientation: .horizontal)
             }
             .keyboardShortcut(.rightArrow, modifiers: [.command, .option])
-            .disabled(!(appState?.canSplitFocusedPane ?? false))
+            .disabled(appState?.tabs.isEmpty ?? true)
 
             Button("Split Down") {
-                appState?.splitFocusedPaneDown()
+                appState?.bonsplitController.splitPane(orientation: .vertical)
             }
             .keyboardShortcut(.downArrow, modifiers: [.command, .option])
-            .disabled(!(appState?.canSplitFocusedPane ?? false))
+            .disabled(appState?.tabs.isEmpty ?? true)
 
             Button("Close Split") {
-                appState?.closeSplit()
+                if let paneID = appState?.bonsplitController.focusedPaneId {
+                    appState?.bonsplitController.closePane(paneID)
+                }
             }
             .keyboardShortcut("\\", modifiers: [.command, .option])
-            .disabled(!(appState?.isSplitViewVisible ?? false))
+            .disabled((appState?.bonsplitController.allPaneIds.count ?? 0) <= 1)
         }
     }
 
