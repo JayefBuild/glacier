@@ -8,67 +8,68 @@
 
 /* Begin PBXBuildFile section */
 		0E2F3A41D5126595F9F89BEF /* CloseProtection.swift in Sources */ = {isa = PBXBuildFile; fileRef = B16B2F5FC7DBD55D18740806 /* CloseProtection.swift */; };
+		11CAB4D346C4E14647905D2C /* ProjectNavigatorViewController+OutlineTableViewCellDelegate.swift in Sources */ = {isa = PBXBuildFile; fileRef = 8747D4D06D7DFF4951EA81BE /* ProjectNavigatorViewController+OutlineTableViewCellDelegate.swift */; };
 		17AA8CAE714DA3BD729D6700 /* GlacierApp.swift in Sources */ = {isa = PBXBuildFile; fileRef = 5944FC51D64A920B0E52E5F0 /* GlacierApp.swift */; };
 		26E37FC3639099962A77591E /* SyntaxHighlighter.swift in Sources */ = {isa = PBXBuildFile; fileRef = 1D18FBC0FF11123033274329 /* SyntaxHighlighter.swift */; };
+		291F2D96F367554658A29921 /* CEWorkspaceFile.swift in Sources */ = {isa = PBXBuildFile; fileRef = 4D8BD63D067881BEA07D20CA /* CEWorkspaceFile.swift */; };
 		2A4702E37E4FC2E93A17C393 /* excalidraw.min.js in Resources */ = {isa = PBXBuildFile; fileRef = 624C6EB480F5ACF0DA3AE052 /* excalidraw.min.js */; };
 		2C954F4E126957730B15E04A /* Theme.swift in Sources */ = {isa = PBXBuildFile; fileRef = 01ED4B70F8C1994C7F03C137 /* Theme.swift */; };
+		2F2C86432E6702D3D43A0DF3 /* SidebarHost.swift in Sources */ = {isa = PBXBuildFile; fileRef = 50B7EDB6668EF9B08963F6F2 /* SidebarHost.swift */; };
 		3801D7A29E111553A0DE6F01 /* TextEditorView.swift in Sources */ = {isa = PBXBuildFile; fileRef = A47CBAE36C3E3C8F27FFF08C /* TextEditorView.swift */; };
 		441C2863B2D58D883B160C5C /* ExcalidrawViewer.swift in Sources */ = {isa = PBXBuildFile; fileRef = AD93BCF96F8E85B00F773337 /* ExcalidrawViewer.swift */; };
 		486363E60CC90163FBA37CF1 /* MarkwhenViewer.swift in Sources */ = {isa = PBXBuildFile; fileRef = 08B57A35779CE554895583FD /* MarkwhenViewer.swift */; };
 		48B0354A4DBC5AF642B737C7 /* MarkdownPreviewView.swift in Sources */ = {isa = PBXBuildFile; fileRef = 867E85D4AAF4156C80D6179F /* MarkdownPreviewView.swift */; };
 		4976F1FE12DB6E8D19B21FF3 /* Assets.xcassets in Resources */ = {isa = PBXBuildFile; fileRef = A99E9311E7D20849B09A27D0 /* Assets.xcassets */; };
 		4A7E90682365AA3E9308567F /* SwiftTerm in Frameworks */ = {isa = PBXBuildFile; productRef = 7613E683B9B6635224D3B6A3 /* SwiftTerm */; };
+		5396CB54C1F070ECCAD813CB /* ProjectNavigatorViewController.swift in Sources */ = {isa = PBXBuildFile; fileRef = 52CE98B3AC056372EBC0D8C1 /* ProjectNavigatorViewController.swift */; };
 		5ABADD52AE8E7A50014B3FF5 /* TerminalView.swift in Sources */ = {isa = PBXBuildFile; fileRef = C82C2FB5AB2DFE9AFBAD8305 /* TerminalView.swift */; };
 		5F2E9526B99CBEC86091EB90 /* WindowConfigurator.swift in Sources */ = {isa = PBXBuildFile; fileRef = 6D8E8CF3EC6157DE36450FAE /* WindowConfigurator.swift */; };
 		609281CF16DD8030B821F72B /* TerminalViewCache.swift in Sources */ = {isa = PBXBuildFile; fileRef = 27E564E480C4BD29A5AD46CC /* TerminalViewCache.swift */; };
 		652D9030B6C14091D48D31A9 /* react-dom.min.js in Resources */ = {isa = PBXBuildFile; fileRef = 9473C6D8C1A5E7EBD9E4230D /* react-dom.min.js */; };
+		6583AF77B9E9B47EC7414435 /* CEWorkspaceFileManager+FileManagement.swift in Sources */ = {isa = PBXBuildFile; fileRef = A68A9003D85E44EEC8312C8B /* CEWorkspaceFileManager+FileManagement.swift */; };
 		66E686EFCC52B01B5152BFE0 /* FileService.swift in Sources */ = {isa = PBXBuildFile; fileRef = 4576EACAE58F9517F77555F0 /* FileService.swift */; };
-		CE00000000000000000000B1 /* CEWorkspaceFile.swift in Sources */ = {isa = PBXBuildFile; fileRef = CE00000000000000000000F1 /* CEWorkspaceFile.swift */; };
-		CE00000000000000000000B2 /* CEWorkspaceFile+Recursion.swift in Sources */ = {isa = PBXBuildFile; fileRef = CE00000000000000000000F2 /* CEWorkspaceFile+Recursion.swift */; };
-		CE00000000000000000000B3 /* CEWorkspaceFileIcon.swift in Sources */ = {isa = PBXBuildFile; fileRef = CE00000000000000000000F3 /* CEWorkspaceFileIcon.swift */; };
-		CE00000000000000000000B4 /* CEWorkspaceFileManager.swift in Sources */ = {isa = PBXBuildFile; fileRef = CE00000000000000000000F4 /* CEWorkspaceFileManager.swift */; };
-		CE00000000000000000000B5 /* CEWorkspaceFileManager+DirectoryEvents.swift in Sources */ = {isa = PBXBuildFile; fileRef = CE00000000000000000000F5 /* CEWorkspaceFileManager+DirectoryEvents.swift */; };
-		CE00000000000000000000B6 /* CEWorkspaceFileManager+Error.swift in Sources */ = {isa = PBXBuildFile; fileRef = CE00000000000000000000F6 /* CEWorkspaceFileManager+Error.swift */; };
-		CE00000000000000000000B7 /* CEWorkspaceFileManager+FileManagement.swift in Sources */ = {isa = PBXBuildFile; fileRef = CE00000000000000000000F7 /* CEWorkspaceFileManager+FileManagement.swift */; };
-		CE00000000000000000000B8 /* DirectoryEventStream.swift in Sources */ = {isa = PBXBuildFile; fileRef = CE00000000000000000000F8 /* DirectoryEventStream.swift */; };
-		CE000000000000000000ABA1 /* SidebarHost.swift in Sources */ = {isa = PBXBuildFile; fileRef = CE00000000000000000000A1 /* SidebarHost.swift */; };
-		CE000000000000000000ABA2 /* ProjectNavigatorOutlineView.swift in Sources */ = {isa = PBXBuildFile; fileRef = CE00000000000000000000A2 /* ProjectNavigatorOutlineView.swift */; };
-		CE000000000000000000ABA3 /* ProjectNavigatorViewController.swift in Sources */ = {isa = PBXBuildFile; fileRef = CE00000000000000000000A3 /* ProjectNavigatorViewController.swift */; };
-		CE000000000000000000ABA4 /* ProjectNavigatorViewController+NSOutlineViewDataSource.swift in Sources */ = {isa = PBXBuildFile; fileRef = CE00000000000000000000A4 /* ProjectNavigatorViewController+NSOutlineViewDataSource.swift */; };
-		CE000000000000000000ABA5 /* ProjectNavigatorViewController+NSOutlineViewDelegate.swift in Sources */ = {isa = PBXBuildFile; fileRef = CE00000000000000000000A5 /* ProjectNavigatorViewController+NSOutlineViewDelegate.swift */; };
-		CE000000000000000000ABA6 /* ProjectNavigatorViewController+NSMenuDelegate.swift in Sources */ = {isa = PBXBuildFile; fileRef = CE00000000000000000000A6 /* ProjectNavigatorViewController+NSMenuDelegate.swift */; };
-		CE000000000000000000ABA7 /* ProjectNavigatorViewController+OutlineTableViewCellDelegate.swift in Sources */ = {isa = PBXBuildFile; fileRef = CE00000000000000000000A7 /* ProjectNavigatorViewController+OutlineTableViewCellDelegate.swift */; };
-		CE000000000000000000ABA8 /* ProjectNavigatorTableViewCell.swift in Sources */ = {isa = PBXBuildFile; fileRef = CE00000000000000000000A8 /* ProjectNavigatorTableViewCell.swift */; };
-		CE000000000000000000ABA9 /* ProjectNavigatorMenu.swift in Sources */ = {isa = PBXBuildFile; fileRef = CE00000000000000000000A9 /* ProjectNavigatorMenu.swift */; };
-		CE000000000000000000ABAA /* ProjectNavigatorMenuActions.swift in Sources */ = {isa = PBXBuildFile; fileRef = CE00000000000000000000AA /* ProjectNavigatorMenuActions.swift */; };
-		CE000000000000000000ABAB /* ProjectNavigatorNSOutlineView.swift in Sources */ = {isa = PBXBuildFile; fileRef = CE00000000000000000000AB /* ProjectNavigatorNSOutlineView.swift */; };
-		CE000000000000000000ABAC /* FileSystemTableViewCell.swift in Sources */ = {isa = PBXBuildFile; fileRef = CE00000000000000000000AC /* FileSystemTableViewCell.swift */; };
-		CE000000000000000000ABAD /* StandardTableViewCell.swift in Sources */ = {isa = PBXBuildFile; fileRef = CE00000000000000000000AD /* StandardTableViewCell.swift */; };
-		CE000000000000000000ABAE /* TextTableViewCell.swift in Sources */ = {isa = PBXBuildFile; fileRef = CE00000000000000000000AE /* TextTableViewCell.swift */; };
+		6EE5FB445E29ECE1B63EC018 /* ProjectNavigatorViewController+NSMenuDelegate.swift in Sources */ = {isa = PBXBuildFile; fileRef = FD16E5ED6167806BBF67DE17 /* ProjectNavigatorViewController+NSMenuDelegate.swift */; };
+		709E65302571743A0A926681 /* CEWorkspaceFileManager+DirectoryEvents.swift in Sources */ = {isa = PBXBuildFile; fileRef = 0B2FFCCD2A7E2106D85209B0 /* CEWorkspaceFileManager+DirectoryEvents.swift */; };
 		71A63D9F94BC4DE15D639984 /* FocusedAppState.swift in Sources */ = {isa = PBXBuildFile; fileRef = EC85B918140EBDA7A4BAFD8D /* FocusedAppState.swift */; };
 		779EBCEE08533E2847A2A7FC /* GlacierCommands.swift in Sources */ = {isa = PBXBuildFile; fileRef = E12F526BF85595F4F2377633 /* GlacierCommands.swift */; };
 		7F3295DBCA75CFB816671B56 /* DebugUITest.swift in Sources */ = {isa = PBXBuildFile; fileRef = F80AC125D3152A7106A12278 /* DebugUITest.swift */; };
+		80A452956949A5B358E00437 /* DirectoryEventStream.swift in Sources */ = {isa = PBXBuildFile; fileRef = 4F1804E67C0C272D606AAF2B /* DirectoryEventStream.swift */; };
+		81B5FD6BCF403DA00ED8C1F8 /* ProjectNavigatorMenuActions.swift in Sources */ = {isa = PBXBuildFile; fileRef = A12DC6770E2AB95E55F015D4 /* ProjectNavigatorMenuActions.swift */; };
+		86780A6E803E66D9C7B5C566 /* GitGraphScreenshotTests.swift in Sources */ = {isa = PBXBuildFile; fileRef = 13B0D61C62ECFEB156627C8F /* GitGraphScreenshotTests.swift */; };
+		8AFD9A9AF4CCCC5D1AF4A30B /* FileTreeHotReloadTests.swift in Sources */ = {isa = PBXBuildFile; fileRef = 0D81BBD5295115516404E8E3 /* FileTreeHotReloadTests.swift */; };
 		9152FE11163F516D585FA849 /* excalidraw.html in Resources */ = {isa = PBXBuildFile; fileRef = D8220CB15037D5F5636A2863 /* excalidraw.html */; };
 		939FFD364A1F541038A0B479 /* ContentView.swift in Sources */ = {isa = PBXBuildFile; fileRef = B52D6AAC9967E2036F524B91 /* ContentView.swift */; };
 		978D445809AD3EF3FED7B552 /* AppState.swift in Sources */ = {isa = PBXBuildFile; fileRef = CF5BDA0D91882E19997A60C4 /* AppState.swift */; };
 		9946E9550F93000A989EE753 /* VideoViewerView.swift in Sources */ = {isa = PBXBuildFile; fileRef = 1E97B9A4AC248E009726AB21 /* VideoViewerView.swift */; };
 		9A7BF0A8BBF368DB731D0B98 /* ImageViewerView.swift in Sources */ = {isa = PBXBuildFile; fileRef = 514C6B81CB9C5AA52346DB3E /* ImageViewerView.swift */; };
+		9C4206182A5173ED1DDF1213 /* CEWorkspaceFile+Recursion.swift in Sources */ = {isa = PBXBuildFile; fileRef = FA0CCCF7EE301B668EC74F41 /* CEWorkspaceFile+Recursion.swift */; };
 		9C903CDCE697EB106550775E /* WorkspaceSwitcherView.swift in Sources */ = {isa = PBXBuildFile; fileRef = A29835D7429DEB0C2E24968D /* WorkspaceSwitcherView.swift */; };
 		9CCCE74E801685099345E041 /* FileTypeRegistry.swift in Sources */ = {isa = PBXBuildFile; fileRef = 6F637D0BFFB5C3A06AC1555C /* FileTypeRegistry.swift */; };
 		9E8073F11196A309F96DA380 /* GlacierUITests.swift in Sources */ = {isa = PBXBuildFile; fileRef = 214D16911A5FB7FC000483E8 /* GlacierUITests.swift */; };
-		B7C8D9E0F1A2B3C4D5E6F789 /* FileTreeHotReloadTests.swift in Sources */ = {isa = PBXBuildFile; fileRef = B7C8D9E0F1A2B3C4D5E6F78A /* FileTreeHotReloadTests.swift */; };
 		9EE4F8D1E4C6B1FCAE4EE521 /* FileItem.swift in Sources */ = {isa = PBXBuildFile; fileRef = B62D358B4D39E089035D5C94 /* FileItem.swift */; };
+		A2D5752276D6B50A4912BED8 /* TextTableViewCell.swift in Sources */ = {isa = PBXBuildFile; fileRef = A73C01126192D6B821C3FBE1 /* TextTableViewCell.swift */; };
+		A5F353AA797B01E6ACA1AB81 /* FileSystemTableViewCell.swift in Sources */ = {isa = PBXBuildFile; fileRef = DC7D6AFAD4DB46FB80650193 /* FileSystemTableViewCell.swift */; };
 		ADF46CC7F5D9737058772A88 /* markwhen.html in Resources */ = {isa = PBXBuildFile; fileRef = 05B63625B790B145C2A415C4 /* markwhen.html */; };
 		AF7865A52A536343A2C2059E /* WorkspaceStore.swift in Sources */ = {isa = PBXBuildFile; fileRef = DADED67C8C1FA96929228E8E /* WorkspaceStore.swift */; };
+		B20E90708476063002B5CBAD /* CEWorkspaceFileIcon.swift in Sources */ = {isa = PBXBuildFile; fileRef = 873020AABC1F3C56184EFFC8 /* CEWorkspaceFileIcon.swift */; };
+		B8EC9AB191E072589920AEAA /* ProjectNavigatorMenu.swift in Sources */ = {isa = PBXBuildFile; fileRef = F3F6A5D372E2CFEC9B0870A6 /* ProjectNavigatorMenu.swift */; };
+		BB6CB2866BA17826D3EAA109 /* ProjectNavigatorViewController+NSOutlineViewDelegate.swift in Sources */ = {isa = PBXBuildFile; fileRef = 19CA19F774EC7A60A361E5A2 /* ProjectNavigatorViewController+NSOutlineViewDelegate.swift */; };
 		BBBF864E4057B1D41C4ADE5D /* ExplorerView.swift in Sources */ = {isa = PBXBuildFile; fileRef = 623249D019FA8412880434CB /* ExplorerView.swift */; };
+		BFD1E3B65277BED37735FC1A /* ProjectNavigatorTableViewCell.swift in Sources */ = {isa = PBXBuildFile; fileRef = 346AA22F51400F6E4139A547 /* ProjectNavigatorTableViewCell.swift */; };
 		C32BDFB0AFEB2BFF1B35B299 /* MarkdownEditor in Frameworks */ = {isa = PBXBuildFile; productRef = 11B4DDFDE6DA19E65DD5D99B /* MarkdownEditor */; };
 		C59B9232DF4E8D540E520215 /* TabBarView.swift in Sources */ = {isa = PBXBuildFile; fileRef = 9832885CCE672DFC64559C23 /* TabBarView.swift */; };
 		CAE03A9BF58603515DC4C5E1 /* react.min.js in Resources */ = {isa = PBXBuildFile; fileRef = 4AB76542D0D42359BD5CB051 /* react.min.js */; };
+		D374AF32D211D0442ED8C2BF /* CEWorkspaceFileManager+Error.swift in Sources */ = {isa = PBXBuildFile; fileRef = 45FA871BA50F9EC456696EF1 /* CEWorkspaceFileManager+Error.swift */; };
 		D4A2C2AD9B128971DEFAE880 /* FileViewerRouter.swift in Sources */ = {isa = PBXBuildFile; fileRef = E9FC3C49D5662DFF52FB6D2D /* FileViewerRouter.swift */; };
+		D888BD036662E680AD04C1C1 /* CEWorkspaceFileManager.swift in Sources */ = {isa = PBXBuildFile; fileRef = 009701A9AFAE94A8D3AD0701 /* CEWorkspaceFileManager.swift */; };
 		DD3B40C53ADCE702E0B8D654 /* MainContentArea.swift in Sources */ = {isa = PBXBuildFile; fileRef = B64386233001CAFCDF131C27 /* MainContentArea.swift */; };
 		E0DDD3F98649C0EFD926E828 /* GuardedTerminalView.swift in Sources */ = {isa = PBXBuildFile; fileRef = E9131023EDD37258AA6A8443 /* GuardedTerminalView.swift */; };
+		E272E5E6331C5F5B03EB3734 /* ProjectNavigatorViewController+NSOutlineViewDataSource.swift in Sources */ = {isa = PBXBuildFile; fileRef = 41CEBE8CFB08BDAAA22E4737 /* ProjectNavigatorViewController+NSOutlineViewDataSource.swift */; };
+		E36D3FD562393FACA81A135F /* ProjectNavigatorNSOutlineView.swift in Sources */ = {isa = PBXBuildFile; fileRef = C3F5DDEA2D3D7412B802DC7E /* ProjectNavigatorNSOutlineView.swift */; };
 		E9B15CC4646E60DBF9C5FEA2 /* PDFViewerView.swift in Sources */ = {isa = PBXBuildFile; fileRef = 57BF7FC57F6055A25AC0814C /* PDFViewerView.swift */; };
 		F4363502A8B5B4B334A4A3C0 /* TerminalSession.swift in Sources */ = {isa = PBXBuildFile; fileRef = DDD4F14EF005E20E271FAC11 /* TerminalSession.swift */; };
+		F5AC0DC03770970FB13C8413 /* ProjectNavigatorOutlineView.swift in Sources */ = {isa = PBXBuildFile; fileRef = 73963AF80EF55ECD6CBB5769 /* ProjectNavigatorOutlineView.swift */; };
+		F98C4CA11A23A1B10B4706F4 /* StandardTableViewCell.swift in Sources */ = {isa = PBXBuildFile; fileRef = DD46153570F741B9AC84FF17 /* StandardTableViewCell.swift */; };
 /* End PBXBuildFile section */
 
 /* Begin PBXContainerItemProxy section */
@@ -82,72 +83,73 @@
 /* End PBXContainerItemProxy section */
 
 /* Begin PBXFileReference section */
+		009701A9AFAE94A8D3AD0701 /* CEWorkspaceFileManager.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = CEWorkspaceFileManager.swift; sourceTree = "<group>"; };
 		01ED4B70F8C1994C7F03C137 /* Theme.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = Theme.swift; sourceTree = "<group>"; };
 		05B63625B790B145C2A415C4 /* markwhen.html */ = {isa = PBXFileReference; lastKnownFileType = text.html; path = markwhen.html; sourceTree = "<group>"; };
 		08B57A35779CE554895583FD /* MarkwhenViewer.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = MarkwhenViewer.swift; sourceTree = "<group>"; };
+		0B2FFCCD2A7E2106D85209B0 /* CEWorkspaceFileManager+DirectoryEvents.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = "CEWorkspaceFileManager+DirectoryEvents.swift"; sourceTree = "<group>"; };
+		0D81BBD5295115516404E8E3 /* FileTreeHotReloadTests.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = FileTreeHotReloadTests.swift; sourceTree = "<group>"; };
+		13B0D61C62ECFEB156627C8F /* GitGraphScreenshotTests.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = GitGraphScreenshotTests.swift; sourceTree = "<group>"; };
+		19CA19F774EC7A60A361E5A2 /* ProjectNavigatorViewController+NSOutlineViewDelegate.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = "ProjectNavigatorViewController+NSOutlineViewDelegate.swift"; sourceTree = "<group>"; };
 		1A17D79AB8D032901E5BCB73 /* MarkdownEditor */ = {isa = PBXFileReference; lastKnownFileType = folder; name = MarkdownEditor; path = Packages/MarkdownEditor; sourceTree = SOURCE_ROOT; };
 		1D18FBC0FF11123033274329 /* SyntaxHighlighter.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = SyntaxHighlighter.swift; sourceTree = "<group>"; };
 		1E97B9A4AC248E009726AB21 /* VideoViewerView.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = VideoViewerView.swift; sourceTree = "<group>"; };
 		214D16911A5FB7FC000483E8 /* GlacierUITests.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = GlacierUITests.swift; sourceTree = "<group>"; };
-		B7C8D9E0F1A2B3C4D5E6F78A /* FileTreeHotReloadTests.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = FileTreeHotReloadTests.swift; sourceTree = "<group>"; };
 		27E564E480C4BD29A5AD46CC /* TerminalViewCache.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = TerminalViewCache.swift; sourceTree = "<group>"; };
 		29A928CAF4BF8420D26624D4 /* Info.plist */ = {isa = PBXFileReference; lastKnownFileType = text.plist; path = Info.plist; sourceTree = "<group>"; };
+		346AA22F51400F6E4139A547 /* ProjectNavigatorTableViewCell.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = ProjectNavigatorTableViewCell.swift; sourceTree = "<group>"; };
+		41CEBE8CFB08BDAAA22E4737 /* ProjectNavigatorViewController+NSOutlineViewDataSource.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = "ProjectNavigatorViewController+NSOutlineViewDataSource.swift"; sourceTree = "<group>"; };
 		4576EACAE58F9517F77555F0 /* FileService.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = FileService.swift; sourceTree = "<group>"; };
-		CE00000000000000000000F1 /* CEWorkspaceFile.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = CEWorkspaceFile.swift; sourceTree = "<group>"; };
-		CE00000000000000000000F2 /* CEWorkspaceFile+Recursion.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = "CEWorkspaceFile+Recursion.swift"; sourceTree = "<group>"; };
-		CE00000000000000000000F3 /* CEWorkspaceFileIcon.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = CEWorkspaceFileIcon.swift; sourceTree = "<group>"; };
-		CE00000000000000000000F4 /* CEWorkspaceFileManager.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = CEWorkspaceFileManager.swift; sourceTree = "<group>"; };
-		CE00000000000000000000F5 /* CEWorkspaceFileManager+DirectoryEvents.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = "CEWorkspaceFileManager+DirectoryEvents.swift"; sourceTree = "<group>"; };
-		CE00000000000000000000F6 /* CEWorkspaceFileManager+Error.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = "CEWorkspaceFileManager+Error.swift"; sourceTree = "<group>"; };
-		CE00000000000000000000F7 /* CEWorkspaceFileManager+FileManagement.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = "CEWorkspaceFileManager+FileManagement.swift"; sourceTree = "<group>"; };
-		CE00000000000000000000F8 /* DirectoryEventStream.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = DirectoryEventStream.swift; sourceTree = "<group>"; };
-		CE00000000000000000000A1 /* SidebarHost.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = SidebarHost.swift; sourceTree = "<group>"; };
-		CE00000000000000000000A2 /* ProjectNavigatorOutlineView.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = ProjectNavigatorOutlineView.swift; sourceTree = "<group>"; };
-		CE00000000000000000000A3 /* ProjectNavigatorViewController.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = ProjectNavigatorViewController.swift; sourceTree = "<group>"; };
-		CE00000000000000000000A4 /* ProjectNavigatorViewController+NSOutlineViewDataSource.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = "ProjectNavigatorViewController+NSOutlineViewDataSource.swift"; sourceTree = "<group>"; };
-		CE00000000000000000000A5 /* ProjectNavigatorViewController+NSOutlineViewDelegate.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = "ProjectNavigatorViewController+NSOutlineViewDelegate.swift"; sourceTree = "<group>"; };
-		CE00000000000000000000A6 /* ProjectNavigatorViewController+NSMenuDelegate.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = "ProjectNavigatorViewController+NSMenuDelegate.swift"; sourceTree = "<group>"; };
-		CE00000000000000000000A7 /* ProjectNavigatorViewController+OutlineTableViewCellDelegate.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = "ProjectNavigatorViewController+OutlineTableViewCellDelegate.swift"; sourceTree = "<group>"; };
-		CE00000000000000000000A8 /* ProjectNavigatorTableViewCell.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = ProjectNavigatorTableViewCell.swift; sourceTree = "<group>"; };
-		CE00000000000000000000A9 /* ProjectNavigatorMenu.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = ProjectNavigatorMenu.swift; sourceTree = "<group>"; };
-		CE00000000000000000000AA /* ProjectNavigatorMenuActions.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = ProjectNavigatorMenuActions.swift; sourceTree = "<group>"; };
-		CE00000000000000000000AB /* ProjectNavigatorNSOutlineView.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = ProjectNavigatorNSOutlineView.swift; sourceTree = "<group>"; };
-		CE00000000000000000000AC /* FileSystemTableViewCell.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = FileSystemTableViewCell.swift; sourceTree = "<group>"; };
-		CE00000000000000000000AD /* StandardTableViewCell.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = StandardTableViewCell.swift; sourceTree = "<group>"; };
-		CE00000000000000000000AE /* TextTableViewCell.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = TextTableViewCell.swift; sourceTree = "<group>"; };
+		45FA871BA50F9EC456696EF1 /* CEWorkspaceFileManager+Error.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = "CEWorkspaceFileManager+Error.swift"; sourceTree = "<group>"; };
 		4AB76542D0D42359BD5CB051 /* react.min.js */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.javascript; path = react.min.js; sourceTree = "<group>"; };
+		4D8BD63D067881BEA07D20CA /* CEWorkspaceFile.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = CEWorkspaceFile.swift; sourceTree = "<group>"; };
+		4F1804E67C0C272D606AAF2B /* DirectoryEventStream.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = DirectoryEventStream.swift; sourceTree = "<group>"; };
+		50B7EDB6668EF9B08963F6F2 /* SidebarHost.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = SidebarHost.swift; sourceTree = "<group>"; };
 		514C6B81CB9C5AA52346DB3E /* ImageViewerView.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = ImageViewerView.swift; sourceTree = "<group>"; };
 		525B6E4CCA234E9F6D2D7EE2 /* Glacier.entitlements */ = {isa = PBXFileReference; lastKnownFileType = text.plist.entitlements; path = Glacier.entitlements; sourceTree = "<group>"; };
+		52CE98B3AC056372EBC0D8C1 /* ProjectNavigatorViewController.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = ProjectNavigatorViewController.swift; sourceTree = "<group>"; };
 		57BF7FC57F6055A25AC0814C /* PDFViewerView.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = PDFViewerView.swift; sourceTree = "<group>"; };
 		5944FC51D64A920B0E52E5F0 /* GlacierApp.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = GlacierApp.swift; sourceTree = "<group>"; };
 		623249D019FA8412880434CB /* ExplorerView.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = ExplorerView.swift; sourceTree = "<group>"; };
 		624C6EB480F5ACF0DA3AE052 /* excalidraw.min.js */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.javascript; path = excalidraw.min.js; sourceTree = "<group>"; };
 		6D8E8CF3EC6157DE36450FAE /* WindowConfigurator.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = WindowConfigurator.swift; sourceTree = "<group>"; };
 		6F637D0BFFB5C3A06AC1555C /* FileTypeRegistry.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = FileTypeRegistry.swift; sourceTree = "<group>"; };
+		73963AF80EF55ECD6CBB5769 /* ProjectNavigatorOutlineView.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = ProjectNavigatorOutlineView.swift; sourceTree = "<group>"; };
 		798B7369CB1C69CD948799C7 /* Info.plist */ = {isa = PBXFileReference; lastKnownFileType = text.plist; path = Info.plist; sourceTree = "<group>"; };
 		867E85D4AAF4156C80D6179F /* MarkdownPreviewView.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = MarkdownPreviewView.swift; sourceTree = "<group>"; };
+		873020AABC1F3C56184EFFC8 /* CEWorkspaceFileIcon.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = CEWorkspaceFileIcon.swift; sourceTree = "<group>"; };
+		8747D4D06D7DFF4951EA81BE /* ProjectNavigatorViewController+OutlineTableViewCellDelegate.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = "ProjectNavigatorViewController+OutlineTableViewCellDelegate.swift"; sourceTree = "<group>"; };
 		8D84D6DA96169DD668395E25 /* Glacier.app */ = {isa = PBXFileReference; explicitFileType = wrapper.application; includeInIndex = 0; path = Glacier.app; sourceTree = BUILT_PRODUCTS_DIR; };
 		9473C6D8C1A5E7EBD9E4230D /* react-dom.min.js */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.javascript; path = "react-dom.min.js"; sourceTree = "<group>"; };
 		9832885CCE672DFC64559C23 /* TabBarView.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = TabBarView.swift; sourceTree = "<group>"; };
+		A12DC6770E2AB95E55F015D4 /* ProjectNavigatorMenuActions.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = ProjectNavigatorMenuActions.swift; sourceTree = "<group>"; };
 		A29835D7429DEB0C2E24968D /* WorkspaceSwitcherView.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = WorkspaceSwitcherView.swift; sourceTree = "<group>"; };
 		A47CBAE36C3E3C8F27FFF08C /* TextEditorView.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = TextEditorView.swift; sourceTree = "<group>"; };
 		A64424275D2FFF6780CBB0D8 /* GlacierUITests.xctest */ = {isa = PBXFileReference; explicitFileType = wrapper.cfbundle; includeInIndex = 0; path = GlacierUITests.xctest; sourceTree = BUILT_PRODUCTS_DIR; };
+		A68A9003D85E44EEC8312C8B /* CEWorkspaceFileManager+FileManagement.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = "CEWorkspaceFileManager+FileManagement.swift"; sourceTree = "<group>"; };
+		A73C01126192D6B821C3FBE1 /* TextTableViewCell.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = TextTableViewCell.swift; sourceTree = "<group>"; };
 		A99E9311E7D20849B09A27D0 /* Assets.xcassets */ = {isa = PBXFileReference; lastKnownFileType = folder.assetcatalog; path = Assets.xcassets; sourceTree = "<group>"; };
 		AD93BCF96F8E85B00F773337 /* ExcalidrawViewer.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = ExcalidrawViewer.swift; sourceTree = "<group>"; };
 		B16B2F5FC7DBD55D18740806 /* CloseProtection.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = CloseProtection.swift; sourceTree = "<group>"; };
 		B52D6AAC9967E2036F524B91 /* ContentView.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = ContentView.swift; sourceTree = "<group>"; };
 		B62D358B4D39E089035D5C94 /* FileItem.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = FileItem.swift; sourceTree = "<group>"; };
 		B64386233001CAFCDF131C27 /* MainContentArea.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = MainContentArea.swift; sourceTree = "<group>"; };
+		C3F5DDEA2D3D7412B802DC7E /* ProjectNavigatorNSOutlineView.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = ProjectNavigatorNSOutlineView.swift; sourceTree = "<group>"; };
 		C82C2FB5AB2DFE9AFBAD8305 /* TerminalView.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = TerminalView.swift; sourceTree = "<group>"; };
 		CF5BDA0D91882E19997A60C4 /* AppState.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = AppState.swift; sourceTree = "<group>"; };
 		D8220CB15037D5F5636A2863 /* excalidraw.html */ = {isa = PBXFileReference; lastKnownFileType = text.html; path = excalidraw.html; sourceTree = "<group>"; };
 		DADED67C8C1FA96929228E8E /* WorkspaceStore.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = WorkspaceStore.swift; sourceTree = "<group>"; };
+		DC7D6AFAD4DB46FB80650193 /* FileSystemTableViewCell.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = FileSystemTableViewCell.swift; sourceTree = "<group>"; };
+		DD46153570F741B9AC84FF17 /* StandardTableViewCell.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = StandardTableViewCell.swift; sourceTree = "<group>"; };
 		DDD4F14EF005E20E271FAC11 /* TerminalSession.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = TerminalSession.swift; sourceTree = "<group>"; };
 		E12F526BF85595F4F2377633 /* GlacierCommands.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = GlacierCommands.swift; sourceTree = "<group>"; };
 		E9131023EDD37258AA6A8443 /* GuardedTerminalView.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = GuardedTerminalView.swift; sourceTree = "<group>"; };
 		E9FC3C49D5662DFF52FB6D2D /* FileViewerRouter.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = FileViewerRouter.swift; sourceTree = "<group>"; };
 		EC85B918140EBDA7A4BAFD8D /* FocusedAppState.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = FocusedAppState.swift; sourceTree = "<group>"; };
+		F3F6A5D372E2CFEC9B0870A6 /* ProjectNavigatorMenu.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = ProjectNavigatorMenu.swift; sourceTree = "<group>"; };
 		F80AC125D3152A7106A12278 /* DebugUITest.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = DebugUITest.swift; sourceTree = "<group>"; };
+		FA0CCCF7EE301B668EC74F41 /* CEWorkspaceFile+Recursion.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = "CEWorkspaceFile+Recursion.swift"; sourceTree = "<group>"; };
+		FD16E5ED6167806BBF67DE17 /* ProjectNavigatorViewController+NSMenuDelegate.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = "ProjectNavigatorViewController+NSMenuDelegate.swift"; sourceTree = "<group>"; };
 /* End PBXFileReference section */
 
 /* Begin PBXFrameworksBuildPhase section */
@@ -167,11 +169,22 @@
 			isa = PBXGroup;
 			children = (
 				F80AC125D3152A7106A12278 /* DebugUITest.swift */,
+				0D81BBD5295115516404E8E3 /* FileTreeHotReloadTests.swift */,
+				13B0D61C62ECFEB156627C8F /* GitGraphScreenshotTests.swift */,
 				214D16911A5FB7FC000483E8 /* GlacierUITests.swift */,
-				B7C8D9E0F1A2B3C4D5E6F78A /* FileTreeHotReloadTests.swift */,
 				29A928CAF4BF8420D26624D4 /* Info.plist */,
 			);
 			path = GlacierUITests;
+			sourceTree = "<group>";
+		};
+		155270A192FB556B8CA19904 /* Cells */ = {
+			isa = PBXGroup;
+			children = (
+				DC7D6AFAD4DB46FB80650193 /* FileSystemTableViewCell.swift */,
+				DD46153570F741B9AC84FF17 /* StandardTableViewCell.swift */,
+				A73C01126192D6B821C3FBE1 /* TextTableViewCell.swift */,
+			);
+			path = Cells;
 			sourceTree = "<group>";
 		};
 		1A9AFD256F9A10965BD488C5 /* Resources */ = {
@@ -213,6 +226,24 @@
 				1A17D79AB8D032901E5BCB73 /* MarkdownEditor */,
 			);
 			path = Packages;
+			sourceTree = "<group>";
+		};
+		4DD7E13D80500FD699453A36 /* Sidebar */ = {
+			isa = PBXGroup;
+			children = (
+				F3F6A5D372E2CFEC9B0870A6 /* ProjectNavigatorMenu.swift */,
+				A12DC6770E2AB95E55F015D4 /* ProjectNavigatorMenuActions.swift */,
+				C3F5DDEA2D3D7412B802DC7E /* ProjectNavigatorNSOutlineView.swift */,
+				73963AF80EF55ECD6CBB5769 /* ProjectNavigatorOutlineView.swift */,
+				346AA22F51400F6E4139A547 /* ProjectNavigatorTableViewCell.swift */,
+				52CE98B3AC056372EBC0D8C1 /* ProjectNavigatorViewController.swift */,
+				FD16E5ED6167806BBF67DE17 /* ProjectNavigatorViewController+NSMenuDelegate.swift */,
+				41CEBE8CFB08BDAAA22E4737 /* ProjectNavigatorViewController+NSOutlineViewDataSource.swift */,
+				19CA19F774EC7A60A361E5A2 /* ProjectNavigatorViewController+NSOutlineViewDelegate.swift */,
+				8747D4D06D7DFF4951EA81BE /* ProjectNavigatorViewController+OutlineTableViewCellDelegate.swift */,
+				50B7EDB6668EF9B08963F6F2 /* SidebarHost.swift */,
+			);
+			path = Sidebar;
 			sourceTree = "<group>";
 		};
 		61CDB4CCCF2551D49415E631 /* Viewers */ = {
@@ -278,43 +309,30 @@
 			path = App;
 			sourceTree = "<group>";
 		};
+		AD779273C80104F211064E9D /* Files */ = {
+			isa = PBXGroup;
+			children = (
+				4D8BD63D067881BEA07D20CA /* CEWorkspaceFile.swift */,
+				FA0CCCF7EE301B668EC74F41 /* CEWorkspaceFile+Recursion.swift */,
+				873020AABC1F3C56184EFFC8 /* CEWorkspaceFileIcon.swift */,
+				009701A9AFAE94A8D3AD0701 /* CEWorkspaceFileManager.swift */,
+				0B2FFCCD2A7E2106D85209B0 /* CEWorkspaceFileManager+DirectoryEvents.swift */,
+				45FA871BA50F9EC456696EF1 /* CEWorkspaceFileManager+Error.swift */,
+				A68A9003D85E44EEC8312C8B /* CEWorkspaceFileManager+FileManagement.swift */,
+				4F1804E67C0C272D606AAF2B /* DirectoryEventStream.swift */,
+			);
+			path = Files;
+			sourceTree = "<group>";
+		};
 		BC8B5A4E36304853EFCE6D14 /* Explorer */ = {
 			isa = PBXGroup;
 			children = (
+				155270A192FB556B8CA19904 /* Cells */,
+				4DD7E13D80500FD699453A36 /* Sidebar */,
 				623249D019FA8412880434CB /* ExplorerView.swift */,
 				A29835D7429DEB0C2E24968D /* WorkspaceSwitcherView.swift */,
-				CE00000000000000000000C0 /* Cells */,
-				CE00000000000000000000B0 /* Sidebar */,
 			);
 			path = Explorer;
-			sourceTree = "<group>";
-		};
-		CE00000000000000000000B0 /* Sidebar */ = {
-			isa = PBXGroup;
-			children = (
-				CE00000000000000000000A1 /* SidebarHost.swift */,
-				CE00000000000000000000A2 /* ProjectNavigatorOutlineView.swift */,
-				CE00000000000000000000A3 /* ProjectNavigatorViewController.swift */,
-				CE00000000000000000000A4 /* ProjectNavigatorViewController+NSOutlineViewDataSource.swift */,
-				CE00000000000000000000A5 /* ProjectNavigatorViewController+NSOutlineViewDelegate.swift */,
-				CE00000000000000000000A6 /* ProjectNavigatorViewController+NSMenuDelegate.swift */,
-				CE00000000000000000000A7 /* ProjectNavigatorViewController+OutlineTableViewCellDelegate.swift */,
-				CE00000000000000000000A8 /* ProjectNavigatorTableViewCell.swift */,
-				CE00000000000000000000A9 /* ProjectNavigatorMenu.swift */,
-				CE00000000000000000000AA /* ProjectNavigatorMenuActions.swift */,
-				CE00000000000000000000AB /* ProjectNavigatorNSOutlineView.swift */,
-			);
-			path = Sidebar;
-			sourceTree = "<group>";
-		};
-		CE00000000000000000000C0 /* Cells */ = {
-			isa = PBXGroup;
-			children = (
-				CE00000000000000000000AC /* FileSystemTableViewCell.swift */,
-				CE00000000000000000000AD /* StandardTableViewCell.swift */,
-				CE00000000000000000000AE /* TextTableViewCell.swift */,
-			);
-			path = Cells;
 			sourceTree = "<group>";
 		};
 		BDB96C959EBD3A62FA792C3F /* Products */ = {
@@ -364,27 +382,12 @@
 		FE196AB1784B8959A491B306 /* Core */ = {
 			isa = PBXGroup;
 			children = (
-				CE00000000000000000000A0 /* Files */,
+				AD779273C80104F211064E9D /* Files */,
 				2869AE08A908168CF17E9C49 /* Models */,
 				E11A3D81B42656F350321176 /* Services */,
 				9482FF661724D73D296F7047 /* Theme */,
 			);
 			path = Core;
-			sourceTree = "<group>";
-		};
-		CE00000000000000000000A0 /* Files */ = {
-			isa = PBXGroup;
-			children = (
-				CE00000000000000000000F1 /* CEWorkspaceFile.swift */,
-				CE00000000000000000000F2 /* CEWorkspaceFile+Recursion.swift */,
-				CE00000000000000000000F3 /* CEWorkspaceFileIcon.swift */,
-				CE00000000000000000000F4 /* CEWorkspaceFileManager.swift */,
-				CE00000000000000000000F5 /* CEWorkspaceFileManager+DirectoryEvents.swift */,
-				CE00000000000000000000F6 /* CEWorkspaceFileManager+Error.swift */,
-				CE00000000000000000000F7 /* CEWorkspaceFileManager+FileManagement.swift */,
-				CE00000000000000000000F8 /* DirectoryEventStream.swift */,
-			);
-			path = Files;
 			sourceTree = "<group>";
 		};
 /* End PBXGroup section */
@@ -495,34 +498,21 @@
 			buildActionMask = 2147483647;
 			files = (
 				978D445809AD3EF3FED7B552 /* AppState.swift in Sources */,
+				9C4206182A5173ED1DDF1213 /* CEWorkspaceFile+Recursion.swift in Sources */,
+				291F2D96F367554658A29921 /* CEWorkspaceFile.swift in Sources */,
+				B20E90708476063002B5CBAD /* CEWorkspaceFileIcon.swift in Sources */,
+				709E65302571743A0A926681 /* CEWorkspaceFileManager+DirectoryEvents.swift in Sources */,
+				D374AF32D211D0442ED8C2BF /* CEWorkspaceFileManager+Error.swift in Sources */,
+				6583AF77B9E9B47EC7414435 /* CEWorkspaceFileManager+FileManagement.swift in Sources */,
+				D888BD036662E680AD04C1C1 /* CEWorkspaceFileManager.swift in Sources */,
 				0E2F3A41D5126595F9F89BEF /* CloseProtection.swift in Sources */,
 				939FFD364A1F541038A0B479 /* ContentView.swift in Sources */,
+				80A452956949A5B358E00437 /* DirectoryEventStream.swift in Sources */,
 				441C2863B2D58D883B160C5C /* ExcalidrawViewer.swift in Sources */,
 				BBBF864E4057B1D41C4ADE5D /* ExplorerView.swift in Sources */,
 				9EE4F8D1E4C6B1FCAE4EE521 /* FileItem.swift in Sources */,
 				66E686EFCC52B01B5152BFE0 /* FileService.swift in Sources */,
-				CE00000000000000000000B1 /* CEWorkspaceFile.swift in Sources */,
-				CE00000000000000000000B2 /* CEWorkspaceFile+Recursion.swift in Sources */,
-				CE00000000000000000000B3 /* CEWorkspaceFileIcon.swift in Sources */,
-				CE00000000000000000000B4 /* CEWorkspaceFileManager.swift in Sources */,
-				CE00000000000000000000B5 /* CEWorkspaceFileManager+DirectoryEvents.swift in Sources */,
-				CE00000000000000000000B6 /* CEWorkspaceFileManager+Error.swift in Sources */,
-				CE00000000000000000000B7 /* CEWorkspaceFileManager+FileManagement.swift in Sources */,
-				CE00000000000000000000B8 /* DirectoryEventStream.swift in Sources */,
-				CE000000000000000000ABA1 /* SidebarHost.swift in Sources */,
-				CE000000000000000000ABA2 /* ProjectNavigatorOutlineView.swift in Sources */,
-				CE000000000000000000ABA3 /* ProjectNavigatorViewController.swift in Sources */,
-				CE000000000000000000ABA4 /* ProjectNavigatorViewController+NSOutlineViewDataSource.swift in Sources */,
-				CE000000000000000000ABA5 /* ProjectNavigatorViewController+NSOutlineViewDelegate.swift in Sources */,
-				CE000000000000000000ABA6 /* ProjectNavigatorViewController+NSMenuDelegate.swift in Sources */,
-				CE000000000000000000ABA7 /* ProjectNavigatorViewController+OutlineTableViewCellDelegate.swift in Sources */,
-				CE000000000000000000ABA8 /* ProjectNavigatorTableViewCell.swift in Sources */,
-				CE000000000000000000ABA9 /* ProjectNavigatorMenu.swift in Sources */,
-				CE000000000000000000ABAA /* ProjectNavigatorMenuActions.swift in Sources */,
-				CE000000000000000000ABAB /* ProjectNavigatorNSOutlineView.swift in Sources */,
-				CE000000000000000000ABAC /* FileSystemTableViewCell.swift in Sources */,
-				CE000000000000000000ABAD /* StandardTableViewCell.swift in Sources */,
-				CE000000000000000000ABAE /* TextTableViewCell.swift in Sources */,
+				A5F353AA797B01E6ACA1AB81 /* FileSystemTableViewCell.swift in Sources */,
 				9CCCE74E801685099345E041 /* FileTypeRegistry.swift in Sources */,
 				D4A2C2AD9B128971DEFAE880 /* FileViewerRouter.swift in Sources */,
 				71A63D9F94BC4DE15D639984 /* FocusedAppState.swift in Sources */,
@@ -534,12 +524,25 @@
 				48B0354A4DBC5AF642B737C7 /* MarkdownPreviewView.swift in Sources */,
 				486363E60CC90163FBA37CF1 /* MarkwhenViewer.swift in Sources */,
 				E9B15CC4646E60DBF9C5FEA2 /* PDFViewerView.swift in Sources */,
+				B8EC9AB191E072589920AEAA /* ProjectNavigatorMenu.swift in Sources */,
+				81B5FD6BCF403DA00ED8C1F8 /* ProjectNavigatorMenuActions.swift in Sources */,
+				E36D3FD562393FACA81A135F /* ProjectNavigatorNSOutlineView.swift in Sources */,
+				F5AC0DC03770970FB13C8413 /* ProjectNavigatorOutlineView.swift in Sources */,
+				BFD1E3B65277BED37735FC1A /* ProjectNavigatorTableViewCell.swift in Sources */,
+				6EE5FB445E29ECE1B63EC018 /* ProjectNavigatorViewController+NSMenuDelegate.swift in Sources */,
+				E272E5E6331C5F5B03EB3734 /* ProjectNavigatorViewController+NSOutlineViewDataSource.swift in Sources */,
+				BB6CB2866BA17826D3EAA109 /* ProjectNavigatorViewController+NSOutlineViewDelegate.swift in Sources */,
+				11CAB4D346C4E14647905D2C /* ProjectNavigatorViewController+OutlineTableViewCellDelegate.swift in Sources */,
+				5396CB54C1F070ECCAD813CB /* ProjectNavigatorViewController.swift in Sources */,
+				2F2C86432E6702D3D43A0DF3 /* SidebarHost.swift in Sources */,
+				F98C4CA11A23A1B10B4706F4 /* StandardTableViewCell.swift in Sources */,
 				26E37FC3639099962A77591E /* SyntaxHighlighter.swift in Sources */,
 				C59B9232DF4E8D540E520215 /* TabBarView.swift in Sources */,
 				F4363502A8B5B4B334A4A3C0 /* TerminalSession.swift in Sources */,
 				5ABADD52AE8E7A50014B3FF5 /* TerminalView.swift in Sources */,
 				609281CF16DD8030B821F72B /* TerminalViewCache.swift in Sources */,
 				3801D7A29E111553A0DE6F01 /* TextEditorView.swift in Sources */,
+				A2D5752276D6B50A4912BED8 /* TextTableViewCell.swift in Sources */,
 				2C954F4E126957730B15E04A /* Theme.swift in Sources */,
 				9946E9550F93000A989EE753 /* VideoViewerView.swift in Sources */,
 				5F2E9526B99CBEC86091EB90 /* WindowConfigurator.swift in Sources */,
@@ -553,8 +556,9 @@
 			buildActionMask = 2147483647;
 			files = (
 				7F3295DBCA75CFB816671B56 /* DebugUITest.swift in Sources */,
+				8AFD9A9AF4CCCC5D1AF4A30B /* FileTreeHotReloadTests.swift in Sources */,
+				86780A6E803E66D9C7B5C566 /* GitGraphScreenshotTests.swift in Sources */,
 				9E8073F11196A309F96DA380 /* GlacierUITests.swift in Sources */,
-				B7C8D9E0F1A2B3C4D5E6F789 /* FileTreeHotReloadTests.swift in Sources */,
 			);
 			runOnlyForDeploymentPostprocessing = 0;
 		};

@@ -912,47 +912,30 @@ private struct GitGraphRowView: View {
     @Environment(\.appTheme) private var theme
 
     var body: some View {
-        let laneTint = GitGraphPalette.color(row.commitColorIndex, theme: theme)
-
-        HStack(alignment: .center, spacing: 10) {
+        HStack(alignment: .center, spacing: 8) {
             GitLaneGraphView(
                 row: row,
                 graphColumnCount: graphColumnCount,
                 isCurrentCommit: row.isCurrentCommit
             )
 
-            VStack(alignment: .leading, spacing: 3) {
-                HStack(spacing: 6) {
-                    Text(row.shortHash)
-                        .font(.system(size: 12, weight: .semibold, design: .monospaced))
-                        .foregroundStyle(theme.colors.secondaryText)
-
-                    if !row.references.isEmpty {
-                        HStack(spacing: 4) {
-                            ForEach(Array(row.references.prefix(3)), id: \.self) { reference in
-                                GitReferenceChip(reference: reference, tint: laneTint)
-                            }
-
-                            if row.references.count > 3 {
-                                GitReferenceChip(
-                                    reference: GitReference(label: "+\(row.references.count - 3)", kind: .other),
-                                    tint: laneTint
-                                )
-                            }
-                        }
+            if !row.pillGroups.isEmpty {
+                HStack(spacing: 5) {
+                    ForEach(Array(row.pillGroups.enumerated()), id: \.offset) { _, group in
+                        GitBranchPill(group: group)
                     }
                 }
-
-                Text(row.subject)
-                    .font(.system(size: 13, weight: .medium))
-                    .foregroundStyle(theme.colors.primaryText)
-                    .lineLimit(1)
             }
-            .fixedSize(horizontal: true, vertical: false)
+
+            Text(row.subject)
+                .font(.system(size: 14, weight: .regular))
+                .foregroundStyle(theme.colors.primaryText)
+                .lineLimit(1)
+                .fixedSize(horizontal: true, vertical: false)
         }
         .fixedSize(horizontal: true, vertical: false)
-        .padding(.horizontal, 12)
-        .padding(.vertical, 4)
+        .padding(.horizontal, 14)
+        .padding(.vertical, 7)
     }
 }
 
@@ -1020,7 +1003,7 @@ private struct GitLaneGraphView: View {
     }
 
     private var graphHeight: CGFloat {
-        28
+        34
     }
 
     var body: some View {
@@ -1028,7 +1011,7 @@ private struct GitLaneGraphView: View {
             let centerY = size.height / 2
             let topY: CGFloat = 2
             let bottomY = size.height - 2
-            let strokeStyle = StrokeStyle(lineWidth: 2, lineCap: .round, lineJoin: .round)
+            let strokeStyle = StrokeStyle(lineWidth: 2.2, lineCap: .round, lineJoin: .round)
 
             for segment in row.segments {
                 let start = point(for: segment.startLane, anchor: segment.startAnchor, topY: topY, centerY: centerY, bottomY: bottomY)
@@ -1053,14 +1036,21 @@ private struct GitLaneGraphView: View {
 
             let commitColor = palette[row.commitColorIndex % palette.count]
             let commitX = xPosition(for: row.commitLane)
-            let commitRect = CGRect(x: commitX - 4.5, y: centerY - 4.5, width: 9, height: 9)
+            let radius: CGFloat = 5
+            let commitRect = CGRect(
+                x: commitX - radius,
+                y: centerY - radius,
+                width: radius * 2,
+                height: radius * 2
+            )
             let commitPath = Path(ellipseIn: commitRect)
             if isCurrentCommit {
+                // Hollow outlined dot for HEAD — matches the target's "current commit"
+                // marker where the circle is transparent in the middle.
                 context.fill(commitPath, with: .color(Color(nsColor: .windowBackgroundColor)))
-                context.stroke(commitPath, with: .color(commitColor), style: StrokeStyle(lineWidth: 2.2))
+                context.stroke(commitPath, with: .color(commitColor), style: StrokeStyle(lineWidth: 2.4))
             } else {
                 context.fill(commitPath, with: .color(commitColor))
-                context.stroke(commitPath, with: .color(Color.white.opacity(0.75)), style: StrokeStyle(lineWidth: 1))
             }
         }
         .frame(width: graphWidth, height: graphHeight, alignment: .leading)
@@ -1169,25 +1159,54 @@ private enum GitGraphPalette {
     }
 }
 
-private struct GitReferenceChip: View {
-    let reference: GitReference
-    let tint: Color
+/// Cursor-style branch/ref pill. Shows the branch name as the primary label, and
+/// — when the commit is also pointed at by a remote-tracking ref of the same
+/// short name — a second segment (`origin`) appears on the left, visually
+/// merged into one rounded-rectangle pill.
+private struct GitBranchPill: View {
+    let group: GitBranchPillGroup
 
     @Environment(\.appTheme) private var theme
 
-    private var foreground: Color {
-        Color.white
+    private var tintColor: Color {
+        if group.isHead {
+            return Color(red: 0.55, green: 0.55, blue: 0.58)
+        }
+        return GitGraphPalette.color(group.colorIndex, theme: theme)
     }
 
+    private var foreground: Color { Color.white }
+
     var body: some View {
-        Text(reference.label)
-            .font(.system(size: 11, weight: .semibold, design: .monospaced))
-            .foregroundStyle(foreground)
-            .lineLimit(1)
-            .padding(.horizontal, 6)
-            .padding(.vertical, 3)
-            .background(reference.kind == .other ? tint.opacity(0.72) : tint)
-            .clipShape(Capsule())
+        HStack(spacing: 0) {
+            segment(text: group.primaryLabel, fill: tintColor, showsIcon: group.showsBranchIcon)
+            if let remote = group.remoteSegment {
+                Rectangle()
+                    .fill(Color.white.opacity(0.35))
+                    .frame(width: 1)
+                segment(text: remote, fill: tintColor.opacity(0.72), showsIcon: false)
+            }
+        }
+        .clipShape(RoundedRectangle(cornerRadius: 5, style: .continuous))
+        .fixedSize(horizontal: true, vertical: false)
+    }
+
+    private func segment(text: String, fill: Color, showsIcon: Bool) -> some View {
+        HStack(spacing: 3) {
+            if showsIcon {
+                Image(systemName: "arrow.triangle.branch")
+                    .font(.system(size: 9, weight: .bold))
+                    .foregroundStyle(foreground)
+            }
+            Text(text)
+                .font(.system(size: 11, weight: .semibold))
+                .foregroundStyle(foreground)
+                .lineLimit(1)
+                .fixedSize(horizontal: true, vertical: false)
+        }
+        .padding(.horizontal, 6)
+        .padding(.vertical, 2.5)
+        .background(fill)
     }
 }
 
@@ -1254,6 +1273,7 @@ private struct GitGraphRow: Identifiable, Sendable {
     let id: Int
     let shortHash: String
     let references: [GitReference]
+    let pillGroups: [GitBranchPillGroup]
     let subject: String
     let commitLane: Int
     let commitColorIndex: Int
@@ -1266,6 +1286,17 @@ private struct GitGraphRow: Identifiable, Sendable {
             segments.flatMap { [$0.startLane, $0.endLane] }.max() ?? 0
         )
     }
+}
+
+/// A visual grouping of related refs that should render as a single pill.
+/// Example: `main` + `origin/main` collapses into one pill with a leading
+/// "origin" segment followed by the branch name.
+private struct GitBranchPillGroup: Hashable, Sendable {
+    let primaryLabel: String
+    let remoteSegment: String?
+    let isHead: Bool
+    let colorIndex: Int
+    let showsBranchIcon: Bool
 }
 
 private struct GitReference: Hashable, Sendable {
@@ -1421,6 +1452,16 @@ private enum GitGraphLoader {
             .map { String($0) }
             .filter { !$0.isEmpty }
 
+        // Resolve the configured remote names so we can reliably tell a ref like
+        // "origin/main" (remote-tracking) apart from "fix/some-branch" (local).
+        let remotesList = runGit(arguments: ["-C", repoRoot, "remote"])
+        let remoteNames: Set<String> = Set(
+            remotesList.stdout
+                .split(whereSeparator: \.isNewline)
+                .map { String($0).trimmingCharacters(in: .whitespacesAndNewlines) }
+                .filter { !$0.isEmpty }
+        )
+
         let hasCommits = runGit(arguments: ["-C", repoRoot, "rev-parse", "--verify", "HEAD"]).exitCode == 0
         let rowState: GitRowBuildState
         if hasCommits {
@@ -1437,7 +1478,9 @@ private enum GitGraphLoader {
             if commitOutput.exitCode != 0 {
                 return .failed(commitOutput.stderr.trimmingCharacters(in: .whitespacesAndNewlines))
             }
-            rowState = buildRows(from: parseCommits(from: commitOutput.stdout))
+            rowState = buildRows(
+                from: parseCommits(from: commitOutput.stdout, remoteNames: remoteNames)
+            )
         } else {
             rowState = GitRowBuildState(rows: [], graphColumnCount: 0)
         }
@@ -1467,15 +1510,49 @@ private enum GitGraphLoader {
         process.standardOutput = stdout
         process.standardError = stderr
 
+        // Drain both pipes concurrently to avoid a deadlock: if the git output
+        // exceeds the OS pipe buffer (~64KB — trivial for `git status --porcelain`
+        // in a large untracked tree), waitUntilExit blocks forever while git
+        // itself blocks writing to the full pipe. The readability handler
+        // reads as data arrives; the termination handler signals completion.
+        var stdoutData = Data()
+        var stderrData = Data()
+        let stdoutQueue = DispatchQueue(label: "glacier.git.stdout")
+        let stderrQueue = DispatchQueue(label: "glacier.git.stderr")
+
+        stdout.fileHandleForReading.readabilityHandler = { handle in
+            let chunk = handle.availableData
+            if chunk.isEmpty {
+                handle.readabilityHandler = nil
+            } else {
+                stdoutQueue.sync { stdoutData.append(chunk) }
+            }
+        }
+        stderr.fileHandleForReading.readabilityHandler = { handle in
+            let chunk = handle.availableData
+            if chunk.isEmpty {
+                handle.readabilityHandler = nil
+            } else {
+                stderrQueue.sync { stderrData.append(chunk) }
+            }
+        }
+
         do {
             try process.run()
-            process.waitUntilExit()
         } catch {
+            stdout.fileHandleForReading.readabilityHandler = nil
+            stderr.fileHandleForReading.readabilityHandler = nil
             return GitCommandResult(exitCode: 1, stdout: "", stderr: error.localizedDescription)
         }
 
-        let stdoutData = stdout.fileHandleForReading.readDataToEndOfFile()
-        let stderrData = stderr.fileHandleForReading.readDataToEndOfFile()
+        process.waitUntilExit()
+
+        // Drain any remaining buffered data after the pipes close.
+        let remainingStdout = stdout.fileHandleForReading.readDataToEndOfFile()
+        let remainingStderr = stderr.fileHandleForReading.readDataToEndOfFile()
+        stdoutQueue.sync { stdoutData.append(remainingStdout) }
+        stderrQueue.sync { stderrData.append(remainingStderr) }
+
         return GitCommandResult(
             exitCode: process.terminationStatus,
             stdout: String(decoding: stdoutData, as: UTF8.self),
@@ -1492,7 +1569,10 @@ private enum GitGraphLoader {
         return path
     }
 
-    private static func parseCommits(from output: String) -> [GitGraphCommitRecord] {
+    private static func parseCommits(
+        from output: String,
+        remoteNames: Set<String>
+    ) -> [GitGraphCommitRecord] {
         output.split(whereSeparator: \.isNewline).compactMap { rawLine in
             let fields = rawLine.split(separator: "\u{1f}", omittingEmptySubsequences: false).map(String.init)
             guard fields.count >= 5 else {
@@ -1503,7 +1583,7 @@ private enum GitGraphLoader {
                 shortHash: fields[0],
                 fullHash: fields[1],
                 parentHashes: fields[2].split(separator: " ").map(String.init),
-                references: parseReferences(fields[3]),
+                references: parseReferences(fields[3], remoteNames: remoteNames),
                 subject: fields[4]
             )
         }
@@ -1616,6 +1696,10 @@ private enum GitGraphLoader {
                     id: index,
                     shortHash: commit.shortHash,
                     references: commit.references,
+                    pillGroups: buildPillGroups(
+                        from: commit.references,
+                        colorIndex: commitLane.colorIndex
+                    ),
                     subject: commit.subject,
                     commitLane: commitLaneIndex,
                     commitColorIndex: commitLane.colorIndex,
@@ -1629,6 +1713,130 @@ private enum GitGraphLoader {
 
         let graphColumnCount = max(rows.map(\.maxLaneIndex).max() ?? 0, 0) + 1
         return GitRowBuildState(rows: rows, graphColumnCount: graphColumnCount)
+    }
+
+    /// Collapse related refs into visual pill groups. Rules:
+    ///   • `HEAD -> branch`  becomes a dim gray "HEAD" pill followed by the branch pill.
+    ///   • `origin/branch` + `branch` collapse into one pill with an `origin` prefix segment.
+    ///   • Tags and unpaired remotes render as their own pill.
+    private static func buildPillGroups(
+        from references: [GitReference],
+        colorIndex: Int
+    ) -> [GitBranchPillGroup] {
+        var local: [String] = []
+        var localSet: Set<String> = []
+        var remotes: [String: String] = [:]   // short branch name -> full remote label
+        var tags: [String] = []
+        var headTarget: String?
+
+        for reference in references {
+            // origin/HEAD duplicates whatever default branch origin points at; hide it.
+            if reference.kind == .remoteBranch && reference.label.hasSuffix("/HEAD") {
+                continue
+            }
+            switch reference.kind {
+            case .head:
+                // "HEAD -> branch" — strip the prefix.
+                let branch = reference.label.replacingOccurrences(of: "HEAD -> ", with: "")
+                headTarget = branch
+            case .localBranch:
+                if !localSet.contains(reference.label) {
+                    local.append(reference.label)
+                    localSet.insert(reference.label)
+                }
+            case .remoteBranch:
+                // Keyed by the short branch name so we can pair with the matching local.
+                // Store the remote name (e.g. "origin") so the segment renders compactly.
+                let remoteName: String
+                let shortName: String
+                if let slash = reference.label.firstIndex(of: "/") {
+                    remoteName = String(reference.label[..<slash])
+                    shortName = String(reference.label[reference.label.index(after: slash)...])
+                } else {
+                    remoteName = "origin"
+                    shortName = reference.label
+                }
+                remotes[shortName] = remoteName
+            case .tag:
+                tags.append(reference.label)
+            case .other:
+                break
+            }
+        }
+
+        var groups: [GitBranchPillGroup] = []
+
+        // 1. HEAD dim pill comes first when HEAD points at a branch at this commit.
+        if let headTarget {
+            groups.append(
+                GitBranchPillGroup(
+                    primaryLabel: "HEAD -> \(headTarget)",
+                    remoteSegment: nil,
+                    isHead: true,
+                    colorIndex: colorIndex,
+                    showsBranchIcon: true
+                )
+            )
+
+            // When HEAD is attached to a local branch, fold that local branch into the
+            // head pill so it doesn't render twice. Otherwise leave it for the next loop.
+            if localSet.contains(headTarget) {
+                local.removeAll { $0 == headTarget }
+            }
+        }
+
+        // 2. Locals, with their remote-tracking partner merged in.
+        for branch in local {
+            if let remoteLabel = remotes.removeValue(forKey: branch) {
+                groups.append(
+                    GitBranchPillGroup(
+                        primaryLabel: branch,
+                        remoteSegment: remoteLabel,
+                        isHead: false,
+                        colorIndex: colorIndex,
+                        showsBranchIcon: true
+                    )
+                )
+            } else {
+                groups.append(
+                    GitBranchPillGroup(
+                        primaryLabel: branch,
+                        remoteSegment: nil,
+                        isHead: false,
+                        colorIndex: colorIndex,
+                        showsBranchIcon: true
+                    )
+                )
+            }
+        }
+
+        // 3. Remaining remote refs with no local counterpart.
+        for (_, remoteLabel) in remotes {
+            groups.append(
+                GitBranchPillGroup(
+                    primaryLabel: remoteLabel,
+                    remoteSegment: nil,
+                    isHead: false,
+                    colorIndex: colorIndex,
+                    showsBranchIcon: true
+                )
+            )
+        }
+
+        // 4. Tags.
+        for tag in tags {
+            groups.append(
+                GitBranchPillGroup(
+                    primaryLabel: tag,
+                    remoteSegment: nil,
+                    isHead: false,
+                    colorIndex: colorIndex,
+                    showsBranchIcon: false
+                )
+            )
+        }
+
+        return groups
     }
 
     private static func parseWorkingTreeEntries(from output: String) -> [GitWorkingTreeEntry] {
@@ -1679,7 +1887,10 @@ private enum GitGraphLoader {
             }
     }
 
-    private static func parseReferences(_ decorations: String) -> [GitReference] {
+    private static func parseReferences(
+        _ decorations: String,
+        remoteNames: Set<String>
+    ) -> [GitReference] {
         decorations
             .split(separator: ",", omittingEmptySubsequences: true)
             .map { $0.trimmingCharacters(in: .whitespacesAndNewlines) }
@@ -1688,11 +1899,15 @@ private enum GitGraphLoader {
                 let kind: GitReference.Kind
                 if label.hasPrefix("HEAD -> ") {
                     kind = .head
+                } else if label == "HEAD" {
+                    kind = .head
                 } else if label.hasPrefix("tag: ") {
                     kind = .tag
-                } else if label.hasPrefix("origin/") {
-                    kind = .remoteBranch
-                } else if label.contains("/") {
+                } else if let slash = label.firstIndex(of: "/"),
+                          remoteNames.contains(String(label[..<slash])) {
+                    // Only treat as remote when the prefix matches a known remote name.
+                    // Local branches like "fix/x" or "auto/select-save-location" still
+                    // contain "/" and must not be misclassified.
                     kind = .remoteBranch
                 } else {
                     kind = .localBranch

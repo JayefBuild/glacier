@@ -207,6 +207,22 @@ final class AppState: ObservableObject {
                 self.fileService.openFolder(at: URL(fileURLWithPath: path))
             }
         }
+
+        if environment["GLACIER_OPEN_GIT_GRAPH"] == "1" {
+            Task { @MainActor in
+                // Give the folder-open above a moment to settle before opening the
+                // Git Graph tab so the snapshot loads against the real repo.
+                try? await Task.sleep(nanoseconds: 400_000_000)
+                self.openGitGraph()
+
+                // Ensure the window is key so SwiftUI begins rendering the
+                // main content area (`.task` modifiers fire only after the view
+                // appears, which can be deferred on a headless session).
+                if let window = NSApp.windows.first(where: { $0.isVisible }) {
+                    window.makeKeyAndOrderFront(nil)
+                }
+            }
+        }
     }
 
     private func shouldHonorLaunchEnvironment(_ environment: [String: String]) -> Bool {
