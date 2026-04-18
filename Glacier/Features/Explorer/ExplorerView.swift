@@ -379,6 +379,7 @@ private struct ExplorerToolbar: View {
                     defaultExtension: "md"
                 )
                 fileService.reload()
+                refreshSidebarRoot()
                 DispatchQueue.main.asyncAfter(deadline: .now() + 0.15) {
                     let item = FileItem(url: url, isDirectory: false)
                     appState.openFile(item)
@@ -393,6 +394,7 @@ private struct ExplorerToolbar: View {
             ) { name in
                 _ = try fileService.createFolder(named: name, in: fileService.rootURL!)
                 fileService.reload()
+                refreshSidebarRoot()
             }
         }
     }
@@ -481,6 +483,21 @@ private struct ExplorerToolbar: View {
         appState.selectExplorerItem(item)
         // Drive the NSOutlineView sidebar to scroll + select + expand parents.
         sidebarHost.reveal(item.url)
+    }
+
+    /// Force the NSOutlineView sidebar (driven by `CEWorkspaceFileManager`) to re-diff its
+    /// root children immediately. Without this, toolbar-created files/folders only appear
+    /// after the FSEvents stream catches up — which can take a moment (or miss entirely if
+    /// the user launched Glacier from Spotlight and FSEvents hasn't primed yet).
+    private func refreshSidebarRoot() {
+        guard let manager = sidebarHost.fileManager else { return }
+        let root = manager.workspaceItem
+        do {
+            try manager.rebuildFiles(fromItem: root)
+            manager.notifyObservers(updatedItems: [root])
+        } catch {
+            // Non-fatal: FSEvents will eventually catch up.
+        }
     }
 }
 

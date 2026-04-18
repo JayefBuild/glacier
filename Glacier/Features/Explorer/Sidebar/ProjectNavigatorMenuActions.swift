@@ -12,6 +12,15 @@ import SwiftUI
 
 @MainActor
 extension ProjectNavigatorMenu {
+    /// Default name for newly created files/folders: today's date in `YYYY-MM-DD-` format.
+    static var defaultNewItemName: String {
+        let formatter = DateFormatter()
+        formatter.calendar = Calendar(identifier: .iso8601)
+        formatter.locale = Locale(identifier: "en_US_POSIX")
+        formatter.dateFormat = "yyyy-MM-dd-"
+        return formatter.string(from: Date())
+    }
+
     /// - Returns: the currently selected `CEWorkspaceFile` items in the outline view.
     func selectedItems() -> Set<CEWorkspaceFile> {
         guard let sender else { return [] }
@@ -85,7 +94,7 @@ extension ProjectNavigatorMenu {
     func newFile() {
         guard let item else { return }
         do {
-            if let newFile = try host?.fileManager?.addFile(fileName: "untitled", toFile: item) {
+            if let newFile = try host?.fileManager?.addFile(fileName: Self.defaultNewItemName, toFile: item) {
                 host?.onOpenFileInTab?(newFile.url)
             }
         } catch {
@@ -120,7 +129,7 @@ extension ProjectNavigatorMenu {
             if let clipBoardContent,
                !clipBoardContent.isEmpty,
                let newFile = try host?.fileManager?.addFile(
-                    fileName: "untitled",
+                    fileName: Self.defaultNewItemName,
                     toFile: item,
                     contents: clipBoardContent
                ) {
@@ -139,7 +148,7 @@ extension ProjectNavigatorMenu {
     func newFolder() {
         guard let item else { return }
         do {
-            _ = try host?.fileManager?.addFolder(folderName: "untitled", toFile: item)
+            _ = try host?.fileManager?.addFolder(folderName: Self.defaultNewItemName, toFile: item)
         } catch {
             let alert = NSAlert(error: error)
             alert.addButton(withTitle: "Dismiss")
