@@ -487,10 +487,37 @@ final class AppState: ObservableObject {
     }
 
     func previewFile(_ item: FileItem) {
-        guard let paneID = bonsplitController.focusedPaneId ?? bonsplitController.allPaneIds.first else {
-            return
+        // Never overlay a terminal tab with a preview — SwiftTerm's NSView gets
+        // yanked out of the hierarchy and its rendering wedges until the tab is
+        // reselected. Instead, route previews to a pane whose active tab is NOT
+        // a terminal. If no such pane exists, fall back to opening the file as
+        // a real tab so the terminal just gets deselected, never unmounted.
+        if let paneID = nonTerminalPreviewTargetPane() {
+            bridge.setPreview(item, inPane: paneID)
+        } else {
+            openFile(item)
         }
-        bridge.setPreview(item, inPane: paneID)
+    }
+
+    /// Returns the pane we should use for a preview, preferring the focused
+    /// pane if its active tab isn't a terminal, then any other non-terminal
+    /// pane, then a pane with no active tab at all.
+    private func nonTerminalPreviewTargetPane() -> PaneID? {
+        let candidates: [PaneID?] = [bonsplitController.focusedPaneId] + bonsplitController.allPaneIds.map { .some($0) }
+        for case let paneID? in candidates where !paneActiveTabIsTerminal(paneID) {
+            return paneID
+        }
+        return nil
+    }
+
+    private func paneActiveTabIsTerminal(_ paneID: PaneID) -> Bool {
+        guard let selected = bonsplitController.selectedTab(inPane: paneID),
+              let glacierID = bridge.glacierTabID(for: selected.id),
+              let tab = tab(with: glacierID) else {
+            return false
+        }
+        if case .terminal = tab.kind { return true }
+        return false
     }
 
     func requestSaveForFocusedPane() {
