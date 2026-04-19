@@ -910,30 +910,36 @@ private struct GitGraphRowView: View {
     @Environment(\.appTheme) private var theme
 
     var body: some View {
-        HStack(alignment: .center, spacing: 8) {
+        HStack(alignment: .center, spacing: 0) {
             GitLaneGraphView(
                 row: row,
                 graphColumnCount: graphColumnCount,
                 isCurrentCommit: row.isCurrentCommit
             )
+            .padding(.leading, 14)
 
-            if !row.pillGroups.isEmpty {
-                HStack(spacing: 5) {
-                    ForEach(Array(row.pillGroups.enumerated()), id: \.offset) { _, group in
-                        GitBranchPill(group: group)
+            HStack(alignment: .center, spacing: 6) {
+                if !row.pillGroups.isEmpty {
+                    HStack(spacing: 5) {
+                        ForEach(Array(row.pillGroups.enumerated()), id: \.offset) { _, group in
+                            GitBranchPill(group: group)
+                        }
                     }
                 }
-            }
 
-            Text(row.subject)
-                .font(.system(size: 14, weight: .regular))
-                .foregroundStyle(theme.colors.primaryText)
-                .lineLimit(1)
-                .fixedSize(horizontal: true, vertical: false)
+                Text(row.subject)
+                    .font(.system(size: 13, weight: .regular))
+                    .foregroundStyle(
+                        row.isMergeCommit
+                            ? theme.colors.primaryText.opacity(0.4)
+                            : theme.colors.primaryText
+                    )
+                    .lineLimit(1)
+            }
+            .padding(.leading, 10)
+            .padding(.trailing, 14)
         }
-        .fixedSize(horizontal: true, vertical: false)
-        .padding(.horizontal, 14)
-        .padding(.vertical, 7)
+        .frame(height: 34)
     }
 }
 
@@ -989,7 +995,7 @@ private struct GitLaneGraphView: View {
 
     @Environment(\.appTheme) private var theme
 
-    private let laneSpacing: CGFloat = 14
+    private let laneSpacing: CGFloat = 18
 
     private var palette: [Color] {
         GitGraphPalette.colors(for: theme)
@@ -997,7 +1003,7 @@ private struct GitLaneGraphView: View {
 
     private var graphWidth: CGFloat {
         let columns = max(graphColumnCount, 1)
-        return CGFloat(columns) * laneSpacing + 12
+        return CGFloat(columns) * laneSpacing + 14
     }
 
     private var graphHeight: CGFloat {
@@ -1009,7 +1015,7 @@ private struct GitLaneGraphView: View {
             let centerY = size.height / 2
             let topY: CGFloat = 2
             let bottomY = size.height - 2
-            let strokeStyle = StrokeStyle(lineWidth: 2.2, lineCap: .round, lineJoin: .round)
+            let strokeStyle = StrokeStyle(lineWidth: 2.8, lineCap: .round, lineJoin: .round)
 
             for segment in row.segments {
                 let start = point(for: segment.startLane, anchor: segment.startAnchor, topY: topY, centerY: centerY, bottomY: bottomY)
@@ -1034,7 +1040,7 @@ private struct GitLaneGraphView: View {
 
             let commitColor = palette[row.commitColorIndex % palette.count]
             let commitX = xPosition(for: row.commitLane)
-            let radius: CGFloat = 5
+            let radius: CGFloat = 6
             let commitRect = CGRect(
                 x: commitX - radius,
                 y: centerY - radius,
@@ -1083,11 +1089,11 @@ private struct GitWorkingTreeLaneView: View {
     let isLast: Bool
     let connectsToHistory: Bool
 
-    private let laneSpacing: CGFloat = 14
+    private let laneSpacing: CGFloat = 18
 
     private var graphWidth: CGFloat {
         let columns = max(graphColumnCount, 1)
-        return CGFloat(columns) * laneSpacing + 12
+        return CGFloat(columns) * laneSpacing + 14
     }
 
     var body: some View {
@@ -1276,6 +1282,7 @@ private struct GitGraphRow: Identifiable, Sendable {
     let commitLane: Int
     let commitColorIndex: Int
     let isCurrentCommit: Bool
+    let isMergeCommit: Bool
     let segments: [GitLaneSegment]
 
     var maxLaneIndex: Int {
@@ -1702,6 +1709,7 @@ private enum GitGraphLoader {
                     commitLane: commitLaneIndex,
                     commitColorIndex: commitLane.colorIndex,
                     isCurrentCommit: commit.references.contains(where: { $0.kind == .head }),
+                    isMergeCommit: commit.parentHashes.count > 1,
                     segments: continuingSegments + commitSegments
                 )
             )
