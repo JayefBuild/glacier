@@ -163,11 +163,13 @@ struct MarkdownEditorView: View {
 
             Picker("", selection: $mode) {
                 ForEach(MarkdownEditorMode.allCases) { mode in
-                    Text(mode.title).tag(mode)
+                    Image(systemName: mode.iconName)
+                        .help(mode.title)
+                        .tag(mode)
                 }
             }
             .pickerStyle(.segmented)
-            .frame(width: 210)
+            .frame(width: 120)
             .labelsHidden()
         }
         .padding(.horizontal, 12)
@@ -189,6 +191,14 @@ private enum MarkdownEditorMode: String, CaseIterable, Identifiable {
         case .source: return "Source"
         case .split: return "Split"
         case .preview: return "Preview"
+        }
+    }
+
+    var iconName: String {
+        switch self {
+        case .source: return "pencil"
+        case .split: return "rectangle.split.2x1"
+        case .preview: return "eyeglasses"
         }
     }
 }
