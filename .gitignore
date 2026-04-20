@@ -7,4 +7,6 @@ DerivedData/
 private/
 remote-artifacts/
 *.o
-*.dto-remove/
+*.d
+to-remove/
+build/

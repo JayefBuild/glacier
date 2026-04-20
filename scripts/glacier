@@ -1,0 +1,34 @@
+#!/usr/bin/env bash
+# glacier — CLI launcher for Glacier.app
+#
+# Usage:
+#   glacier                    # open/focus Glacier
+#   glacier file.md            # open file in the active Glacier window
+#   glacier ~/some/folder      # open folder in a new window (or focus if already open)
+#   glacier a.md b.md ./docs   # multiple args work — files go to active, folders spawn windows
+
+set -euo pipefail
+
+BUNDLE_ID="com.jfrech.Glacier"
+
+# No args → just launch/focus Glacier.
+if [[ $# -eq 0 ]]; then
+    open -b "$BUNDLE_ID"
+    exit 0
+fi
+
+# Resolve every arg to an absolute path that exists. `open` accepts relative
+# paths, but resolving here gives clearer error messages and matches what the
+# Swift side expects.
+paths=()
+for arg in "$@"; do
+    if [[ ! -e "$arg" ]]; then
+        printf 'glacier: no such file or directory: %s\n' "$arg" >&2
+        exit 1
+    fi
+    # Use python for portable absolute-path resolution (no coreutils dep).
+    abs=$(/usr/bin/python3 -c 'import os, sys; print(os.path.abspath(sys.argv[1]))' "$arg")
+    paths+=("$abs")
+done
+
+exec open -b "$BUNDLE_ID" "${paths[@]}"
