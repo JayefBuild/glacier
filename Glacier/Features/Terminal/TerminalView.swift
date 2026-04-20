@@ -308,6 +308,13 @@ struct TerminalView: View {
 
 // MARK: - NSViewRepresentable
 
+/// Disposable mount container. Each SwiftUI representable mount gets its own
+/// fresh TerminalMountView; the real GuardedTerminalView (which owns the PTY)
+/// lives in TerminalViewCache and gets reparented into whichever container is
+/// currently active. This lets Bonsplit tear down and recreate pane hosts
+/// (e.g. during splitPane) without destroying the terminal.
+final class TerminalMountView: NSView {}
+
 struct SwiftTermRepresentable: NSViewRepresentable {
     let session: TerminalSession
     let fontSize: CGFloat
@@ -316,16 +323,28 @@ struct SwiftTermRepresentable: NSViewRepresentable {
     let onInteraction: () -> Void
     let onCommand: (TerminalShortcutCommand) -> Void
 
-    func makeNSView(context: Context) -> GuardedTerminalView {
+    func makeNSView(context: Context) -> TerminalMountView {
+        let host = TerminalMountView(frame: NSRect(x: 0, y: 0, width: 640, height: 480))
+        host.wantsLayer = true
+        host.autoresizingMask = [.width, .height]
+
         let terminalView = cachedOrCreateTerminalView()
         terminalView.onInteraction = onInteraction
         terminalView.onCommand = onCommand
-        return terminalView
+        mount(terminalView, in: host)
+        return host
     }
 
-    func updateNSView(_ terminalView: GuardedTerminalView, context: Context) {
+    func updateNSView(_ host: TerminalMountView, context: Context) {
+        let terminalView = cachedOrCreateTerminalView()
         terminalView.onInteraction = onInteraction
         terminalView.onCommand = onCommand
+
+        // If the terminal moved to another host (e.g. during a pane split), pull
+        // it back into this one.
+        if terminalView.superview !== host {
+            mount(terminalView, in: host)
+        }
 
         let appearance = TerminalAppearance.current
         let newFont = resolvedFont(size: fontSize, appearance: appearance)
@@ -337,15 +356,36 @@ struct SwiftTermRepresentable: NSViewRepresentable {
         terminalView.setFocused(isFocused)
     }
 
+    static func dismantleNSView(_ host: TerminalMountView, coordinator: ()) {
+        // Only detach the terminal if it's still a child of THIS host. If it's
+        // already been reparented to a new host (pane split case), leave it.
+        for sub in host.subviews where sub is GuardedTerminalView {
+            sub.removeFromSuperview()
+        }
+    }
+
+    private func mount(_ terminal: GuardedTerminalView, in host: TerminalMountView) {
+        if terminal.superview !== nil {
+            terminal.removeFromSuperview()
+        }
+        terminal.translatesAutoresizingMaskIntoConstraints = false
+        host.addSubview(terminal)
+        NSLayoutConstraint.activate([
+            terminal.leadingAnchor.constraint(equalTo: host.leadingAnchor),
+            terminal.trailingAnchor.constraint(equalTo: host.trailingAnchor),
+            terminal.topAnchor.constraint(equalTo: host.topAnchor),
+            terminal.bottomAnchor.constraint(equalTo: host.bottomAnchor)
+        ])
+    }
+
     private func cachedOrCreateTerminalView() -> GuardedTerminalView {
         if let cached = TerminalViewCache.shared.get(session.id) {
-            cached.removeFromSuperview()
             cached.debugName = session.id.uuidString
             applyAppearance(to: cached, fontSize: fontSize)
             return cached
         }
 
-        let terminalView = GuardedTerminalView(frame: .zero)
+        let terminalView = GuardedTerminalView(frame: NSRect(x: 0, y: 0, width: 640, height: 480))
         terminalView.debugName = session.id.uuidString
         applyAppearance(to: terminalView, fontSize: fontSize)
 
