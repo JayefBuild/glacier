@@ -7,6 +7,7 @@
 	objects = {
 
 /* Begin PBXBuildFile section */
+		092AE5153530335310F970D2 /* MarkdownSourceTextView.swift in Sources */ = {isa = PBXBuildFile; fileRef = 437EB39A577C8748E86A603E /* MarkdownSourceTextView.swift */; };
 		0E2F3A41D5126595F9F89BEF /* CloseProtection.swift in Sources */ = {isa = PBXBuildFile; fileRef = B16B2F5FC7DBD55D18740806 /* CloseProtection.swift */; };
 		11CAB4D346C4E14647905D2C /* ProjectNavigatorViewController+OutlineTableViewCellDelegate.swift in Sources */ = {isa = PBXBuildFile; fileRef = 8747D4D06D7DFF4951EA81BE /* ProjectNavigatorViewController+OutlineTableViewCellDelegate.swift */; };
 		17AA8CAE714DA3BD729D6700 /* GlacierApp.swift in Sources */ = {isa = PBXBuildFile; fileRef = 5944FC51D64A920B0E52E5F0 /* GlacierApp.swift */; };
@@ -36,8 +37,10 @@
 		80A452956949A5B358E00437 /* DirectoryEventStream.swift in Sources */ = {isa = PBXBuildFile; fileRef = 4F1804E67C0C272D606AAF2B /* DirectoryEventStream.swift */; };
 		81B5FD6BCF403DA00ED8C1F8 /* ProjectNavigatorMenuActions.swift in Sources */ = {isa = PBXBuildFile; fileRef = A12DC6770E2AB95E55F015D4 /* ProjectNavigatorMenuActions.swift */; };
 		86780A6E803E66D9C7B5C566 /* GitGraphScreenshotTests.swift in Sources */ = {isa = PBXBuildFile; fileRef = 13B0D61C62ECFEB156627C8F /* GitGraphScreenshotTests.swift */; };
+		8955035E6CA783D4A80D5044 /* MarkdownUI in Frameworks */ = {isa = PBXBuildFile; productRef = 99F0BD586EDD71AFD30060D7 /* MarkdownUI */; };
 		8AFD9A9AF4CCCC5D1AF4A30B /* FileTreeHotReloadTests.swift in Sources */ = {isa = PBXBuildFile; fileRef = 0D81BBD5295115516404E8E3 /* FileTreeHotReloadTests.swift */; };
 		9152FE11163F516D585FA849 /* excalidraw.html in Resources */ = {isa = PBXBuildFile; fileRef = D8220CB15037D5F5636A2863 /* excalidraw.html */; };
+		92C21F2F5BA2F1D184D5E142 /* LocalFileImageProvider.swift in Sources */ = {isa = PBXBuildFile; fileRef = 2DD709CA26EBB6B19BFEFA3E /* LocalFileImageProvider.swift */; };
 		939FFD364A1F541038A0B479 /* ContentView.swift in Sources */ = {isa = PBXBuildFile; fileRef = B52D6AAC9967E2036F524B91 /* ContentView.swift */; };
 		978D445809AD3EF3FED7B552 /* AppState.swift in Sources */ = {isa = PBXBuildFile; fileRef = CF5BDA0D91882E19997A60C4 /* AppState.swift */; };
 		9946E9550F93000A989EE753 /* VideoViewerView.swift in Sources */ = {isa = PBXBuildFile; fileRef = 1E97B9A4AC248E009726AB21 /* VideoViewerView.swift */; };
@@ -98,8 +101,10 @@
 		214D16911A5FB7FC000483E8 /* GlacierUITests.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = GlacierUITests.swift; sourceTree = "<group>"; };
 		27E564E480C4BD29A5AD46CC /* TerminalViewCache.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = TerminalViewCache.swift; sourceTree = "<group>"; };
 		29A928CAF4BF8420D26624D4 /* Info.plist */ = {isa = PBXFileReference; lastKnownFileType = text.plist; path = Info.plist; sourceTree = "<group>"; };
+		2DD709CA26EBB6B19BFEFA3E /* LocalFileImageProvider.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = LocalFileImageProvider.swift; sourceTree = "<group>"; };
 		346AA22F51400F6E4139A547 /* ProjectNavigatorTableViewCell.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = ProjectNavigatorTableViewCell.swift; sourceTree = "<group>"; };
 		41CEBE8CFB08BDAAA22E4737 /* ProjectNavigatorViewController+NSOutlineViewDataSource.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = "ProjectNavigatorViewController+NSOutlineViewDataSource.swift"; sourceTree = "<group>"; };
+		437EB39A577C8748E86A603E /* MarkdownSourceTextView.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = MarkdownSourceTextView.swift; sourceTree = "<group>"; };
 		4576EACAE58F9517F77555F0 /* FileService.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = FileService.swift; sourceTree = "<group>"; };
 		45FA871BA50F9EC456696EF1 /* CEWorkspaceFileManager+Error.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = "CEWorkspaceFileManager+Error.swift"; sourceTree = "<group>"; };
 		4AB76542D0D42359BD5CB051 /* react.min.js */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.javascript; path = react.min.js; sourceTree = "<group>"; };
@@ -161,6 +166,7 @@
 				4A7E90682365AA3E9308567F /* SwiftTerm in Frameworks */,
 				C32BDFB0AFEB2BFF1B35B299 /* MarkdownEditor in Frameworks */,
 				A3A06F57A48C0D68D12F3886 /* Bonsplit in Frameworks */,
+				8955035E6CA783D4A80D5044 /* MarkdownUI in Frameworks */,
 			);
 			runOnlyForDeploymentPostprocessing = 0;
 		};
@@ -253,7 +259,9 @@
 				AD93BCF96F8E85B00F773337 /* ExcalidrawViewer.swift */,
 				E9FC3C49D5662DFF52FB6D2D /* FileViewerRouter.swift */,
 				514C6B81CB9C5AA52346DB3E /* ImageViewerView.swift */,
+				2DD709CA26EBB6B19BFEFA3E /* LocalFileImageProvider.swift */,
 				867E85D4AAF4156C80D6179F /* MarkdownPreviewView.swift */,
+				437EB39A577C8748E86A603E /* MarkdownSourceTextView.swift */,
 				08B57A35779CE554895583FD /* MarkwhenViewer.swift */,
 				57BF7FC57F6055A25AC0814C /* PDFViewerView.swift */,
 				A47CBAE36C3E3C8F27FFF08C /* TextEditorView.swift */,
@@ -422,6 +430,7 @@
 				7613E683B9B6635224D3B6A3 /* SwiftTerm */,
 				11B4DDFDE6DA19E65DD5D99B /* MarkdownEditor */,
 				E174CFBECB932DECB41F68EA /* Bonsplit */,
+				99F0BD586EDD71AFD30060D7 /* MarkdownUI */,
 			);
 			productName = Glacier;
 			productReference = 8D84D6DA96169DD668395E25 /* Glacier.app */;
@@ -459,6 +468,7 @@
 			minimizedProjectReferenceProxies = 1;
 			packageReferences = (
 				37EE6E2F744703B3BBEF1891 /* XCRemoteSwiftPackageReference "bonsplit" */,
+				272E0A69ACC24CAD7A522666 /* XCRemoteSwiftPackageReference "swift-markdown-ui" */,
 				09FEC232195B97195C29C32B /* XCRemoteSwiftPackageReference "SwiftTerm" */,
 				D3B16B259E0277B86AD18AC9 /* XCLocalSwiftPackageReference "Packages/MarkdownEditor" */,
 			);
@@ -517,8 +527,10 @@
 				779EBCEE08533E2847A2A7FC /* GlacierCommands.swift in Sources */,
 				E0DDD3F98649C0EFD926E828 /* GuardedTerminalView.swift in Sources */,
 				9A7BF0A8BBF368DB731D0B98 /* ImageViewerView.swift in Sources */,
+				92C21F2F5BA2F1D184D5E142 /* LocalFileImageProvider.swift in Sources */,
 				DD3B40C53ADCE702E0B8D654 /* MainContentArea.swift in Sources */,
 				48B0354A4DBC5AF642B737C7 /* MarkdownPreviewView.swift in Sources */,
+				092AE5153530335310F970D2 /* MarkdownSourceTextView.swift in Sources */,
 				486363E60CC90163FBA37CF1 /* MarkwhenViewer.swift in Sources */,
 				E9B15CC4646E60DBF9C5FEA2 /* PDFViewerView.swift in Sources */,
 				B8EC9AB191E072589920AEAA /* ProjectNavigatorMenu.swift in Sources */,
@@ -826,6 +838,14 @@
 				minimumVersion = 1.2.0;
 			};
 		};
+		272E0A69ACC24CAD7A522666 /* XCRemoteSwiftPackageReference "swift-markdown-ui" */ = {
+			isa = XCRemoteSwiftPackageReference;
+			repositoryURL = "https://github.com/gonzalezreal/swift-markdown-ui";
+			requirement = {
+				kind = upToNextMajorVersion;
+				minimumVersion = 2.4.1;
+			};
+		};
 		37EE6E2F744703B3BBEF1891 /* XCRemoteSwiftPackageReference "bonsplit" */ = {
 			isa = XCRemoteSwiftPackageReference;
 			repositoryURL = "https://github.com/almonk/bonsplit";
@@ -845,6 +865,11 @@
 			isa = XCSwiftPackageProductDependency;
 			package = 09FEC232195B97195C29C32B /* XCRemoteSwiftPackageReference "SwiftTerm" */;
 			productName = SwiftTerm;
+		};
+		99F0BD586EDD71AFD30060D7 /* MarkdownUI */ = {
+			isa = XCSwiftPackageProductDependency;
+			package = 272E0A69ACC24CAD7A522666 /* XCRemoteSwiftPackageReference "swift-markdown-ui" */;
+			productName = MarkdownUI;
 		};
 		E174CFBECB932DECB41F68EA /* Bonsplit */ = {
 			isa = XCSwiftPackageProductDependency;

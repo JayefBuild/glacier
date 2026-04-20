@@ -30,6 +30,9 @@ packages:
   Bonsplit:
     url: https://github.com/almonk/bonsplit
     from: 1.1.1
+  MarkdownUI:
+    url: https://github.com/gonzalezreal/swift-markdown-ui
+    from: 2.4.1
 
 targets:
   Glacier:
@@ -55,6 +58,8 @@ targets:
         product: MarkdownEditor
       - package: Bonsplit
         product: Bonsplit
+      - package: MarkdownUI
+        product: MarkdownUI
 
   GlacierUITests:
     type: bundle.ui-testing

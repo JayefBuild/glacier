@@ -1,0 +1,42 @@
+#!/usr/bin/env bash
+# install — build Glacier in Release and install to /Applications
+set -euo pipefail
+
+PROJECT_DIR="$(cd "$(dirname "$0")/.." && pwd)"
+SCHEME="Glacier"
+DERIVED_DATA="$PROJECT_DIR/build/DerivedData"
+ARCHIVE_PATH="$PROJECT_DIR/build/Glacier.xcarchive"
+APP_NAME="Glacier.app"
+DEST="/Applications/$APP_NAME"
+
+echo "→ Archiving $SCHEME..."
+xcodebuild archive \
+    -project "$PROJECT_DIR/Glacier.xcodeproj" \
+    -scheme "$SCHEME" \
+    -configuration Release \
+    -archivePath "$ARCHIVE_PATH" \
+    -derivedDataPath "$DERIVED_DATA" \
+    -destination "generic/platform=macOS,name=Any Mac" \
+    ARCHS=arm64 \
+    ONLY_ACTIVE_ARCH=NO \
+    CODE_SIGN_IDENTITY="-" \
+    CODE_SIGNING_REQUIRED=YES \
+    CODE_SIGNING_ALLOWED=YES \
+    | grep -E "^(error:|warning:|Build succeeded|Archive succeeded|fatal)" || true
+
+APP_IN_ARCHIVE="$ARCHIVE_PATH/Products/Applications/$APP_NAME"
+
+if [[ ! -d "$APP_IN_ARCHIVE" ]]; then
+    echo "✗ Build failed — $APP_IN_ARCHIVE not found"
+    exit 1
+fi
+
+echo "→ Installing to $DEST..."
+rm -rf "$DEST"
+cp -R "$APP_IN_ARCHIVE" "$DEST"
+
+echo "→ Removing quarantine..."
+xattr -rd com.apple.quarantine "$DEST" 2>/dev/null || true
+
+echo "✓ Glacier installed to $DEST"
+echo "  You can now open it from Spotlight or Applications."

@@ -226,17 +226,19 @@ final class GlacierScrollView: NSScrollView {
     let textView: NSTextView
     private let lineNumberView: LineNumberRulerView
 
-    override init(frame: NSRect) {
-        let textStorage = NSTextStorage()
-        let layoutManager = NSLayoutManager()
-        let textContainer = NSTextContainer(size: NSSize(width: 0, height: CGFloat.greatestFiniteMagnitude))
-        textContainer.widthTracksTextView = true
-        textContainer.heightTracksTextView = false
+    override convenience init(frame: NSRect) {
+        let storage = NSTextStorage()
+        let layout = NSLayoutManager()
+        let container = NSTextContainer(size: NSSize(width: 0, height: CGFloat.greatestFiniteMagnitude))
+        container.widthTracksTextView = true
+        container.heightTracksTextView = false
+        storage.addLayoutManager(layout)
+        layout.addTextContainer(container)
+        self.init(frame: frame, textView: GlacierTextView(frame: .zero, textContainer: container))
+    }
 
-        textStorage.addLayoutManager(layoutManager)
-        layoutManager.addTextContainer(textContainer)
-
-        textView = GlacierTextView(frame: .zero, textContainer: textContainer)
+    init(frame: NSRect = .zero, textView: NSTextView) {
+        self.textView = textView
         textView.minSize = NSSize(width: 0, height: 0)
         textView.maxSize = NSSize(width: CGFloat.greatestFiniteMagnitude, height: CGFloat.greatestFiniteMagnitude)
         lineNumberView = LineNumberRulerView(textView: textView)
@@ -283,7 +285,7 @@ final class GlacierScrollView: NSScrollView {
     }
 }
 
-final class GlacierTextView: NSTextView {
+class GlacierTextView: NSTextView {
     override func clicked(onLink link: Any, at charIndex: Int) {
         if let url = link as? URL {
             NSWorkspace.shared.open(url)
